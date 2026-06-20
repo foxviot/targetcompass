@@ -249,6 +249,7 @@ def _discover_core_resources(project_dir: Path) -> list[dict[str, Any]]:
         (f"spec://{project_dir.name}/disease/latest", v4_dir(project_dir) / "disease_spec.json", "read"),
         (f"plan://{project_dir.name}/latest", project_dir / "analysis_plan.json", "read"),
         (f"work-order://{project_dir.name}/index", v4_dir(project_dir) / "work_orders.json", "read"),
+        (f"work-order-dag://{project_dir.name}/latest", v4_dir(project_dir) / "work_order_dag.json", "read"),
         (f"role-run://{project_dir.name}/index", v4_dir(project_dir) / "role_runs.json", "read"),
         (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
         (f"mcp-tool://{project_dir.name}/index", v4_dir(project_dir) / "mcp_tools.json", "read"),

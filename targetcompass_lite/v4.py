@@ -252,6 +252,7 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
 
 def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
     from .registry_snapshots import build_registry_snapshots
+    from .work_order_dag import build_work_order_dag, work_order_dag_path
 
     plan = plan or read_json(project_dir / "analysis_plan.json", {})
     research_spec = read_json(project_dir / "research_spec.json", {})
@@ -260,6 +261,7 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     disease_spec_path.write_text(json.dumps(disease_spec, indent=2, ensure_ascii=False), encoding="utf-8")
     state_machine_path = write_v4_state_machine(project_dir)
     work_orders = compile_v4_work_orders(project_dir, plan)
+    work_order_dag = build_work_order_dag(project_dir)
     evidence_snapshot = build_evidence_snapshot(project_dir)
     mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
     registry_snapshots = build_registry_snapshots(project_dir)
@@ -288,6 +290,11 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "count": len(work_orders),
                 "path": "v4/work_orders.json",
                 "hash": file_hash(v4_dir(project_dir) / "work_orders.json"),
+            },
+            "work_order_dag": {
+                "count": work_order_dag.get("node_count", 0),
+                "path": "v4/work_order_dag.json",
+                "hash": file_hash(work_order_dag_path(project_dir)),
             },
             "evidence_snapshot": evidence_snapshot,
             "mcp_resources": {
@@ -422,6 +429,12 @@ def finish_work_order_attempt(
             updated = row
             break
     _write_attempt_manifest(project_dir, manifest)
+    try:
+        from .work_order_dag import build_work_order_dag
+
+        build_work_order_dag(project_dir)
+    except Exception:
+        pass
     return updated
 
 

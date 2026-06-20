@@ -44,6 +44,7 @@ from .status_ui import build_status_center
 from .system_status import system_status
 from .validators import load_dataset_card
 from .v4 import build_v4_manifest, load_codex_task_packet, load_v4_work_orders, read_work_order_attempts
+from .work_order_dag import load_work_order_dag
 from .role_runner import load_role_runs
 
 
@@ -829,6 +830,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
     return (
         "".join(cards)
         + attempt_table
+        + _work_order_dag_panel(project_dir)
         + _codex_engineering_panel(project_dir)
         + _role_runs_panel(project_dir)
         + _mcp_gateway_panel(project_dir)
@@ -836,6 +838,30 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         + _executor_manifest_panel(project_dir)
         + _agent_roles_panel(project_dir)
         + resource_table
+    )
+
+
+def _work_order_dag_panel(project_dir: Path) -> str:
+    dag = load_work_order_dag(project_dir)
+    rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(node.get('node_id', ''))}</code><small>{html.escape(node.get('module_id', ''))}</small></td>"
+        f"<td>{html.escape(node.get('module', ''))}</td>"
+        f"<td>{html.escape(node.get('status', ''))}</td>"
+        f"<td>{html.escape(str(len(node.get('outputs', []))))}</td>"
+        f"<td>{html.escape(str(len(node.get('evidence_writes', []))))}</td>"
+        f"<td>{html.escape('; '.join(node.get('dependencies', [])))}</td>"
+        "</tr>"
+        for node in dag.get("nodes", [])[-20:]
+    )
+    if not rows:
+        return '<p class="muted">No WorkOrder DAG recorded yet.</p>'
+    summary = ", ".join(f"{key}: {value}" for key, value in dag.get("status_summary", {}).items())
+    return (
+        "<details open><summary>WorkOrder DAG</summary>"
+        f'<p class="muted">nodes: {html.escape(str(dag.get("node_count", 0)))} · edges: {html.escape(str(dag.get("edge_count", 0)))} · {html.escape(summary)}</p>'
+        "<table><thead><tr><th>Node</th><th>Module</th><th>Status</th><th>Outputs</th><th>Evidence writes</th><th>Dependencies</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></details>"
     )
 
 
