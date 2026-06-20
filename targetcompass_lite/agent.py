@@ -13,8 +13,10 @@ from .cli import init_project
 from .deg import run_deg
 from .enrichment import run_enrichment
 from .evidence_db import import_evidence
+from .causal_evidence import grade_causal_evidence
 from .geo_discovery import discover_geo_datasets
 from .matching import match_project
+from .meta_analysis import run_meta_analysis
 from .methods.contracts import MethodContext
 from .methods.registry import load_method_config, run_method
 from .planning import build_plan
@@ -391,15 +393,21 @@ class TargetDiscoveryAgent:
                 executed.append({"module": module.get("module", "unknown"), "dataset_id": module.get("dataset_id", ""), "status": "planned"})
         check_cancelled(self.project_dir)
         enrichment_path = run_enrichment(self.project_dir)
+        meta_path = run_meta_analysis(self.project_dir)
         access_path, safety_path, review_path = annotate_project(self.project_dir)
         evidence_path = import_evidence(self.project_dir)
+        causal_path = grade_causal_evidence(self.project_dir)
+        if _has_data_rows(causal_path):
+            evidence_path = import_evidence(self.project_dir)
         scores_path = score_project(self.project_dir)
         executed.extend(
             [
                 {"module": "enrichment", "dataset_id": "*", "status": str(enrichment_path)},
+                {"module": "meta_analysis", "dataset_id": "*", "status": str(meta_path)},
                 {"module": "annotation", "dataset_id": "*", "status": str(access_path)},
                 {"module": "safety", "dataset_id": "*", "status": str(safety_path)},
                 {"module": "unknown_review", "dataset_id": "*", "status": str(review_path)},
+                {"module": "causal_evidence", "dataset_id": "*", "status": str(causal_path)},
                 {"module": "evidence_import", "dataset_id": "*", "status": str(evidence_path)},
                 {"module": "scoring", "dataset_id": "*", "status": str(scores_path)},
             ]
@@ -489,4 +497,12 @@ def _read_csv(path: Path, delimiter: str = ",") -> list[dict]:
         import csv
 
         return list(csv.DictReader(f, delimiter=delimiter))
+
+
+def _has_data_rows(path: Path) -> bool:
+    if not path.exists():
+        return False
+    with path.open(encoding="utf-8") as f:
+        next(f, None)
+        return any(line.strip() for line in f)
 

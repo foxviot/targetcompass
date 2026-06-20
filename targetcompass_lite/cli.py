@@ -8,7 +8,9 @@ from .agent_roles import write_agent_role_manifest
 from .deg import run_deg
 from .enrichment import run_enrichment
 from .evidence_db import import_evidence
+from .causal_evidence import grade_causal_evidence
 from .matching import match_project
+from .meta_analysis import run_meta_analysis
 from .paths import ensure_project_dirs, project_path
 from .planning import build_plan
 from .reporting import build_report
@@ -67,6 +69,14 @@ def _print_errors(errors: list[str]) -> int:
         return 1
     print("OK")
     return 0
+
+
+def _has_data_rows(path: Path) -> bool:
+    if not path.exists():
+        return False
+    with path.open(encoding="utf-8") as f:
+        next(f, None)
+        return any(line.strip() for line in f)
 
 
 def cmd_demo(args) -> int:
@@ -152,8 +162,14 @@ def cmd_demo(args) -> int:
             print(f"planned {module['module']} for {module['dataset_id']}")
     enrichment_path = run_enrichment(p)
     print(f"ran enrichment: {enrichment_path}")
+    meta_path = run_meta_analysis(p)
+    print(f"ran meta-analysis: {meta_path}")
     annotate_project(p)
     import_evidence(p)
+    causal_path = grade_causal_evidence(p)
+    print(f"ran causal evidence grading: {causal_path}")
+    if _has_data_rows(causal_path):
+        import_evidence(p)
     score_project(p)
     run_role(
         p,

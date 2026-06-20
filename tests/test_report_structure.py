@@ -69,6 +69,7 @@ class ReportStructureTest(unittest.TestCase):
             "research_question",
             "methods",
             "data_sources_and_qc",
+            "advanced_analysis",
             "candidate_ranking",
             "evidence_chain",
             "report_evidence_refs",
@@ -83,9 +84,20 @@ class ReportStructureTest(unittest.TestCase):
         self.assertIn("analysis_modules", data["methods"])
         self.assertTrue(data["data_sources_and_qc"]["datasets"])
         self.assertTrue(data["data_sources_and_qc"]["bulk_rna_microarray_qc"])
+        self.assertIn("meta_analysis", data["advanced_analysis"])
+        self.assertIn("causal_evidence", data["advanced_analysis"])
+        self.assertIn("mcp_call_audit", data["approval_and_audit"])
+        self.assertIn("codex_engineering", data["approval_and_audit"])
         self.assertTrue(data["candidate_ranking"])
         self.assertTrue(data["evidence_chain"])
         self.assertTrue(data["experiment_suggestions"])
+
+    def test_report_includes_v4_advanced_audit_sections(self):
+        html = (PROJECT / "reports" / "target_report.html").read_text(encoding="utf-8")
+        self.assertIn("Meta-analysis overview", html)
+        self.assertIn("Causal evidence grading", html)
+        self.assertIn("MCP call audit", html)
+        self.assertIn("Codex engineering results", html)
 
     def test_structured_report_preserves_artifacts_and_qc(self):
         data = json.loads((PROJECT / "reports" / "target_report_structured.json").read_text(encoding="utf-8"))

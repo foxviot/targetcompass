@@ -49,6 +49,8 @@ class DemoWorkflowTest(unittest.TestCase):
             PROJECT / "results" / "bulk_deg_ds_fixture_vascular_aging" / "qc_summary.json",
             PROJECT / "results" / "annotation" / "accessibility_annotation.tsv",
             PROJECT / "results" / "annotation" / "safety_flags.tsv",
+            PROJECT / "results" / "meta_analysis" / "deg_meta_analysis.tsv",
+            PROJECT / "results" / "causal_evidence" / "causal_evidence_grades.tsv",
             PROJECT / "evidence.sqlite",
             PROJECT / "candidate_scores.csv",
             PROJECT / "reports" / "target_report.html",

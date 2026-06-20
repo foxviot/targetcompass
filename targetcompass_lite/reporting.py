@@ -5,6 +5,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from .codex_engineering import load_codex_engineering
+
 
 PROHIBITED_CLAIMS = ["clinical recommendation", "cure"]
 
@@ -211,6 +213,44 @@ def _enrichment_rows(project_dir: Path) -> list[list[str]]:
     ]
 
 
+def _meta_analysis_records(project_dir: Path) -> list[dict[str, str]]:
+    return _read_tsv(project_dir / "results" / "meta_analysis" / "deg_meta_analysis.tsv")[:30]
+
+
+def _meta_analysis_rows(project_dir: Path) -> list[list[str]]:
+    return [
+        [
+            row.get("gene_symbol", ""),
+            row.get("dataset_count", ""),
+            row.get("mean_logFC", ""),
+            row.get("dominant_direction", ""),
+            row.get("direction_consistency", ""),
+            row.get("combined_p_score", ""),
+            row.get("source_datasets", ""),
+        ]
+        for row in _meta_analysis_records(project_dir)
+    ]
+
+
+def _causal_evidence_records(project_dir: Path) -> list[dict[str, str]]:
+    return _read_tsv(project_dir / "results" / "causal_evidence" / "causal_evidence_grades.tsv")[:30]
+
+
+def _causal_evidence_rows(project_dir: Path) -> list[list[str]]:
+    return [
+        [
+            row.get("gene_symbol", ""),
+            row.get("causal_grade", ""),
+            row.get("methods", ""),
+            row.get("evidence_types", ""),
+            row.get("evidence_count", ""),
+            row.get("best_p_value", ""),
+            row.get("rationale", ""),
+        ]
+        for row in _causal_evidence_records(project_dir)
+    ]
+
+
 def _experiment_records(project_dir: Path) -> list[dict[str, Any]]:
     return _read_json(project_dir / "results" / "experiments" / "experiment_designs.json", [])[:10]
 
@@ -349,6 +389,45 @@ def _audit_rows(context: dict[str, Any]) -> tuple[list[list[str]], list[list[str
     return stages, reviews, adapters
 
 
+def _mcp_audit_records(project_dir: Path) -> dict[str, Any]:
+    return _read_json(project_dir / "v4" / "mcp_call_audit_summary.json", {"call_count": 0, "failure_count": 0, "by_tool": {}, "latest_calls": []})
+
+
+def _mcp_audit_rows(project_dir: Path) -> list[list[str]]:
+    audit = _mcp_audit_records(project_dir)
+    return [
+        [
+            row.get("call_id", ""),
+            row.get("tool_id", ""),
+            row.get("actor", ""),
+            row.get("risk", ""),
+            row.get("status", ""),
+            row.get("failure_reason", ""),
+        ]
+        for row in audit.get("latest_calls", [])[-20:]
+    ]
+
+
+def _codex_engineering_records(project_dir: Path) -> dict[str, Any]:
+    return load_codex_engineering(project_dir)
+
+
+def _codex_engineering_rows(project_dir: Path) -> list[list[str]]:
+    data = _codex_engineering_records(project_dir)
+    return [
+        [
+            row.get("result_id", ""),
+            row.get("codex_job_id", ""),
+            row.get("work_order_id", ""),
+            row.get("status", ""),
+            row.get("merge_status", ""),
+            row.get("review_status", ""),
+            ";".join(row.get("artifacts", [])),
+        ]
+        for row in data.get("results", [])[-20:]
+    ]
+
+
 def _limitation_records(context: dict[str, Any]) -> list[dict[str, str]]:
     rows = []
     for row in context["unknown_review"][:50]:
@@ -403,6 +482,10 @@ def _structured_report(project_dir: Path, context: dict[str, Any]) -> dict[str, 
             "bulk_rna_microarray_qc": _deg_qc_records(project_dir),
             "enrichment_overview": _enrichment_records(project_dir),
         },
+        "advanced_analysis": {
+            "meta_analysis": _meta_analysis_records(project_dir),
+            "causal_evidence": _causal_evidence_records(project_dir),
+        },
         "candidate_ranking": context["scores"][:20],
         "evidence_chain": evidence,
         "report_evidence_refs": {
@@ -422,6 +505,8 @@ def _structured_report(project_dir: Path, context: dict[str, Any]) -> dict[str, 
             "review_queue": context.get("review_queue", {}),
             "approval_state": context.get("approval_state", {}),
             "adapter_audit": context.get("adapter_audit", []),
+            "mcp_call_audit": _mcp_audit_records(project_dir),
+            "codex_engineering": _codex_engineering_records(project_dir),
         },
     }
 
@@ -492,6 +577,10 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
     {_table(["Dataset", "Matrix type", "Runner", "Case n", "Control n", "Genes", "Full rank", "Batch covariates", "QC"], _deg_qc_rows(project_dir))}
     <h3>Enrichment overview</h3>
     {_table(["Dataset", "Term ID", "Term", "Overlap", "Adj.P", "Genes", "Source"], _enrichment_rows(project_dir))}
+    <h3>Meta-analysis overview</h3>
+    {_table(["Gene", "Datasets", "Mean logFC", "Direction", "Consistency", "Combined score", "Sources"], _meta_analysis_rows(project_dir))}
+    <h3>Causal evidence grading</h3>
+    {_table(["Gene", "Grade", "Methods", "Evidence types", "Count", "Best P", "Rationale"], _causal_evidence_rows(project_dir))}
   </section>
 
   <section id="candidate-ranking"><h2>候选排序</h2>
@@ -540,6 +629,11 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
     {_table(["Timestamp", "Review ID", "Type", "ID", "Action", "Reason", "Report ref"], reviews)}
     <h3>Adapter audit</h3>
     {_table(["Resource", "Type", "Adapter", "Input rows", "Normalized rows", "Dropped rows", "Field mapping"], adapters)}
+    <h3>MCP call audit</h3>
+    <p class="note">Calls: {html.escape(str(_mcp_audit_records(project_dir).get("call_count", 0)))} | Failures: {html.escape(str(_mcp_audit_records(project_dir).get("failure_count", 0)))}</p>
+    {_table(["Call", "Tool", "Actor", "Risk", "Status", "Failure"], _mcp_audit_rows(project_dir))}
+    <h3>Codex engineering results</h3>
+    {_table(["Result", "Codex job", "WorkOrder", "Status", "Merge gate", "Review", "Artifacts"], _codex_engineering_rows(project_dir))}
   </section>
 </main>
 </body>

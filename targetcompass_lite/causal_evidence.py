@@ -22,7 +22,14 @@ def grade_causal_evidence(project_dir: Path) -> Path:
         raise ValueError("evidence.sqlite is required before causal grading")
     con = sqlite3.connect(db, timeout=30)
     con.row_factory = sqlite3.Row
-    rows = [dict(row) for row in con.execute("SELECT * FROM evidence_item ORDER BY entity_symbol, evidence_type").fetchall()]
+    placeholders = ",".join("?" for _ in GENETIC_EVIDENCE_TYPES)
+    rows = [
+        dict(row)
+        for row in con.execute(
+            f"SELECT * FROM evidence_item WHERE evidence_type IN ({placeholders}) ORDER BY entity_symbol, evidence_type",
+            tuple(GENETIC_EVIDENCE_TYPES),
+        ).fetchall()
+    ]
     con.close()
     grouped: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
