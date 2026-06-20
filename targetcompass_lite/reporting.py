@@ -241,10 +241,14 @@ def _causal_evidence_rows(project_dir: Path) -> list[list[str]]:
         [
             row.get("gene_symbol", ""),
             row.get("causal_grade", ""),
+            row.get("support_level", ""),
             row.get("methods", ""),
             row.get("evidence_types", ""),
             row.get("evidence_count", ""),
             row.get("best_p_value", ""),
+            row.get("review_flags", ""),
+            row.get("review_status", ""),
+            row.get("artifact_refs", ""),
             row.get("rationale", ""),
         ]
         for row in _causal_evidence_records(project_dir)
@@ -580,7 +584,7 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
     <h3>Meta-analysis overview</h3>
     {_table(["Gene", "Datasets", "Mean logFC", "Direction", "Consistency", "Combined score", "Sources"], _meta_analysis_rows(project_dir))}
     <h3>Causal evidence grading</h3>
-    {_table(["Gene", "Grade", "Methods", "Evidence types", "Count", "Best P", "Rationale"], _causal_evidence_rows(project_dir))}
+    {_table(["Gene", "Grade", "Support", "Methods", "Evidence types", "Count", "Best P", "Review flags", "Review", "Artifacts", "Rationale"], _causal_evidence_rows(project_dir))}
   </section>
 
   <section id="candidate-ranking"><h2>候选排序</h2>

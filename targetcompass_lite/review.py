@@ -116,8 +116,27 @@ def build_review_queue(project_dir: Path) -> dict:
                     "review_status": review_status or "pending",
                     "reason": idea.get("review_reason", ""),
                     "report_ref": _default_report_ref("idea", idea.get("idea_id", "")),
-                }
-            )
+            }
+        )
+    for row in _load_causal_grades(project_dir):
+        review_status = row.get("review_status", "")
+        if review_status in {"approve", "accepted"}:
+            continue
+        if row.get("review_flags", "none") == "none" and row.get("causal_grade", "") not in {"A", "B"}:
+            continue
+        gene = row.get("gene_symbol", "")
+        grade = row.get("causal_grade", "")
+        queue.append(
+            {
+                "item_type": "causal_grade",
+                "item_id": gene,
+                "title": f"Causal evidence {gene}: grade {grade}",
+                "execution_status": row.get("support_level", grade),
+                "review_status": review_status or "pending",
+                "reason": row.get("review_reason", row.get("review_flags", "")),
+                "report_ref": _default_report_ref("causal_grade", gene),
+            }
+        )
     for order in load_v4_work_orders(project_dir):
         review_status = order.get("review_status", "")
         needs_review = order.get("requires_codex") or order.get("work_order_type") in {"BUILD_ADAPTER", "FIX_CODE"}
@@ -283,6 +302,21 @@ def _apply_review_to_artifacts(project_dir: Path, review: dict) -> None:
             reviewer=review["reviewer"],
         )
         return
+    if review["item_type"] == "causal_grade":
+        rows = _load_causal_grades(project_dir)
+        changed = False
+        for row in rows:
+            if row.get("gene_symbol") == review["item_id"]:
+                row["review_status"] = review["action"]
+                row["review_reason"] = review.get("reason", review.get("note", ""))
+                row["review_note"] = review["note"]
+                row["reviewer"] = review["reviewer"]
+                row["review_id"] = review.get("review_id", "")
+                row["reviewed_at"] = review.get("timestamp", "")
+                changed = True
+        if changed:
+            _write_causal_grades(project_dir, rows)
+        return
     if review["item_type"] != "idea":
         return
     path = project_dir / "results" / "ideas" / "idea_batch.json"
@@ -360,6 +394,28 @@ def _artifact_snapshot(project_dir: Path, item_type: str, item_id: str) -> dict:
                 ]
                 return {key: result.get(key, "") for key in keys}
         return {}
+    if item_type == "causal_grade":
+        for row in _load_causal_grades(project_dir):
+            if row.get("gene_symbol") == item_id:
+                keys = [
+                    "gene_symbol",
+                    "causal_grade",
+                    "support_level",
+                    "methods",
+                    "evidence_types",
+                    "evidence_count",
+                    "best_p_value",
+                    "evidence_ids",
+                    "artifact_refs",
+                    "review_flags",
+                    "review_status",
+                    "review_reason",
+                    "review_note",
+                    "reviewer",
+                    "review_id",
+                ]
+                return {key: row.get(key, "") for key in keys}
+        return {}
     if item_type != "idea":
         return {}
     ideas = _load_ideas(project_dir)
@@ -385,6 +441,32 @@ def _load_ideas(project_dir: Path) -> list[dict]:
     if not path.exists():
         return []
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _causal_grades_path(project_dir: Path) -> Path:
+    return project_dir / "results" / "causal_evidence" / "causal_evidence_grades.tsv"
+
+
+def _load_causal_grades(project_dir: Path) -> list[dict]:
+    path = _causal_grades_path(project_dir)
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8") as f:
+        return list(csv.DictReader(f, delimiter="\t"))
+
+
+def _write_causal_grades(project_dir: Path, rows: list[dict]) -> None:
+    path = _causal_grades_path(project_dir)
+    if not rows:
+        return
+    fields = list(rows[0].keys())
+    for field in ["review_reason", "review_note", "reviewer", "review_id", "reviewed_at"]:
+        if field not in fields:
+            fields.append(field)
+    with path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def _write_review_version(project_dir: Path, row: dict) -> Path:

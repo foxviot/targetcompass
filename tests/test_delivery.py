@@ -10,7 +10,7 @@ from targetcompass_lite.ideas import generate_idea_batch
 from targetcompass_lite.methods.contracts import MethodContext
 from targetcompass_lite.methods.registry import run_method
 from targetcompass_lite.package import export_run_package
-from targetcompass_lite.review import load_reviews, record_review
+from targetcompass_lite.review import build_review_queue, load_reviews, record_review
 
 
 def _project(tmp: str) -> Path:
@@ -42,6 +42,25 @@ class DeliveryTest(unittest.TestCase):
             updated = json.loads((project / "results" / "ideas" / "idea_batch.json").read_text(encoding="utf-8"))
             self.assertEqual(updated[0]["review_status"], "approve")
             self.assertEqual(load_reviews(project)[0]["note"], "looks feasible")
+
+    def test_causal_grade_review_enters_queue_and_updates_tsv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = _project(tmp)
+            causal_dir = project / "results" / "causal_evidence"
+            causal_dir.mkdir(parents=True)
+            (causal_dir / "causal_evidence_grades.tsv").write_text(
+                "gene_symbol\tcausal_grade\tsupport_level\tmethods\tevidence_types\tevidence_count\tbest_p_value\trationale\tevidence_ids\tartifact_refs\treview_flags\treview_status\tlimitation\n"
+                "CXCL8\tA\ttriage_high\tcoloc;mr\tmendelian_randomization;qtl_colocalization\t2\t1e-6\tMR and coloc present\tev1;ev2\tresults/genetic_coloc_mr/genetic_evidence.tsv\thuman_review_required;ld_locus_review_required\tHUMAN_REVIEW_REQUIRED\treview required\n",
+                encoding="utf-8",
+            )
+
+            queue = build_review_queue(project)
+            self.assertTrue(any(item["item_type"] == "causal_grade" and item["item_id"] == "CXCL8" for item in queue["items"]))
+            record_review(project, "causal_grade", "CXCL8", "approve", reason="LD locus and MR proxy reviewed")
+            text = (causal_dir / "causal_evidence_grades.tsv").read_text(encoding="utf-8")
+            self.assertIn("CXCL8\tA", text)
+            self.assertIn("approve", text)
+            self.assertIn("LD locus and MR proxy reviewed", text)
 
     def test_adapter_audit_and_run_package_are_exported(self):
         with tempfile.TemporaryDirectory() as tmp:
