@@ -140,7 +140,13 @@ class AnalysisExtensionsTest(unittest.TestCase):
 
             import_evidence(project)
             causal = grade_causal_evidence(project)
-            self.assertIn("CXCL8\tA", causal.read_text(encoding="utf-8"))
+            causal_text = causal.read_text(encoding="utf-8")
+            self.assertIn("CXCL8\tA", causal_text)
+            self.assertIn("triage_high", causal_text)
+            self.assertIn("qtl_colocalization", causal_text)
+            self.assertIn("mendelian_randomization", causal_text)
+            self.assertIn("human_review_required", causal_text)
+            self.assertIn("results/genetic_coloc_mr/genetic_evidence.tsv", causal_text)
 
             con = sqlite3.connect(project / "evidence.sqlite")
             try:

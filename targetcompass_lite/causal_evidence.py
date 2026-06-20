@@ -42,22 +42,42 @@ def grade_causal_evidence(project_dir: Path) -> Path:
     for gene, evidences in grouped.items():
         evidence_types = {row["evidence_type"] for row in evidences}
         methods = {GENETIC_EVIDENCE_TYPES[row["evidence_type"]] for row in evidences}
-        best_p = min([row["p_value"] for row in evidences if row.get("p_value") is not None] or [None], key=lambda value: value is None or value)
+        best_p = _best_p_value(evidences)
         grade, rationale = _grade(methods, evidence_types, best_p)
+        review_flags = _review_flags(evidences, methods, evidence_types)
         grades.append(
             {
                 "gene_symbol": gene,
                 "causal_grade": grade,
+                "support_level": _support_level(grade),
                 "methods": ";".join(sorted(methods)),
                 "evidence_types": ";".join(sorted(evidence_types)),
                 "evidence_count": len(evidences),
                 "best_p_value": "" if best_p is None else f"{best_p:.6g}",
                 "rationale": rationale,
+                "evidence_ids": ";".join(sorted({row.get("evidence_id", "") for row in evidences if row.get("evidence_id")})),
+                "artifact_refs": ";".join(sorted({_artifact_ref(row) for row in evidences if row.get("artifact_path")})),
+                "review_flags": ";".join(review_flags) or "none",
+                "review_status": "HUMAN_REVIEW_REQUIRED",
                 "limitation": "Automated causal grade is a triage label; locus mapping, LD, pleiotropy, and ancestry matching require human/statistical review.",
             }
         )
     grades.sort(key=lambda row: (row["causal_grade"], row["gene_symbol"]))
-    fields = ["gene_symbol", "causal_grade", "methods", "evidence_types", "evidence_count", "best_p_value", "rationale", "limitation"]
+    fields = [
+        "gene_symbol",
+        "causal_grade",
+        "support_level",
+        "methods",
+        "evidence_types",
+        "evidence_count",
+        "best_p_value",
+        "rationale",
+        "evidence_ids",
+        "artifact_refs",
+        "review_flags",
+        "review_status",
+        "limitation",
+    ]
     with out.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields, delimiter="\t")
         writer.writeheader()
@@ -74,6 +94,7 @@ def grade_causal_evidence(project_dir: Path) -> Path:
             "C": "association only",
             "D": "insufficient genetic evidence",
         },
+        "review_policy": "All automated causal grades require human/statistical review before scientific claims.",
     }
     (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     return out
@@ -89,3 +110,48 @@ def _grade(methods: set[str], evidence_types: set[str], best_p: float | None) ->
     if evidence_types:
         return "C", "Only association-level or database genetic evidence is available."
     return "D", "No recognized genetic causal evidence."
+
+
+def _best_p_value(evidences: list[dict]) -> float | None:
+    values = []
+    for row in evidences:
+        value = row.get("p_value")
+        if value in (None, ""):
+            continue
+        try:
+            values.append(float(value))
+        except (TypeError, ValueError):
+            continue
+    return min(values) if values else None
+
+
+def _support_level(grade: str) -> str:
+    return {
+        "A": "triage_high",
+        "B": "triage_moderate",
+        "C": "triage_low",
+        "D": "insufficient",
+    }.get(grade, "insufficient")
+
+
+def _review_flags(evidences: list[dict], methods: set[str], evidence_types: set[str]) -> list[str]:
+    flags = {"human_review_required"}
+    if "mr" in methods:
+        flags.update({"pleiotropy_review_required", "instrument_strength_review_required"})
+    if "coloc" in methods:
+        flags.update({"ld_locus_review_required", "qtl_context_review_required"})
+    if "association" in methods:
+        flags.add("locus_to_gene_mapping_review_required")
+    if "mendelian_randomization" in evidence_types and not any("coloc" == GENETIC_EVIDENCE_TYPES.get(row.get("evidence_type", "")) for row in evidences):
+        flags.add("mr_without_coloc")
+    for row in evidences:
+        limitation = (row.get("limitation") or "").lower()
+        if "single-variant" in limitation or "single variant" in limitation:
+            flags.add("single_variant_mr_proxy")
+        if "ld-aware" in limitation or "ld" in limitation:
+            flags.add("ld_aware_method_required")
+    return sorted(flags)
+
+
+def _artifact_ref(row: dict) -> str:
+    return str(row.get("artifact_path", "")).replace("\\", "/")
