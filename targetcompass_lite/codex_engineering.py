@@ -1,5 +1,7 @@
 import json
 import shutil
+import subprocess
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -33,6 +35,12 @@ def result_registry_path(project_dir: Path) -> Path:
 
 def workspace_registry_path(project_dir: Path) -> Path:
     return engineering_dir(project_dir) / "workspace_registry.json"
+
+
+def git_worktree_root(project_dir: Path) -> Path:
+    path = engineering_dir(project_dir) / "git_worktrees"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def create_isolated_workspace(project_dir: Path, work_order_id: str, actor: str = "codex") -> dict[str, Any]:
@@ -70,6 +78,83 @@ def create_isolated_workspace(project_dir: Path, work_order_id: str, actor: str 
     order["codex_workspace_ref"] = packet["workspace_ref"]
     save_v4_work_order(project_dir, order)
     return manifest
+
+
+def prepare_git_worktree(project_dir: Path, codex_job_id: str, actor: str = "codex") -> dict[str, Any]:
+    found = _find_order_and_packet(project_dir, codex_job_id)
+    packet = found["packet"]
+    if packet.get("release_gate") != "approved_for_codex_worker":
+        raise ValueError("Codex task must be approved before preparing a git worktree")
+    repo_root = _repo_root()
+    target = git_worktree_root(project_dir) / codex_job_id
+    branch = f"codex/task-{codex_job_id}"
+    if not target.exists():
+        _run_git(repo_root, ["worktree", "add", "-B", branch, str(target)])
+    manifest = create_isolated_workspace(project_dir, found["order"]["work_order_id"], actor=actor)
+    manifest["schema_version"] = "v4.codex_git_worktree/0.1"
+    manifest["git_worktree_path"] = str(target)
+    manifest["git_branch"] = branch
+    manifest["repo_root"] = str(repo_root)
+    manifest["status"] = "git_worktree_prepared"
+    worktree_manifest = workspace_root(project_dir) / codex_job_id / "git_worktree_manifest.json"
+    worktree_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    _update_workspace(project_dir, codex_job_id, {"status": "git_worktree_prepared", "git_worktree_path": str(target), "git_branch": branch})
+    found["order"]["engineering_status"] = "git_worktree_prepared"
+    found["order"]["codex_git_worktree_ref"] = str(worktree_manifest.relative_to(project_dir))
+    packet["execution_status"] = "git_worktree_prepared"
+    packet["git_worktree_ref"] = found["order"]["codex_git_worktree_ref"]
+    save_codex_task_packet(project_dir, found["order"], packet)
+    save_v4_work_order(project_dir, found["order"])
+    return manifest
+
+
+def run_codex_task_tests(project_dir: Path, codex_job_id: str, actor: str = "codex") -> dict[str, Any]:
+    found = _find_order_and_packet(project_dir, codex_job_id)
+    packet = found["packet"]
+    workspace = _workspace_for_job(project_dir, codex_job_id)
+    worktree_path = Path(workspace.get("git_worktree_path", ""))
+    if not worktree_path.exists():
+        worktree = prepare_git_worktree(project_dir, codex_job_id, actor=actor)
+        worktree_path = Path(worktree["git_worktree_path"])
+    test_results = []
+    artifacts = []
+    failure_reason = ""
+    for command in packet.get("tests", []):
+        if not _allowed_test_command(command):
+            test_results.append(
+                register_codex_test_result(project_dir, codex_job_id, command, "skipped", stderr_ref="command rejected by allowlist", actor=actor)
+            )
+            failure_reason = f"test command rejected by allowlist: {command}"
+            continue
+        started = time.time()
+        completed = subprocess.run(command, cwd=worktree_path, shell=True, text=True, capture_output=True, timeout=300)
+        out_dir = workspace_root(project_dir) / codex_job_id / "test_logs"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        log_seed = content_hash({"job": codex_job_id, "command": command, "time": _now()})[:12]
+        stdout_path = out_dir / f"{log_seed}_stdout.txt"
+        stderr_path = out_dir / f"{log_seed}_stderr.txt"
+        stdout_path.write_text(completed.stdout, encoding="utf-8", errors="replace")
+        stderr_path.write_text(completed.stderr, encoding="utf-8", errors="replace")
+        status = "passed" if completed.returncode == 0 else "failed"
+        if status == "failed":
+            failure_reason = f"test failed: {command}"
+        test_results.append(
+            register_codex_test_result(
+                project_dir,
+                codex_job_id,
+                command,
+                status,
+                stdout_ref=str(stdout_path.relative_to(project_dir)),
+                stderr_ref=str(stderr_path.relative_to(project_dir)),
+                duration_seconds=round(time.time() - started, 3),
+                actor=actor,
+            )
+        )
+        artifacts.extend([str(stdout_path.relative_to(project_dir)), str(stderr_path.relative_to(project_dir))])
+    final_status = "success" if test_results and all(row["status"] == "passed" for row in test_results) else "failed"
+    result = record_codex_result(project_dir, codex_job_id, final_status, artifacts=artifacts, failure_reason=failure_reason, actor=actor)
+    result["test_results"] = test_results
+    return result
 
 
 def register_codex_patch(project_dir: Path, codex_job_id: str, patch_path: str, summary: str = "", actor: str = "codex") -> dict[str, Any]:
@@ -245,6 +330,36 @@ def _find_order_and_packet(project_dir: Path, codex_job_id: str) -> dict[str, An
         if packet.get("codex_job_id") == codex_job_id:
             return {"order": order, "packet": packet}
     raise ValueError(f"Codex task not found: {codex_job_id}")
+
+
+def _workspace_for_job(project_dir: Path, codex_job_id: str) -> dict[str, Any]:
+    registry = _read_registry(workspace_registry_path(project_dir), "v4.codex_workspace_registry/0.1", "workspaces")
+    return next((row for row in registry["workspaces"] if row.get("codex_job_id") == codex_job_id), {})
+
+
+def _update_workspace(project_dir: Path, codex_job_id: str, updates: dict[str, Any]) -> None:
+    registry = _read_registry(workspace_registry_path(project_dir), "v4.codex_workspace_registry/0.1", "workspaces")
+    for row in registry["workspaces"]:
+        if row.get("codex_job_id") == codex_job_id:
+            row.update(updates)
+            row["updated_at"] = _now()
+            break
+    _write_registry(workspace_registry_path(project_dir), registry)
+
+
+def _allowed_test_command(command: str) -> bool:
+    normalized = " ".join(command.strip().split()).lower()
+    return normalized.startswith("python -m unittest") or normalized.startswith("py -m unittest")
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _run_git(repo_root: Path, args: list[str]) -> None:
+    completed = subprocess.run(["git", *args], cwd=repo_root, text=True, capture_output=True)
+    if completed.returncode:
+        raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
 
 
 def _read_registry(path: Path, schema_version: str, key: str) -> dict[str, Any]:

@@ -331,6 +331,12 @@ def main() -> None:
     p = sub.add_parser("codex-workspace")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--work-order-id", required=True)
+    p = sub.add_parser("codex-prepare-worktree")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--codex-job-id", required=True)
+    p = sub.add_parser("codex-run-tests")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--codex-job-id", required=True)
     p = sub.add_parser("codex-register-patch")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--codex-job-id", required=True)
@@ -574,6 +580,14 @@ def main() -> None:
         from .codex_engineering import create_isolated_workspace
 
         print(json.dumps(create_isolated_workspace(pdir, args.work_order_id, actor="cli"), indent=2, ensure_ascii=False))
+    elif args.cmd == "codex-prepare-worktree":
+        from .codex_engineering import prepare_git_worktree
+
+        print(json.dumps(prepare_git_worktree(pdir, args.codex_job_id, actor="cli"), indent=2, ensure_ascii=False))
+    elif args.cmd == "codex-run-tests":
+        from .codex_engineering import run_codex_task_tests
+
+        print(json.dumps(run_codex_task_tests(pdir, args.codex_job_id, actor="cli"), indent=2, ensure_ascii=False))
     elif args.cmd == "codex-register-patch":
         from .codex_engineering import register_codex_patch
 

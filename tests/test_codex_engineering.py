@@ -6,9 +6,11 @@ from pathlib import Path
 from targetcompass_lite.codex_engineering import (
     create_isolated_workspace,
     load_codex_engineering,
+    prepare_git_worktree,
     record_codex_result,
     register_codex_patch,
     register_codex_test_result,
+    run_codex_task_tests,
 )
 from targetcompass_lite.review import build_review_queue, record_review
 from targetcompass_lite.v4 import compile_v4_work_orders, load_codex_task_packet, load_v4_work_orders
@@ -74,6 +76,47 @@ class CodexEngineeringTest(unittest.TestCase):
             self.assertEqual(reviewed["merge_status"], "approved_for_merge")
             self.assertIn("Codex engineering loop", _v4_work_order_panel(project))
             self.assertIn(result["result_id"], _v4_work_order_panel(project))
+
+    def test_approved_codex_task_can_prepare_git_worktree_and_run_tests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            orders = compile_v4_work_orders(
+                project,
+                {
+                    "project_id": "demo",
+                    "modules": [
+                        {
+                            "module_id": "P9_new_adapter_x",
+                            "module": "new_external_adapter",
+                            "dataset_id": "external_x",
+                            "inputs": {},
+                            "parameters": {},
+                            "expected_outputs": ["targetcompass_lite/db_adapters/new_external_adapter.py"],
+                            "qc_checks": ["schema validated"],
+                            "allowed_files": ["targetcompass_lite/db_adapters/**"],
+                        }
+                    ],
+                },
+            )
+            order = orders[0]
+            packet = load_codex_task_packet(project, order)
+            packet["tests"] = ["python -m unittest tests.test_packaging -v"]
+            packet_path = project / order["codex_task_packet"]
+            packet_path.write_text(json.dumps(packet, indent=2), encoding="utf-8")
+            record_review(project, "codex_task", packet["codex_job_id"], "approve", reason="safe lightweight packaging test")
+
+            worktree = prepare_git_worktree(project, packet["codex_job_id"], actor="test")
+            self.assertTrue(Path(worktree["git_worktree_path"]).exists())
+            self.assertTrue(worktree["git_branch"].startswith("codex/task-"))
+
+            result = run_codex_task_tests(project, packet["codex_job_id"], actor="test")
+            self.assertEqual(result["status"], "success")
+            data = load_codex_engineering(project)
+            self.assertEqual(data["tests"][-1]["status"], "passed")
+            self.assertEqual(data["results"][-1]["merge_status"], "pending_human_approval")
+            updated = load_codex_task_packet(project, load_v4_work_orders(project)[0])
+            self.assertEqual(updated["execution_status"], "success")
 
 
 if __name__ == "__main__":
