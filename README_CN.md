@@ -1,268 +1,163 @@
 # TargetCompass Lite 中文说明
 
-TargetCompass Lite 是一个本地优先的疾病相关分子发现与候选靶点筛选 MVP。它把用户输入的研究问题转成结构化 `ResearchSpec`，生成候选研究点子，自动查证数据集，执行 bulk RNA / microarray 分析，整合证据，生成候选排序和科研报告，并保留人工审核与审批记录。
-
-当前默认项目是 `vascular_aging_demo`，主题为血管衰老、内皮衰老和动脉粥样硬化相关靶点探索。
-
-## 一键启动
-
-在交付目录双击：
-
-```text
-START_TARGETCOMPASS.bat
-```
-
-启动器会检查环境、启动 Web 应用，并打开：
-
-```text
-http://127.0.0.1:8781/
-```
-
-如果端口已占用或服务已运行，启动器会尽量复用现有服务并打开浏览器。
-
-手动启动：
-
-```powershell
-python scripts\check_install.py
-python tc_lite.py serve --project vascular_aging_demo --port 8781
-```
-
-## Web 界面主要入口
-
-- 研究请求：输入研究方向，选择 GPT 或本地规则生成。
-- 六步 Agent 工作流：生成、初审、查证、执行、复审、报告。
-- 数据集选择：选择本次运行的数据集。
-- 运行状态：查看阶段状态、失败原因、日志、局部重算和重跑。
-- GEO / GSE recovery center：查看真实数据导入失败原因，并直接重试、手动分组或补平台注释。
-- 方法配置：选择或上传 Markdown skill / agent 方法。
-- 审批与人工审核：通过、复核、驳回候选并记录理由。
-- 报告入口：打开 HTML 报告。
-- 夜间模式：右上角切换日间/夜间模式。
-
-## GPT / API Key
-
-可以在 Web 页面中保存 OpenAI API Key，也可以在启动前设置环境变量：
-
-```powershell
-$env:OPENAI_API_KEY="你的_API_Key"
-```
-
-没有 API Key 时，系统会使用本地确定性规则继续运行，并在 `results/agent_trace.json` 中记录 fallback 信息。
-
-## 六步 Agent 流程
+TargetCompass Lite 是一个本地运行的疾病相关分子发现与疫苗候选靶点筛选 MVP。当前版本围绕 GPT/本地 Agent 六步流程工作：
 
 ```text
 生成 -> 初审 -> 查证 -> 执行 -> 复审 -> 报告
 ```
 
-- 生成：把研究问题转成 `ResearchSpec`，并生成候选点子。
-- 初审：检查研究方向、可行性和审查门控。
-- 查证：匹配数据集、GEO/GSE 状态、知识库和分析计划。
-- 执行：运行 DEG、富集、注释、证据导入和候选评分。
-- 复审：生成实验建议，汇总人工审核和剩余风险。
-- 报告：生成 HTML、Word 兼容报告和结构化 JSON。
+系统可以把用户研究方向转成结构化 `ResearchSpec`，生成候选点子，自动查找或接入 GEO/GSE 数据，运行 bulk RNA/microarray 差异分析、富集、可及性和安全性注释，最后输出证据链、候选排序、实验建议和可审查报告。
 
-每次运行都会写入：
+## 一键启动
+
+推荐把项目放在：
 
 ```text
-projects/<项目名>/results/agent_trace.json
-projects/<项目名>/results/run_status.json
+D:\targetcompass-lite
 ```
 
-## Markdown Skill / Agent 方法
-
-Web 页面支持拖入 `.md` 方法文件，注册为可替换方法。当前支持三个阶段：
-
-- 生成 / Query
-- 初审复核 / Audit
-- 实验设计 / Experiment
-
-上传后的文件保存在：
+双击：
 
 ```text
-projects/<项目名>/agent_methods/
+START_TARGETCOMPASS.bat
 ```
 
-当前实现采用安全包装策略：Markdown 方法会作为方法说明和审查 prompt 附加到稳定的内置方法上，不会因为一个错误的 Markdown 文件直接破坏分析流程。
-
-## GEO / GSE 真实数据接入
-
-系统支持自动下载 GEO series matrix，自动解析 metadata，推断 case/control 分组，生成表达矩阵和 DatasetCard。
-
-自动导入示例：
+或在 PowerShell 中运行：
 
 ```powershell
-python tc_lite.py geo-import-auto --project vascular_aging_demo `
-  --accession GSE43292 `
-  --tissue artery `
-  --organism human `
-  --platform-annotation projects\vascular_aging_demo\data\GSE43292\GPL6244.annot.gz `
-  --case-hint atheroma `
-  --control-hint macroscopically `
-  --case-label atheroma `
-  --control-label control `
-  --min-confidence 35
+powershell -ExecutionPolicy Bypass -File scripts\start_app_one_click.ps1
 ```
 
-导入后会生成：
+启动后访问：
 
 ```text
-projects/<项目名>/data/<GSE>/expression_matrix.tsv
-projects/<项目名>/data/<GSE>/metadata.tsv
-projects/<项目名>/dataset_cards/<GSE>.yaml
-projects/<项目名>/data/<GSE>/geo_import_status.json
+http://127.0.0.1:8781/
 ```
 
-失败时，Web 的 `GEO / GSE recovery center` 会显示：
+## GPT API Key
 
-- 下载失败原因和强制重新下载入口
-- 分组识别失败原因和手动分组入口
-- 平台注释缺失原因和补充注释入口
-- 样本量不足提示和替代建议
+页面中有本地 API Key 设置区。Key 会保存在本机项目配置中，不会进入导出的运行包。未填写 Key 时，系统仍可使用本地规则 fallback 跑通 demo，但 GPT 生成和结构化理解能力会降级。
 
-## 分析模块
+## MVP 已实现能力
 
-已实现：
+- GPT/本地规则生成 `ResearchSpec` 和候选点子。
+- 六步 Agent 状态视图。
+- 人工可替换 Markdown skill / agent method。
+- 真实 GEO/GSE 自动下载、metadata 解析、自动分组和失败恢复提示。
+- bulk RNA/microarray DEG，支持本地 Python fallback 和 R/limma。
+- UniProt、HPA、Open Targets、DisGeNET、GWAS Catalog、MSigDB/Reactome 等 adapter 兼容层。
+- 审批理由、审批记录、版本记录、差异记录、复核队列和最终签出。
+- 运行状态、失败原因、取消、重跑和局部重算入口。
+- 结构化科研报告：方法、数据来源、QC、候选排序、证据链、限制和实验建议。
+- 中英切换、夜间模式和 iOS 风格界面。
 
-- `bulk_deg_v1`：bulk RNA / microarray 差异表达分析。
-- `enrichment_v1`：基于 DEG 和 gene set 的富集分析。
-- `accessibility_annotation_v1`：靶点可及性注释。
-- `safety_annotation_v1`：安全性标记和 UNKNOWN 人工复核。
-- `evidence_import_v1`：把 DEG、富集、注释和外部 adapter 证据写入 SQLite。
-- `candidate_scoring_v1`：候选排序和硬门控。
+## 常用命令
 
-保留接口：
-
-- `scrna_pseudobulk_v0`
-- `genetic_coloc_mr_v0`
-
-DEG 现在会处理真实数据中的常见问题：
-
-- batch 与 group 混杂时，不会直接崩溃；会降级为无 batch 的关联筛选，并在 QC/manifest 中记录警告。
-- R limma 失败时，会自动降级到 Python fallback，并记录原因。
-
-## 数据库 Adapter
-
-支持注册外部数据库和知识库：
-
-- `tabular_evidence_v0`
-- `sqlite_evidence_v0`
-- `uniprot_target_v0`
-- `hpa_safety_accessibility_v0`
-- `opentargets_evidence_v0`
-- `disgenet_evidence_v0`
-- `gwas_catalog_evidence_v0`
-- `msigdb_gene_sets_v0`
-- `reactome_gene_sets_v0`
-
-示例：
+初始化项目：
 
 ```powershell
-python tc_lite.py knowledge-add --project vascular_aging_demo `
-  --id uniprot_demo `
-  --type external_database `
-  --path examples\databases\sample_uniprot_targets.tsv `
-  --adapter uniprot_target_v0
-
-python tc_lite.py knowledge-adapt --project vascular_aging_demo
-python tc_lite.py adapter-audit --project vascular_aging_demo
+python tc_lite.py init --project vascular_aging_demo
 ```
 
-## 审批与人工审核
+运行 demo：
 
-支持：
-
-- 审批理由强制填写
-- 通过 / 复核 / 驳回
-- 审批历史
-- 审批版本记录
-- 审批前后差异
-- 报告引用
-- 最终签出 / 驳回
-
-相关文件：
-
-```text
-projects/<项目名>/results/review_actions.tsv
-projects/<项目名>/results/review_actions.jsonl
-projects/<项目名>/results/review_versions/
-projects/<项目名>/results/approval_state.json
+```powershell
+python tc_lite.py demo --project vascular_aging_demo
 ```
 
-## 报告输出
+运行 Agent：
 
-报告包括：
-
-- 执行摘要
-- 研究问题与边界
-- 方法与模块
-- 数据来源与 QC
-- 候选排序
-- 证据链
-- 限制与风险
-- 实验建议
-- 审批与审计
-
-输出路径：
-
-```text
-projects/<项目名>/reports/target_report.html
-projects/<项目名>/reports/target_report.docx
-projects/<项目名>/reports/target_report_structured.json
+```powershell
+python tc_lite.py agent-run --project vascular_aging_demo --text "Find secreted targets for human endothelial senescence in vascular aging" --parser rule_based --dataset GSE43292
 ```
-
-## 交付包
 
 导出运行包：
 
 ```powershell
 python tc_lite.py export-package --project vascular_aging_demo
-python scripts\export_project_package.py
 ```
 
-输出位置：
+## v4.0 当前开发入口
+
+当前分支已开始按 v4.0 技术书补后台研究引擎骨架，且不破坏 MVP。新增核心文件：
 
 ```text
-projects/vascular_aging_demo/exports/
-dist/
+docs/v4_architecture_source.txt
+docs/v4_development_backlog.md
+targetcompass_lite/v4.py
+tests/test_v4_manifest.py
 ```
 
-## 验证结果
+新增命令：
 
-当前 MVP 已完成：
+```powershell
+python tc_lite.py v4-manifest --project vascular_aging_demo
+```
 
-- 单元测试：`105 tests OK`
-- D 盘 smoke：通过
-- 真实联网 GEO 数据测试：从 `GSE43292` 下载真实数据
-- 真实数据 100 轮压力测试：`100/100` 通过
-
-最终 100 轮摘要：
+该命令会生成：
 
 ```text
-projects/real100final_summary_1781942796.json
+projects/<项目名>/v4/state_machine.json
+projects/<项目名>/v4/object_manifest.json
+projects/<项目名>/v4/disease_spec.json
+projects/<项目名>/v4/work_orders.json
+projects/<项目名>/v4/work_orders/*.json
+projects/<项目名>/v4/mcp_resources.json
+projects/<项目名>/v4/evidence_snapshot.json
 ```
 
-## 常用验证命令
+这些文件对应 v4.0 的关键方向：
+
+- 权威状态机。
+- DiseaseSpec / ResearchSpec / AnalysisPlan 对象 hash。
+- WorkOrder 编译。
+- `RUN_REGISTERED_MODULE` / `BUILD_ADAPTER` / `FIX_CODE` 三类任务。
+- Codex task packet。
+- MCP Resource manifest。
+- Evidence snapshot。
+
+后续 v4.0 要继续开发的重点见：
+
+```text
+docs/v4_development_backlog.md
+```
+
+## 主要输出
+
+```text
+research_spec.json
+analysis_plan.json
+work_orders/*.md
+v4/*.json
+results/agent_trace.json
+results/run_status.json
+results/bulk_deg_*/deg_results.tsv
+results/bulk_deg_*/qc_summary.json
+results/enrichment/enrichment_results.tsv
+results/annotation/accessibility_annotation.tsv
+results/annotation/safety_flags.tsv
+evidence.sqlite
+candidate_scores.csv
+reports/target_report.html
+reports/target_report.docx
+reports/target_report_structured.json
+exports/*.zip
+```
+
+## 验证
 
 ```powershell
 python -m unittest discover -s tests -p "test*.py" -v
 python scripts\smoke_test.py
 ```
 
-注意：完整测试和 smoke 不建议并行运行，避免 SQLite 或临时输出互相影响。
+当前交付验证记录：
+
+- 完整测试：`105 tests OK`。
+- smoke test：通过。
+- 真实 GEO 示例：`GSE43292`，64 个样本，19033 个基因。
+- 真实数据 100 轮压力测试：`100/100` 通过。
 
 ## 使用边界
 
 TargetCompass Lite 是科研探索和教学演示工具。报告中的候选靶点和证据链属于关联级证据，不构成医学诊断、临床决策、用药建议或因果结论。任何候选靶点都必须经过人工审查、实验验证和合规审批后，才能进入真实研究决策。
-
-## v4.0 后续方向
-
-MVP 当前是固定六步 Agent。v4.0 建议扩展为：
-
-- LLM 研究任务拆解
-- Evidence DAG
-- Codex task packet
-- Codex / 沙盒执行器
-- LLM 结果审核
-- 数据库和文献自动搜索
-- DAG 级证据聚合和人工审批

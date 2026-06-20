@@ -316,6 +316,22 @@ projects/vascular_aging_demo/exports/
 
 The package includes ResearchSpec, method config, knowledge registry, agent trace, review actions, adapter audit, idea batch, experiment designs, and reports.
 
+## v4.0 Compatibility Layer
+
+The `codex/v4-development` branch now starts the v4.0 backend-engine migration without replacing the MVP runner. Generate v4 objects with:
+
+```powershell
+python tc_lite.py v4-manifest --project vascular_aging_demo
+```
+
+This writes a v4 state machine, object manifest, DiseaseSpec, WorkOrder index, MCP resource manifest, evidence snapshot, and Codex task packets when an unregistered adapter/module is required.
+
+Development backlog:
+
+```text
+docs/v4_development_backlog.md
+```
+
 ## Verification
 
 ```powershell

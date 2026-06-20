@@ -1,0 +1,14 @@
+{
+  "schema_version": "v4.evidence_snapshot/0.1",
+  "snapshot_id": "es_08d0a8e837585627",
+  "project_id": "vascular_aging_demo",
+  "evidence_db": "evidence.sqlite",
+  "evidence_rows": 60317,
+  "source_datasets": [
+    "GSE312006",
+    "GSE43292",
+    "ds_fixture_vascular_aging"
+  ],
+  "review_status_policy": "report_writer_may_reference_accepted_or_flagged_evidence_only",
+  "generated_at": "2026-06-20T09:20:07.176659+00:00"
+}

@@ -1,4 +1,5 @@
 import csv
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -108,6 +109,15 @@ class PlanningTest(unittest.TestCase):
             text = work_order.read_text(encoding="utf-8")
             self.assertIn("## QC Checks", text)
             self.assertIn("python tc_lite.py run-deg --project demo --dataset ds_bulk", text)
+            v4_index = project / "v4" / "work_orders.json"
+            self.assertTrue(v4_index.exists())
+            v4_orders = json.loads(v4_index.read_text(encoding="utf-8"))["work_orders"]
+            bulk_order = next(order for order in v4_orders if order["dataset_id"] == "ds_bulk")
+            self.assertEqual(bulk_order["work_order_type"], "RUN_REGISTERED_MODULE")
+            self.assertEqual(bulk_order["target_backend"], "temporal_nextflow_compatible")
+            self.assertFalse(bulk_order["requires_codex"])
+            self.assertTrue((project / "v4" / "object_manifest.json").exists())
+            self.assertTrue((project / "v4" / "mcp_resources.json").exists())
 
     def test_plan_keeps_c_grade_non_bulk_as_descriptive_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:

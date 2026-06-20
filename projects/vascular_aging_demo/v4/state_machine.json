@@ -1,0 +1,148 @@
+{
+  "schema_version": "v4.state_machine/0.1",
+  "description": "Authoritative v4-compatible state contract for local MVP runs.",
+  "states": [
+    {
+      "state": "PROJECT_CREATED",
+      "phase": "input",
+      "terminal": false
+    },
+    {
+      "state": "SPEC_DRAFTED",
+      "phase": "generation",
+      "terminal": false
+    },
+    {
+      "state": "SPEC_FROZEN",
+      "phase": "generation",
+      "terminal": false
+    },
+    {
+      "state": "DATASET_DISCOVERED",
+      "phase": "verification",
+      "terminal": false
+    },
+    {
+      "state": "PLAN_DRAFTED",
+      "phase": "planning",
+      "terminal": false
+    },
+    {
+      "state": "PLAN_APPROVED",
+      "phase": "review",
+      "terminal": false
+    },
+    {
+      "state": "WORK_ORDERS_COMPILED",
+      "phase": "compile",
+      "terminal": false
+    },
+    {
+      "state": "RUNNING",
+      "phase": "execution",
+      "terminal": false
+    },
+    {
+      "state": "ARTIFACTS_READY",
+      "phase": "execution",
+      "terminal": false
+    },
+    {
+      "state": "EVIDENCE_ACCEPTED",
+      "phase": "review",
+      "terminal": false
+    },
+    {
+      "state": "SCORED",
+      "phase": "scoring",
+      "terminal": false
+    },
+    {
+      "state": "REPORTED",
+      "phase": "report",
+      "terminal": false
+    },
+    {
+      "state": "SIGNED_OUT",
+      "phase": "signoff",
+      "terminal": true
+    },
+    {
+      "state": "CODEX_REQUIRED",
+      "phase": "engineering",
+      "terminal": false
+    },
+    {
+      "state": "FAILED",
+      "phase": "failure",
+      "terminal": true
+    },
+    {
+      "state": "CANCELLED",
+      "phase": "failure",
+      "terminal": true
+    }
+  ],
+  "transitions": [
+    [
+      "PROJECT_CREATED",
+      "SPEC_DRAFTED"
+    ],
+    [
+      "SPEC_DRAFTED",
+      "SPEC_FROZEN"
+    ],
+    [
+      "SPEC_FROZEN",
+      "DATASET_DISCOVERED"
+    ],
+    [
+      "DATASET_DISCOVERED",
+      "PLAN_DRAFTED"
+    ],
+    [
+      "PLAN_DRAFTED",
+      "PLAN_APPROVED"
+    ],
+    [
+      "PLAN_APPROVED",
+      "WORK_ORDERS_COMPILED"
+    ],
+    [
+      "WORK_ORDERS_COMPILED",
+      "RUNNING"
+    ],
+    [
+      "RUNNING",
+      "ARTIFACTS_READY"
+    ],
+    [
+      "ARTIFACTS_READY",
+      "EVIDENCE_ACCEPTED"
+    ],
+    [
+      "EVIDENCE_ACCEPTED",
+      "SCORED"
+    ],
+    [
+      "SCORED",
+      "REPORTED"
+    ],
+    [
+      "REPORTED",
+      "SIGNED_OUT"
+    ],
+    [
+      "PLAN_DRAFTED",
+      "CODEX_REQUIRED"
+    ],
+    [
+      "RUNNING",
+      "FAILED"
+    ],
+    [
+      "RUNNING",
+      "CANCELLED"
+    ]
+  ]
+}

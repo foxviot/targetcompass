@@ -79,6 +79,11 @@ class AgentTest(unittest.TestCase):
                 stage_names = [stage["name"] for stage in trace["stages"]]
                 for stage in ["generation", "initial_review", "verification", "execution", "final_review", "report"]:
                     self.assertIn(stage, stage_names)
+                self.assertEqual(trace["v4_compatibility"]["object_manifest"], "v4/object_manifest.json")
+                v4_dir = Path(tmp) / "demo" / "v4"
+                self.assertTrue((v4_dir / "object_manifest.json").exists())
+                self.assertTrue((v4_dir / "evidence_snapshot.json").exists())
+                self.assertTrue((v4_dir / "mcp_resources.json").exists())
 
 
 if __name__ == "__main__":

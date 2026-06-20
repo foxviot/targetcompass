@@ -1,0 +1,48 @@
+{
+  "schema_version": "v4.work_order/0.1",
+  "work_order_id": "wo_9afc53ef7a668c16",
+  "project_id": "vascular_aging_demo",
+  "plan_hash": "ccb8df104bd2e2f38afccc905109aa40b02262b3c88ae9881f8d633132a327ce",
+  "work_order_type": "RUN_REGISTERED_MODULE",
+  "module_id": "P4_bulk_deg_GSE43292",
+  "module": "bulk_deg",
+  "dataset_id": "GSE43292",
+  "status": "compiled",
+  "idempotency_key": "idem_9afc53ef7a668c163c4b963f",
+  "execution_backend": "local_executor",
+  "target_backend": "temporal_nextflow_compatible",
+  "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset GSE43292",
+  "inputs": {
+    "dataset_card": "dataset_cards/GSE43292.yaml",
+    "expression_matrix": "data/GSE43292/expression_matrix.tsv",
+    "metadata": "data/GSE43292/metadata.tsv"
+  },
+  "parameters": {
+    "case": "atheroma_plaque",
+    "control": "intact_carotid",
+    "method": "python_demo_welch_like_effect_screen",
+    "p_adjustment": "benjamini_hochberg",
+    "batch_covariates": [],
+    "formal_method_available": "limma via scripts/r/bulk_limma_deg.R when local R dependencies are installed"
+  },
+  "expected_artifacts": [
+    "results/bulk_deg_GSE43292/deg_results.tsv",
+    "results/bulk_deg_GSE43292/qc_summary.tsv",
+    "results/bulk_deg_GSE43292/run_manifest.json"
+  ],
+  "qc_checks": [
+    "expression sample columns match metadata sample_id values",
+    "case and control labels are present in metadata.group",
+    "case_n >= 3 and control_n >= 3 preferred for MVP analysis",
+    "run_manifest records input hashes"
+  ],
+  "allowed_paths": [
+    "targetcompass_lite/deg.py",
+    "projects/vascular_aging_demo/results/**"
+  ],
+  "lineage": {
+    "analysis_plan": "analysis_plan.json",
+    "module_registry": "analysis_module_registry.json"
+  },
+  "requires_codex": false
+}

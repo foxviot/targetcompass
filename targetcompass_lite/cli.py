@@ -233,6 +233,8 @@ def main() -> None:
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("export-package")
     p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("v4-manifest")
+    p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("system-status")
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("reset-demo")
@@ -400,6 +402,10 @@ def main() -> None:
         from .package import export_run_package
 
         print(export_run_package(pdir))
+    elif args.cmd == "v4-manifest":
+        from .v4 import build_v4_manifest
+
+        print(json.dumps(build_v4_manifest(pdir), indent=2, ensure_ascii=False))
     elif args.cmd == "system-status":
         from .system_status import system_status
 

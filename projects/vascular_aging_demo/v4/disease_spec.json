@@ -1,0 +1,35 @@
+{
+  "schema_version": "v4.disease_spec/0.1",
+  "project_id": "vascular_aging_demo",
+  "disease_id": "disease_a458873ea58b",
+  "canonical_name": "vascular aging",
+  "related_phenotypes": [
+    "endothelial senescence"
+  ],
+  "organisms": [
+    "human"
+  ],
+  "priority_tissues": [
+    "vascular endothelium"
+  ],
+  "priority_cells": [
+    "endothelial cell",
+    "monocyte",
+    "macrophage",
+    "T cell"
+  ],
+  "target_routes": [
+    "secreted"
+  ],
+  "constraints": {
+    "causal_requirement": "preferred_not_mandatory",
+    "critical_normal_tissues": [
+      "brain",
+      "heart",
+      "liver",
+      "kidney",
+      "hematopoietic_stem_cell"
+    ],
+    "claim_policy": "association_only_without_genetic_or_experimental_validation"
+  }
+}

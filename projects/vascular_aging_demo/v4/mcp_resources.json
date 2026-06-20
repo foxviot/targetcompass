@@ -1,0 +1,54 @@
+{
+  "schema_version": "v4.mcp_resource_manifest/0.1",
+  "project_id": "vascular_aging_demo",
+  "generated_at": "2026-06-20T09:20:07.183581+00:00",
+  "policy": {
+    "mcp_is_gateway_not_state_store": true,
+    "write_tools_must_call_orchestrator": true,
+    "large_objects_are_referenced_by_artifact_path": true
+  },
+  "resources": [
+    {
+      "uri": "project://vascular_aging_demo",
+      "path": "research_interest.md",
+      "access": "read",
+      "content_hash": "d0ecaec51337eca32dd2b9320248e7ee4dd32430dc9dc9e4c45210f4c26fc444",
+      "version": "0.1"
+    },
+    {
+      "uri": "spec://vascular_aging_demo/research/latest",
+      "path": "research_spec.json",
+      "access": "read",
+      "content_hash": "9f84f31e8b1551ef6ef1bc5c169f6e299685cb175835ac496bb4a9b3dc818dc6",
+      "version": "0.1"
+    },
+    {
+      "uri": "spec://vascular_aging_demo/disease/latest",
+      "path": "v4\\disease_spec.json",
+      "access": "read",
+      "content_hash": "333a208a10572c140109946658727f400c199a5f4c76a05fd01f9ba66da05ee8",
+      "version": "0.1"
+    },
+    {
+      "uri": "plan://vascular_aging_demo/latest",
+      "path": "analysis_plan.json",
+      "access": "read",
+      "content_hash": "49998a02b93670056f5f4b615f1df840b1726c5c734da693993eb786f5b8dd2a",
+      "version": "0.1"
+    },
+    {
+      "uri": "work-order://vascular_aging_demo/index",
+      "path": "v4\\work_orders.json",
+      "access": "read",
+      "content_hash": "ff1984b234063391b7c688160d8d491bfa6cb8a1abb5881f2aaac472cf23b722",
+      "version": "0.1"
+    },
+    {
+      "uri": "evidence://vascular_aging_demo/snapshot/latest",
+      "path": "v4\\evidence_snapshot.json",
+      "access": "read",
+      "content_hash": "13ace5267dd94075415fac2655412e813078e8d934d433c8687758cc3bbe8e8f",
+      "version": "0.1"
+    }
+  ]
+}

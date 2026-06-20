@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .analysis_modules import ANALYSIS_MODULES, write_module_registry
 from .validators import load_dataset_card
+from .v4 import build_v4_manifest
 
 
 def _split_csv(value: str) -> list[str]:
@@ -202,4 +203,5 @@ def build_plan(project_dir: Path) -> dict:
     work_orders.mkdir(exist_ok=True)
     for module in modules:
         (work_orders / f"{module['module_id']}.md").write_text(_work_order_text(module), encoding="utf-8")
+    build_v4_manifest(project_dir, plan)
     return plan

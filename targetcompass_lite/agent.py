@@ -1,4 +1,4 @@
-import json
+﻿import json
 import shutil
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass, field
@@ -23,6 +23,7 @@ from .scoring import score_project
 from .screening import screen_project
 from .spec_builder import readiness_errors, update_project_spec
 from .validators import validate_dataset_card, validate_research_spec
+from .v4 import build_v4_manifest
 
 
 AGENT_STATE_MACHINE = [
@@ -300,6 +301,7 @@ class TargetDiscoveryAgent:
             html_report=str(html_path),
             docx_report=str(docx_path),
         )
+        build_v4_manifest(self.project_dir, analysis_plan)
         return self._finish("success", "Agent workflow completed.", stdout.getvalue(), stderr.getvalue())
 
     def _validate_selected_dataset_cards(self, selected_datasets: list[str]) -> None:
@@ -378,6 +380,13 @@ class TargetDiscoveryAgent:
         trace["project"] = self.project
         trace["timestamp"] = datetime.now(timezone.utc).isoformat()
         trace["architecture"] = "local_state_machine_agent_v1"
+        trace["v4_compatibility"] = {
+            "object_manifest": "v4/object_manifest.json",
+            "state_machine": "v4/state_machine.json",
+            "work_orders": "v4/work_orders.json",
+            "mcp_resources": "v4/mcp_resources.json",
+            "evidence_snapshot": "v4/evidence_snapshot.json",
+        }
         trace["state_machine"] = AGENT_STATE_MACHINE
         trace["method_config"] = load_method_config(self.project_dir)
         path = self.project_dir / "results" / "agent_trace.json"
@@ -396,3 +405,4 @@ def _read_csv(path: Path, delimiter: str = ",") -> list[dict]:
         import csv
 
         return list(csv.DictReader(f, delimiter=delimiter))
+

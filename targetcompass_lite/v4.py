@@ -1,0 +1,322 @@
+import hashlib
+import json
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+V4_STATE_MACHINE = [
+    {"state": "PROJECT_CREATED", "phase": "input", "terminal": False},
+    {"state": "SPEC_DRAFTED", "phase": "generation", "terminal": False},
+    {"state": "SPEC_FROZEN", "phase": "generation", "terminal": False},
+    {"state": "DATASET_DISCOVERED", "phase": "verification", "terminal": False},
+    {"state": "PLAN_DRAFTED", "phase": "planning", "terminal": False},
+    {"state": "PLAN_APPROVED", "phase": "review", "terminal": False},
+    {"state": "WORK_ORDERS_COMPILED", "phase": "compile", "terminal": False},
+    {"state": "RUNNING", "phase": "execution", "terminal": False},
+    {"state": "ARTIFACTS_READY", "phase": "execution", "terminal": False},
+    {"state": "EVIDENCE_ACCEPTED", "phase": "review", "terminal": False},
+    {"state": "SCORED", "phase": "scoring", "terminal": False},
+    {"state": "REPORTED", "phase": "report", "terminal": False},
+    {"state": "SIGNED_OUT", "phase": "signoff", "terminal": True},
+    {"state": "CODEX_REQUIRED", "phase": "engineering", "terminal": False},
+    {"state": "FAILED", "phase": "failure", "terminal": True},
+    {"state": "CANCELLED", "phase": "failure", "terminal": True},
+]
+
+REGISTERED_MODULE_TYPES = {
+    "bulk_deg",
+    "descriptive_evidence",
+    "enrichment",
+    "annotation",
+    "safety",
+    "unknown_review",
+    "evidence_import",
+    "scoring",
+    "report",
+}
+
+
+def canonical_json(data: Any) -> str:
+    return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def content_hash(data: Any) -> str:
+    return hashlib.sha256(canonical_json(data).encode("utf-8")).hexdigest()
+
+
+def file_hash(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def v4_dir(project_dir: Path) -> Path:
+    path = project_dir / "v4"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def read_json(path: Path, default: Any) -> Any:
+    if not path.exists():
+        return default
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_v4_state_machine(project_dir: Path) -> Path:
+    path = v4_dir(project_dir) / "state_machine.json"
+    payload = {
+        "schema_version": "v4.state_machine/0.1",
+        "description": "Authoritative v4-compatible state contract for local MVP runs.",
+        "states": V4_STATE_MACHINE,
+        "transitions": [
+            ["PROJECT_CREATED", "SPEC_DRAFTED"],
+            ["SPEC_DRAFTED", "SPEC_FROZEN"],
+            ["SPEC_FROZEN", "DATASET_DISCOVERED"],
+            ["DATASET_DISCOVERED", "PLAN_DRAFTED"],
+            ["PLAN_DRAFTED", "PLAN_APPROVED"],
+            ["PLAN_APPROVED", "WORK_ORDERS_COMPILED"],
+            ["WORK_ORDERS_COMPILED", "RUNNING"],
+            ["RUNNING", "ARTIFACTS_READY"],
+            ["ARTIFACTS_READY", "EVIDENCE_ACCEPTED"],
+            ["EVIDENCE_ACCEPTED", "SCORED"],
+            ["SCORED", "REPORTED"],
+            ["REPORTED", "SIGNED_OUT"],
+            ["PLAN_DRAFTED", "CODEX_REQUIRED"],
+            ["RUNNING", "FAILED"],
+            ["RUNNING", "CANCELLED"],
+        ],
+    }
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def derive_disease_spec(research_spec: dict[str, Any]) -> dict[str, Any]:
+    disease_scope = research_spec.get("disease_scope", {})
+    canonical = disease_scope.get("canonical") or research_spec.get("research_theme") or "unknown"
+    return {
+        "schema_version": "v4.disease_spec/0.1",
+        "project_id": research_spec.get("project_id", ""),
+        "disease_id": _stable_id("disease", canonical),
+        "canonical_name": canonical,
+        "related_phenotypes": disease_scope.get("related_phenotypes", []),
+        "organisms": research_spec.get("organisms", []),
+        "priority_tissues": research_spec.get("priority_tissues", []),
+        "priority_cells": research_spec.get("priority_cells", []),
+        "target_routes": research_spec.get("target_routes", []),
+        "constraints": research_spec.get("constraints", {}),
+    }
+
+
+def compile_v4_work_orders(project_dir: Path, plan: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    plan = plan or read_json(project_dir / "analysis_plan.json", {})
+    plan_hash = content_hash(plan)
+    orders: list[dict[str, Any]] = []
+    work_order_dir = v4_dir(project_dir) / "work_orders"
+    work_order_dir.mkdir(parents=True, exist_ok=True)
+    for index, module in enumerate(plan.get("modules", []), start=1):
+        module_type = module.get("module", "unknown")
+        order_type = "RUN_REGISTERED_MODULE" if module_type in REGISTERED_MODULE_TYPES else "BUILD_ADAPTER"
+        seed = {"project": project_dir.name, "index": index, "plan_hash": plan_hash, "module": module}
+        work_order_id = "wo_" + content_hash(seed)[:16]
+        command = module.get("command") or ""
+        payload = {
+            "schema_version": "v4.work_order/0.1",
+            "work_order_id": work_order_id,
+            "project_id": project_dir.name,
+            "plan_hash": plan_hash,
+            "work_order_type": order_type,
+            "module_id": module.get("module_id", ""),
+            "module": module_type,
+            "dataset_id": module.get("dataset_id", ""),
+            "status": "compiled",
+            "idempotency_key": "idem_" + content_hash(seed)[:24],
+            "execution_backend": "local_executor",
+            "target_backend": "temporal_nextflow_compatible",
+            "command": command,
+            "inputs": module.get("inputs", {}),
+            "parameters": module.get("parameters", {}),
+            "expected_artifacts": module.get("expected_outputs", []),
+            "qc_checks": module.get("qc_checks", []),
+            "allowed_paths": module.get("allowed_files", []),
+            "lineage": {
+                "analysis_plan": "analysis_plan.json",
+                "module_registry": plan.get("module_registry", "analysis_module_registry.json"),
+            },
+            "requires_codex": order_type != "RUN_REGISTERED_MODULE",
+        }
+        out = work_order_dir / f"{work_order_id}.json"
+        out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        if payload["requires_codex"]:
+            packet = build_codex_task_packet(project_dir, payload)
+            packet_path = work_order_dir / f"{work_order_id}_codex_task_packet.json"
+            packet_path.write_text(json.dumps(packet, indent=2, ensure_ascii=False), encoding="utf-8")
+            payload["codex_task_packet"] = str(packet_path.relative_to(project_dir))
+            out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        orders.append(payload)
+    index_path = v4_dir(project_dir) / "work_orders.json"
+    index_path.write_text(json.dumps({"schema_version": "v4.work_order_index/0.1", "work_orders": orders}, indent=2, ensure_ascii=False), encoding="utf-8")
+    return orders
+
+
+def build_codex_task_packet(project_dir: Path, work_order: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "v4.codex_task_packet/0.1",
+        "codex_job_id": "cj_" + content_hash(work_order)[:16],
+        "project_id": project_dir.name,
+        "work_order_id": work_order["work_order_id"],
+        "baseline_commit": _git_commit(project_dir),
+        "task_type": work_order["work_order_type"],
+        "problem_statement": f"Implement or repair capability for module {work_order.get('module', 'unknown')}.",
+        "allowed_paths": work_order.get("allowed_paths", []),
+        "forbidden_inputs": [
+            "production secrets",
+            "private raw research data outside the task fixture",
+            "manual edits to accepted scientific results",
+        ],
+        "fixture": {
+            "project": project_dir.name,
+            "inputs": work_order.get("inputs", {}),
+            "parameters": work_order.get("parameters", {}),
+        },
+        "tests": ["python -m unittest discover -s tests -p \"test*.py\" -v"],
+        "expected_outputs": work_order.get("expected_artifacts", []),
+        "release_gate": "tests_pass_and_human_review_required",
+    }
+
+
+def build_mcp_resource_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
+    plan = plan or read_json(project_dir / "analysis_plan.json", {})
+    spec_path = project_dir / "research_spec.json"
+    disease_spec_path = v4_dir(project_dir) / "disease_spec.json"
+    work_order_index = v4_dir(project_dir) / "work_orders.json"
+    resources = []
+    for uri, path, access in [
+        (f"project://{project_dir.name}", project_dir / "research_interest.md", "read"),
+        (f"spec://{project_dir.name}/research/latest", spec_path, "read"),
+        (f"spec://{project_dir.name}/disease/latest", disease_spec_path, "read"),
+        (f"plan://{project_dir.name}/latest", project_dir / "analysis_plan.json", "read"),
+        (f"work-order://{project_dir.name}/index", work_order_index, "read"),
+        (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
+    ]:
+        if path.exists():
+            resources.append(
+                {
+                    "uri": uri,
+                    "path": str(path.relative_to(project_dir)),
+                    "access": access,
+                    "content_hash": file_hash(path),
+                    "version": "0.1",
+                }
+            )
+    manifest = {
+        "schema_version": "v4.mcp_resource_manifest/0.1",
+        "project_id": project_dir.name,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "policy": {
+            "mcp_is_gateway_not_state_store": True,
+            "write_tools_must_call_orchestrator": True,
+            "large_objects_are_referenced_by_artifact_path": True,
+        },
+        "resources": resources,
+    }
+    path = v4_dir(project_dir) / "mcp_resources.json"
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    return manifest
+
+
+def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
+    db = project_dir / "evidence.sqlite"
+    rows = 0
+    datasets: list[str] = []
+    if db.exists():
+        con = sqlite3.connect(db)
+        try:
+            rows = con.execute("SELECT COUNT(*) FROM evidence_item").fetchone()[0]
+            datasets = [
+                row[0]
+                for row in con.execute(
+                    "SELECT DISTINCT COALESCE(source_dataset, '') FROM evidence_item WHERE COALESCE(source_dataset, '') != '' ORDER BY 1"
+                ).fetchall()
+            ]
+        finally:
+            con.close()
+    snapshot = {
+        "schema_version": "v4.evidence_snapshot/0.1",
+        "snapshot_id": "es_" + content_hash({"project": project_dir.name, "rows": rows, "datasets": datasets})[:16],
+        "project_id": project_dir.name,
+        "evidence_db": "evidence.sqlite" if db.exists() else "",
+        "evidence_rows": rows,
+        "source_datasets": datasets,
+        "review_status_policy": "report_writer_may_reference_accepted_or_flagged_evidence_only",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    path = v4_dir(project_dir) / "evidence_snapshot.json"
+    path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+    return snapshot
+
+
+def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
+    plan = plan or read_json(project_dir / "analysis_plan.json", {})
+    research_spec = read_json(project_dir / "research_spec.json", {})
+    disease_spec = derive_disease_spec(research_spec)
+    disease_spec_path = v4_dir(project_dir) / "disease_spec.json"
+    disease_spec_path.write_text(json.dumps(disease_spec, indent=2, ensure_ascii=False), encoding="utf-8")
+    state_machine_path = write_v4_state_machine(project_dir)
+    work_orders = compile_v4_work_orders(project_dir, plan)
+    evidence_snapshot = build_evidence_snapshot(project_dir)
+    mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
+    manifest = {
+        "schema_version": "v4.object_manifest/0.1",
+        "project_id": project_dir.name,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "objects": {
+            "research_spec": {
+                "path": "research_spec.json",
+                "hash": content_hash(research_spec),
+            },
+            "disease_spec": {
+                "path": str(disease_spec_path.relative_to(project_dir)),
+                "hash": content_hash(disease_spec),
+            },
+            "analysis_plan": {
+                "path": "analysis_plan.json",
+                "hash": content_hash(plan),
+            },
+            "state_machine": {
+                "path": str(state_machine_path.relative_to(project_dir)),
+                "hash": file_hash(state_machine_path),
+            },
+            "work_orders": {
+                "count": len(work_orders),
+                "path": "v4/work_orders.json",
+                "hash": file_hash(v4_dir(project_dir) / "work_orders.json"),
+            },
+            "evidence_snapshot": evidence_snapshot,
+            "mcp_resources": {
+                "path": "v4/mcp_resources.json",
+                "count": len(mcp_manifest["resources"]),
+            },
+        },
+    }
+    path = v4_dir(project_dir) / "object_manifest.json"
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    return manifest
+
+
+def _stable_id(prefix: str, value: str) -> str:
+    return prefix + "_" + hashlib.sha256(value.lower().strip().encode("utf-8")).hexdigest()[:12]
+
+
+def _git_commit(project_dir: Path) -> str:
+    head = project_dir.parents[1] / ".git" / "HEAD"
+    if not head.exists():
+        return "unknown"
+    text = head.read_text(encoding="utf-8").strip()
+    if text.startswith("ref:"):
+        ref = project_dir.parents[1] / ".git" / text.split(" ", 1)[1]
+        return ref.read_text(encoding="utf-8").strip()[:12] if ref.exists() else "unknown"
+    return text[:12]
