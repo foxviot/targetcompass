@@ -27,6 +27,10 @@ class EnrichmentTest(unittest.TestCase):
             self.assertGreater(len(rows), 0)
             self.assertEqual(rows[0]["dataset_id"], "ds_test")
             self.assertIn("adj_p_value", rows[0])
+            self.assertEqual(rows[0]["method"], "ORA")
+            self.assertIn("gene_set_hash", rows[0])
+            self.assertTrue((out.parent / "gsea_preranked_results.tsv").exists())
+            self.assertTrue((out.parent / "gene_set_snapshot.json").exists())
 
 
 if __name__ == "__main__":

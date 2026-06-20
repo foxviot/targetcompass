@@ -16,8 +16,14 @@ ANALYSIS_MODULES = [
         "status": "implemented",
         "input_modality": "deg_results",
         "runner": "targetcompass_lite.enrichment.run_enrichment",
-        "outputs": ["results/enrichment/enrichment_results.tsv", "results/enrichment/run_manifest.json", "results/enrichment/qc_summary.json"],
-        "notes": "Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files; writes QC and manifest.",
+        "outputs": [
+            "results/enrichment/enrichment_results.tsv",
+            "results/enrichment/gsea_preranked_results.tsv",
+            "results/enrichment/gene_set_snapshot.json",
+            "results/enrichment/run_manifest.json",
+            "results/enrichment/qc_summary.json",
+        ],
+        "notes": "Consumes local and adapter-imported MSigDB/Reactome gene sets with version/hash snapshots; separates ORA from lightweight preranked enrichment.",
     },
     {
         "module_id": "accessibility_annotation_v1",
@@ -55,8 +61,14 @@ ANALYSIS_MODULES = [
         "status": "implemented",
         "input_modality": "bulk_deg_results",
         "runner": "targetcompass_lite.meta_analysis.run_meta_analysis",
-        "outputs": ["results/meta_analysis/deg_meta_analysis.tsv", "results/meta_analysis/run_manifest.json"],
-        "notes": "Lightweight cross-dataset DEG summary for triage; publication-grade meta-analysis still requires formal model review.",
+        "outputs": [
+            "results/meta_analysis/deg_meta_analysis.tsv",
+            "results/meta_analysis/qc_summary.json",
+            "results/meta_analysis/forest_plot_index.tsv",
+            "results/meta_analysis/forest_plots/*.svg",
+            "results/meta_analysis/run_manifest.json",
+        ],
+        "notes": "Fixed/random effects DEG meta-analysis with heterogeneity, direction consistency QC, and lightweight SVG forest plots.",
     },
     {
         "module_id": "genetic_coloc_mr_v1",

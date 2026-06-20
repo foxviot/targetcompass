@@ -224,8 +224,11 @@ def _meta_analysis_rows(project_dir: Path) -> list[list[str]]:
             row.get("gene_symbol", ""),
             row.get("dataset_count", ""),
             row.get("mean_logFC", ""),
+            row.get("random_effect_logFC", ""),
             row.get("dominant_direction", ""),
             row.get("direction_consistency", ""),
+            row.get("heterogeneity_i2", ""),
+            row.get("qc_status", ""),
             row.get("combined_p_score", ""),
             row.get("source_datasets", ""),
         ]
@@ -584,7 +587,7 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
     <h3>Enrichment overview</h3>
     {_table(["Dataset", "Term ID", "Term", "Overlap", "Adj.P", "Genes", "Source"], _enrichment_rows(project_dir))}
     <h3>Meta-analysis overview</h3>
-    {_table(["Gene", "Datasets", "Mean logFC", "Direction", "Consistency", "Combined score", "Sources"], _meta_analysis_rows(project_dir))}
+    {_table(["Gene", "Datasets", "Mean logFC", "Random logFC", "Direction", "Consistency", "I2", "QC", "Combined score", "Sources"], _meta_analysis_rows(project_dir))}
     <h3>Causal evidence grading</h3>
     {_table(["Gene", "Grade", "Support", "Methods", "Evidence types", "Count", "Best P", "Review flags", "Review", "Artifacts", "Rationale"], _causal_evidence_rows(project_dir))}
   </section>

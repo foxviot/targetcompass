@@ -123,6 +123,8 @@ class AnalysisExtensionsTest(unittest.TestCase):
             manifest = json.loads((out.parent / "run_manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["module_id"], "enrichment_v2")
             self.assertIn("output_hash", manifest)
+            self.assertIn("gene_set_snapshot_hash", manifest)
+            self.assertIn("gsea_output_hash", manifest)
 
     def test_meta_analysis_and_causal_grade_enter_evidence_db(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -134,6 +136,13 @@ class AnalysisExtensionsTest(unittest.TestCase):
             with meta.open(encoding="utf-8") as f:
                 rows = list(csv.DictReader(f, delimiter="\t"))
             self.assertEqual(rows[0]["dataset_count"], "2")
+            self.assertIn("random_effect_logFC", rows[0])
+            self.assertIn("heterogeneity_i2", rows[0])
+            self.assertIn("qc_flags", rows[0])
+            manifest_meta = json.loads((project / "results" / "meta_analysis" / "run_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest_meta["schema_version"], "v4.meta_analysis_manifest/0.2")
+            self.assertTrue((project / "results" / "meta_analysis" / "forest_plot_index.tsv").exists())
+            self.assertTrue((project / rows[0]["forest_plot"]).exists())
 
             con = sqlite3.connect(project / "evidence.sqlite")
             con.executescript(
