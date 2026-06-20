@@ -8,6 +8,7 @@ from pathlib import Path
 from targetcompass_lite.causal_evidence import grade_causal_evidence
 from targetcompass_lite.enrichment import run_enrichment
 from targetcompass_lite.evidence_db import import_evidence
+from targetcompass_lite.genetic import run_genetic_coloc_mr
 from targetcompass_lite.meta_analysis import run_meta_analysis
 from targetcompass_lite.scrna import run_scrna_pseudobulk
 
@@ -108,6 +109,46 @@ class AnalysisExtensionsTest(unittest.TestCase):
                 con.close()
             self.assertIn("deg_meta_analysis", types)
             self.assertIn("causal_grade", types)
+
+    def test_genetic_coloc_mr_feeds_causal_grade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            _write_spec(project)
+            data = project / "data" / "genetic"
+            data.mkdir(parents=True)
+            (data / "gwas.tsv").write_text(
+                "variant_id\tgene_symbol\tbeta\tp_value\teffect_allele\tother_allele\ttrait\n"
+                "rs1\tCXCL8\t0.4\t1e-9\tA\tG\tinflammation\n",
+                encoding="utf-8",
+            )
+            (data / "qtl.tsv").write_text(
+                "variant_id\tgene_symbol\tbeta\tp_value\ttissue\n"
+                "rs1\tCXCL8\t0.2\t1e-6\tartery\n",
+                encoding="utf-8",
+            )
+
+            evidence = run_genetic_coloc_mr(
+                project,
+                "data/genetic/gwas.tsv",
+                "data/genetic/qtl.tsv",
+                dataset_id="genetic_demo",
+            )
+            self.assertTrue(evidence.exists())
+            evidence_text = evidence.read_text(encoding="utf-8")
+            self.assertIn("qtl_colocalization", evidence_text)
+            self.assertIn("mendelian_randomization", evidence_text)
+
+            import_evidence(project)
+            causal = grade_causal_evidence(project)
+            self.assertIn("CXCL8\tA", causal.read_text(encoding="utf-8"))
+
+            con = sqlite3.connect(project / "evidence.sqlite")
+            try:
+                types = {row[0] for row in con.execute("SELECT DISTINCT evidence_type FROM evidence_item").fetchall()}
+            finally:
+                con.close()
+            self.assertIn("qtl_colocalization", types)
+            self.assertIn("mendelian_randomization", types)
 
 
 if __name__ == "__main__":

@@ -251,6 +251,36 @@ def import_evidence(project_dir: Path) -> Path:
                 if _insert_evidence(con, evidence, rejected, source, row_number):
                     summary["inserted_rows"] += 1
                     summary["by_evidence_type"][evidence_type] = summary["by_evidence_type"].get(evidence_type, 0) + 1
+    genetic_path = project_dir / "results" / "genetic_coloc_mr" / "genetic_evidence.tsv"
+    if genetic_path.exists():
+        with genetic_path.open(encoding="utf-8") as f:
+            for row_number, row in enumerate(csv.DictReader(f, delimiter="\t"), 2):
+                source = str(genetic_path.relative_to(project_dir))
+                summary["sources"].append(source) if source not in summary["sources"] else None
+                evidence_type = row.get("evidence_type") or "genetic_evidence"
+                gene = row.get("entity_symbol", "")
+                evidence = {
+                    "evidence_id": _evidence_id(project_dir.name, gene, evidence_type, "genetic_coloc_mr", row_number),
+                    "project_id": project_dir.name,
+                    "entity_symbol": gene,
+                    "disease_context": disease,
+                    "evidence_type": evidence_type,
+                    "direction": row.get("direction", ""),
+                    "effect_size": row.get("effect_size", ""),
+                    "p_value": row.get("p_value", ""),
+                    "quality_score": row.get("quality_score", "0.5"),
+                    "review_status": "PENDING",
+                    "source_dataset": row.get("source_dataset", "genetic_coloc_mr"),
+                    "artifact_path": source,
+                    "run_id": _current_run_id(project_dir),
+                    "artifact_id": _artifact_id(project_dir, source, artifact_cache),
+                    "module_version": row.get("module_version", "genetic_coloc_mr_v1"),
+                    "limitation": row.get("limitation", "genetic coloc/MR evidence requires review"),
+                    "created_at": created,
+                }
+                if _insert_evidence(con, evidence, rejected, source, row_number):
+                    summary["inserted_rows"] += 1
+                    summary["by_evidence_type"][evidence_type] = summary["by_evidence_type"].get(evidence_type, 0) + 1
     meta_path = project_dir / "results" / "meta_analysis" / "deg_meta_analysis.tsv"
     if meta_path.exists():
         with meta_path.open(encoding="utf-8") as f:

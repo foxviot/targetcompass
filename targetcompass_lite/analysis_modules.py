@@ -52,12 +52,12 @@ ANALYSIS_MODULES = [
         "notes": "Lightweight cross-dataset DEG summary for triage; publication-grade meta-analysis still requires formal model review.",
     },
     {
-        "module_id": "genetic_coloc_mr_v0",
-        "status": "reserved_interface",
+        "module_id": "genetic_coloc_mr_v1",
+        "status": "implemented",
         "input_modality": "gwas_qtl_summary",
-        "runner": "reserved",
-        "outputs": ["genetic_evidence.tsv", "sensitivity_summary.tsv"],
-        "notes": "Reserved post-MVP interface for GWAS/QTL/colocalization/MR evidence.",
+        "runner": "targetcompass_lite.genetic.run_genetic_coloc_mr",
+        "outputs": ["results/genetic_coloc_mr/harmonized_gwas_qtl.tsv", "results/genetic_coloc_mr/genetic_evidence.tsv", "results/genetic_coloc_mr/sensitivity_summary.tsv", "results/genetic_coloc_mr/run_manifest.json"],
+        "notes": "Minimal harmonized GWAS/QTL contract with coloc and single-variant MR proxy outputs. Legacy interface alias: genetic_coloc_mr_v0.",
     },
     {
         "module_id": "causal_evidence_grading_v1",

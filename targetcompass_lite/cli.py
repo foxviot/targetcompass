@@ -226,6 +226,11 @@ def main() -> None:
     p.add_argument("--project", required=True)
     p = sub.add_parser("causal-grade")
     p.add_argument("--project", required=True)
+    p = sub.add_parser("genetic-coloc-mr")
+    p.add_argument("--project", required=True)
+    p.add_argument("--gwas-summary", required=True)
+    p.add_argument("--qtl-summary", required=True)
+    p.add_argument("--dataset-id", default="genetic")
     p = sub.add_parser("import-evidence")
     p.add_argument("--project", required=True)
     p = sub.add_parser("score")
@@ -412,6 +417,10 @@ def main() -> None:
         from .causal_evidence import grade_causal_evidence
 
         print(grade_causal_evidence(pdir))
+    elif args.cmd == "genetic-coloc-mr":
+        from .genetic import run_genetic_coloc_mr
+
+        print(run_genetic_coloc_mr(pdir, args.gwas_summary, args.qtl_summary, dataset_id=args.dataset_id))
     elif args.cmd == "import-evidence":
         print(import_evidence(pdir))
     elif args.cmd == "score":
