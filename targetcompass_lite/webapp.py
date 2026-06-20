@@ -15,6 +15,7 @@ from .adapter_audit import build_adapter_audit
 from .annotation import annotate_project
 from .cli import init_project
 from .codex_engineering import load_codex_engineering
+from .consistency import run_consistency_check
 from .db_adapters import available_database_adapters
 from .enrichment import run_enrichment
 from .evidence_db import import_evidence
@@ -755,6 +756,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
     if not orders:
         return (
             '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
+            + _consistency_check_panel(project_dir)
             + _evidence_trace_index_panel(project_dir)
             + _role_runs_panel(project_dir)
             + _mcp_gateway_panel(project_dir)
@@ -833,6 +835,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         "".join(cards)
         + attempt_table
         + _work_order_dag_panel(project_dir)
+        + _consistency_check_panel(project_dir)
         + _evidence_trace_index_panel(project_dir)
         + _codex_engineering_panel(project_dir)
         + _role_runs_panel(project_dir)
@@ -893,6 +896,31 @@ def _evidence_trace_index_panel(project_dir: Path) -> str:
         + result_table
         + "<table><thead><tr><th>Evidence</th><th>Type</th><th>Artifact</th><th>Reviews</th><th>Report refs</th><th>Status</th><th>Detail</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></details>"
+    )
+
+
+def _consistency_check_panel(project_dir: Path) -> str:
+    check = _read_json(project_dir / "v4" / "consistency_check.json", {})
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('check', ''))}</td>"
+        f"<td><span class=\"pill {'pass' if row.get('status') == 'PASS' else 'review'}\">{html.escape(row.get('status', ''))}</span></td>"
+        f"<td>{html.escape(row.get('detail', ''))}</td>"
+        "</tr>"
+        for row in check.get("checks", [])
+    )
+    table = (
+        "<table><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+        if rows
+        else '<p class="muted">No consistency check has been run yet.</p>'
+    )
+    return (
+        "<details open><summary>Consistency check</summary>"
+        f'<p class="muted">status: {html.escape(check.get("status", "not_run"))} · artifact: <code>v4/consistency_check.json</code></p>'
+        '<form class="mini-form" method="post" action="/consistency-check"><button type="submit">Run consistency check</button></form>'
+        + table
+        + "</details>"
     )
 
 
@@ -2191,6 +2219,13 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                     self.end_headers()
                 except Exception as exc:
                     self._send(400, _page(project_dir, f"Evidence trace query failed: {exc}"))
+                return
+            if self.path == "/consistency-check":
+                try:
+                    result = run_consistency_check(project_dir)
+                    self._send(200, _page(project_dir, f"Consistency check completed: {result['status']}"))
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"Consistency check failed: {exc}"))
                 return
             if self.path == "/adapter-audit":
                 try:

@@ -323,6 +323,8 @@ def main() -> None:
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("work-order-dag")
     p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("consistency-check")
+    p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("mcp-gateway")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--list-tools", action="store_true")
@@ -566,6 +568,10 @@ def main() -> None:
         from .work_order_dag import build_work_order_dag
 
         print(json.dumps(build_work_order_dag(pdir), indent=2, ensure_ascii=False))
+    elif args.cmd == "consistency-check":
+        from .consistency import run_consistency_check
+
+        print(json.dumps(run_consistency_check(pdir), indent=2, ensure_ascii=False))
     elif args.cmd == "mcp-gateway":
         from .mcp_gateway import build_mcp_gateway, call_tool, read_resource
 
