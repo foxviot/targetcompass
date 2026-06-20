@@ -8,6 +8,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .executor import build_executor_contract, run_local_executor
 from .validators import load_dataset_card
 
 
@@ -255,6 +256,7 @@ def _write_manifest(
     (out_dir / "run_manifest.json").write_text(
         json.dumps(
             {
+                "schema_version": "bulk_deg_run_manifest_v2",
                 "script": "targetcompass_lite/deg.py",
                 "runner_type": runner["runner_type"],
                 "runner_reason": runner["reason"],
@@ -269,7 +271,8 @@ def _write_manifest(
                 },
                 "design": design,
                 "limitations": [*limitations, *design.get("warnings", [])],
-                "output_files": ["deg_results.tsv", "qc_summary.tsv"],
+                "output_files": ["deg_results.tsv", "qc_summary.tsv", "qc_summary.json", "executor_manifest.json"],
+                "executor_manifest": "executor_manifest.json",
                 "status": "success",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
@@ -369,49 +372,79 @@ def run_deg(project_dir: Path, dataset_id: str) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     result_path = out_dir / "deg_results.tsv"
     runner = _select_deg_runner()
-    if runner["runner_type"] == "r_limma":
-        try:
-            result_path = _run_formal_limma(expr, meta, case, control, out_dir, design)
-            _write_qc(out_dir, dataset_id, samples, matrix, meta_rows, case_samples, control_samples, design, runner)
-            _write_manifest(out_dir, dataset_id, expr, meta, case, control, design, runner)
-            return result_path
-        except Exception as exc:
-            runner = {
-                "runner_type": "python_fallback",
-                "reason": f"formal limma failed; used Python fallback. Reason: {exc}",
-            }
-            design.setdefault("warnings", []).append(str(runner["reason"]))
-    scored = []
-    for gene, values in matrix:
-        case_vals = [values[s] for s in case_samples]
-        ctrl_vals = [values[s] for s in control_samples]
-        case_mean = _mean(case_vals)
-        ctrl_mean = _mean(ctrl_vals)
-        log_fc = math.log2((case_mean + 0.01) / (ctrl_mean + 0.01))
-        se = math.sqrt((_variance(case_vals) / len(case_vals)) + (_variance(ctrl_vals) / len(ctrl_vals)) + 1e-9)
-        t_stat = (case_mean - ctrl_mean) / se if se else 0.0
-        p_value = min(1.0, math.exp(-abs(t_stat)))
-        scored.append(
-            {
-                "gene_symbol": gene,
-                "case_mean": f"{case_mean:.4f}",
-                "control_mean": f"{ctrl_mean:.4f}",
-                "logFC": f"{log_fc:.4f}",
-                "p_value": f"{p_value:.6g}",
-                "direction": "up" if log_fc > 0 else "down",
-            }
-        )
-    scored.sort(key=lambda r: (float(r["p_value"]), -abs(float(r["logFC"])), r["gene_symbol"]))
-    for rank, row in enumerate(scored, 1):
-        row["adj_p_value"] = f"{min(1.0, float(row['p_value']) * len(scored) / rank):.6g}"
-    with result_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=["gene_symbol", "case_mean", "control_mean", "logFC", "p_value", "adj_p_value", "direction"],
-            delimiter="\t",
-        )
-        writer.writeheader()
-        writer.writerows(scored)
-    _write_qc(out_dir, dataset_id, samples, matrix, meta_rows, case_samples, control_samples, design, runner)
-    _write_manifest(out_dir, dataset_id, expr, meta, case, control, design, runner)
+    contract = build_executor_contract(
+        project_dir,
+        module_id=f"bulk_deg_{dataset_id}",
+        runner="targetcompass_lite.deg.run_deg",
+        inputs={
+            "dataset_card": str(card_path.relative_to(project_dir)),
+            "expression_matrix": card["file_paths"]["expression_matrix"],
+            "metadata": card["file_paths"]["metadata"],
+        },
+        parameters={
+            "case": case,
+            "control": control,
+            "runner_type": runner["runner_type"],
+            "batch_covariates": design["batch_covariates"],
+            "dropped_batch_covariates": design.get("dropped_batch_covariates", []),
+        },
+        expected_outputs=[
+            f"results/bulk_deg_{dataset_id}/deg_results.tsv",
+            f"results/bulk_deg_{dataset_id}/qc_summary.tsv",
+            f"results/bulk_deg_{dataset_id}/qc_summary.json",
+            f"results/bulk_deg_{dataset_id}/run_manifest.json",
+        ],
+        nextflow_hint={"process": "bulk_limma_or_python_fallback"},
+    )
+
+    def operation() -> Path:
+        nonlocal runner, result_path
+        if runner["runner_type"] == "r_limma":
+            try:
+                result_path = _run_formal_limma(expr, meta, case, control, out_dir, design)
+                _write_qc(out_dir, dataset_id, samples, matrix, meta_rows, case_samples, control_samples, design, runner)
+                _write_manifest(out_dir, dataset_id, expr, meta, case, control, design, runner)
+                return result_path
+            except Exception as exc:
+                runner = {
+                    "runner_type": "python_fallback",
+                    "reason": f"formal limma failed; used Python fallback. Reason: {exc}",
+                }
+                design.setdefault("warnings", []).append(str(runner["reason"]))
+        scored = []
+        for gene, values in matrix:
+            case_vals = [values[s] for s in case_samples]
+            ctrl_vals = [values[s] for s in control_samples]
+            case_mean = _mean(case_vals)
+            ctrl_mean = _mean(ctrl_vals)
+            log_fc = math.log2((case_mean + 0.01) / (ctrl_mean + 0.01))
+            se = math.sqrt((_variance(case_vals) / len(case_vals)) + (_variance(ctrl_vals) / len(ctrl_vals)) + 1e-9)
+            t_stat = (case_mean - ctrl_mean) / se if se else 0.0
+            p_value = min(1.0, math.exp(-abs(t_stat)))
+            scored.append(
+                {
+                    "gene_symbol": gene,
+                    "case_mean": f"{case_mean:.4f}",
+                    "control_mean": f"{ctrl_mean:.4f}",
+                    "logFC": f"{log_fc:.4f}",
+                    "p_value": f"{p_value:.6g}",
+                    "direction": "up" if log_fc > 0 else "down",
+                }
+            )
+        scored.sort(key=lambda r: (float(r["p_value"]), -abs(float(r["logFC"])), r["gene_symbol"]))
+        for rank, row in enumerate(scored, 1):
+            row["adj_p_value"] = f"{min(1.0, float(row['p_value']) * len(scored) / rank):.6g}"
+        with result_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["gene_symbol", "case_mean", "control_mean", "logFC", "p_value", "adj_p_value", "direction"],
+                delimiter="\t",
+            )
+            writer.writeheader()
+            writer.writerows(scored)
+        _write_qc(out_dir, dataset_id, samples, matrix, meta_rows, case_samples, control_samples, design, runner)
+        _write_manifest(out_dir, dataset_id, expr, meta, case, control, design, runner)
+        return result_path
+
+    result_path, _ = run_local_executor(project_dir, out_dir, contract, operation)
     return result_path

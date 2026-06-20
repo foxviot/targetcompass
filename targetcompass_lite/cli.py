@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 from .annotation import annotate_project
+from .agent_roles import write_agent_role_manifest
 from .deg import run_deg
 from .enrichment import run_enrichment
 from .evidence_db import import_evidence
@@ -134,6 +135,7 @@ def cmd_demo(args) -> int:
     import_evidence(p)
     score_project(p)
     html_path, docx_path = build_report(p)
+    write_agent_role_manifest(p)
     print(f"report: {html_path}")
     print(f"word-compatible report: {docx_path}")
     return 0

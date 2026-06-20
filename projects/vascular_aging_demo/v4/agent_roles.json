@@ -1,0 +1,143 @@
+{
+  "schema_version": "v4.agent_roles/0.1",
+  "project_id": "vascular_aging_demo",
+  "policy": {
+    "generator_cannot_approve_itself": true,
+    "scoring_engine_is_deterministic": true,
+    "role_outputs_must_be_schema_validated": true
+  },
+  "roles": [
+    {
+      "role_id": "disease_normalizer",
+      "stage": "generation",
+      "worker": "gpt_or_rule_based",
+      "purpose": "Normalize the user research request into DiseaseSpec and ResearchSpec boundaries.",
+      "input_refs": [
+        "research_interest.md"
+      ],
+      "output_refs": [
+        "research_spec.json",
+        "v4/disease_spec.json"
+      ],
+      "schema": "ResearchSpec",
+      "status": "complete",
+      "decision_id": "decision_1ef91e5ece3420b7",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.064810+00:00"
+    },
+    {
+      "role_id": "dataset_scout",
+      "stage": "verification",
+      "worker": "gpt_guided_local_tools",
+      "purpose": "Find and qualify datasets without approving the analysis plan.",
+      "input_refs": [
+        "research_spec.json",
+        "dataset_cards/*.yaml"
+      ],
+      "output_refs": [
+        "dataset_match_report.csv",
+        "results/geo_discovery/geo_recommendations.json"
+      ],
+      "schema": "DatasetCandidate",
+      "status": "complete",
+      "decision_id": "decision_1e0d91e5773927c4",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.064997+00:00"
+    },
+    {
+      "role_id": "planner",
+      "stage": "verification",
+      "worker": "deterministic_planner",
+      "purpose": "Select registered modules and compile AnalysisPlan.",
+      "input_refs": [
+        "eligible_datasets.csv",
+        "analysis_module_registry.json"
+      ],
+      "output_refs": [
+        "analysis_plan.json",
+        "v4/work_orders.json"
+      ],
+      "schema": "AnalysisPlan",
+      "status": "complete",
+      "decision_id": "decision_4bc21b1bebbf118b",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.065143+00:00"
+    },
+    {
+      "role_id": "method_reviewer",
+      "stage": "initial_review",
+      "worker": "gpt_or_local_audit",
+      "purpose": "Review ResearchSpec readiness, method fit, and work order safety before execution.",
+      "input_refs": [
+        "research_spec.json",
+        "analysis_plan.json",
+        "v4/work_orders.json"
+      ],
+      "output_refs": [
+        "results/review_queue.json",
+        "results/review_actions.jsonl"
+      ],
+      "schema": "ReviewDecision",
+      "status": "pending",
+      "decision_id": "decision_dbc10c3bf96d39a3",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.065281+00:00"
+    },
+    {
+      "role_id": "result_reviewer",
+      "stage": "final_review",
+      "worker": "gpt_or_local_audit",
+      "purpose": "Review QC, rejected rows, hard gates, and unknown annotations.",
+      "input_refs": [
+        "results/*/qc_summary.json",
+        "results/evidence_import/import_summary.json",
+        "candidate_scores.csv"
+      ],
+      "output_refs": [
+        "reports/target_report_structured.json"
+      ],
+      "schema": "ReviewDecision",
+      "status": "complete",
+      "decision_id": "decision_e9c286614230c393",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.065371+00:00"
+    },
+    {
+      "role_id": "causal_reviewer",
+      "stage": "final_review",
+      "worker": "reserved",
+      "purpose": "Grade GWAS/QTL/coloc/MR evidence when genetic modules are available.",
+      "input_refs": [
+        "results/genetics/*"
+      ],
+      "output_refs": [
+        "results/causal_review.json"
+      ],
+      "schema": "CausalReviewDecision",
+      "status": "pending",
+      "decision_id": "decision_9057d8b907f803a9",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.065432+00:00"
+    },
+    {
+      "role_id": "report_writer",
+      "stage": "report",
+      "worker": "deterministic_writer",
+      "purpose": "Write report only from accepted/flagged evidence, scores, and audit records.",
+      "input_refs": [
+        "evidence.sqlite",
+        "candidate_scores.csv",
+        "results/scoring/target_score_manifest.json"
+      ],
+      "output_refs": [
+        "reports/target_report.html",
+        "reports/target_report_structured.json"
+      ],
+      "schema": "Report",
+      "status": "complete",
+      "decision_id": "decision_93f0def1bf5ad385",
+      "observations": {},
+      "generated_at": "2026-06-20T11:18:16.065567+00:00"
+    }
+  ]
+}

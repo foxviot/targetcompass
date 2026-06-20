@@ -62,6 +62,7 @@ def _bulk_deg_module(project_dir: Path, row: dict, card: dict) -> dict:
             f"{out_dir}/deg_results.tsv",
             f"{out_dir}/qc_summary.tsv",
             f"{out_dir}/run_manifest.json",
+            f"{out_dir}/executor_manifest.json",
         ],
         "qc_checks": [
             "expression sample columns match metadata sample_id values",

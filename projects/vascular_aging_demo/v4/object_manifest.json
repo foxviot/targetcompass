@@ -1,7 +1,7 @@
 {
   "schema_version": "v4.object_manifest/0.1",
   "project_id": "vascular_aging_demo",
-  "generated_at": "2026-06-20T11:04:40.547525+00:00",
+  "generated_at": "2026-06-20T11:17:38.524581+00:00",
   "objects": {
     "research_spec": {
       "path": "research_spec.json",
@@ -13,7 +13,7 @@
     },
     "analysis_plan": {
       "path": "analysis_plan.json",
-      "hash": "ccb8df104bd2e2f38afccc905109aa40b02262b3c88ae9881f8d633132a327ce"
+      "hash": "b79a326d51aa7d04b2a6a7207e2430d0fee7ea4dc07e8cf06548744248047730"
     },
     "state_machine": {
       "path": "v4\\state_machine.json",
@@ -22,7 +22,7 @@
     "work_orders": {
       "count": 3,
       "path": "v4/work_orders.json",
-      "hash": "ff1984b234063391b7c688160d8d491bfa6cb8a1abb5881f2aaac472cf23b722"
+      "hash": "f52cb811867548c3fbe41f08d6c88c4449d677dc1fb3a31d2dfa2c4e46baa4bd"
     },
     "evidence_snapshot": {
       "schema_version": "v4.evidence_snapshot/0.1",
@@ -40,11 +40,15 @@
       ],
       "scoring_manifest": "results/scoring/target_score_manifest.json",
       "review_status_policy": "report_writer_may_reference_accepted_or_flagged_evidence_only",
-      "generated_at": "2026-06-20T11:04:40.540078+00:00"
+      "generated_at": "2026-06-20T11:17:38.515573+00:00"
     },
     "mcp_resources": {
       "path": "v4/mcp_resources.json",
       "count": 6
+    },
+    "agent_roles": {
+      "path": "v4/agent_roles.json",
+      "exists": true
     }
   }
 }

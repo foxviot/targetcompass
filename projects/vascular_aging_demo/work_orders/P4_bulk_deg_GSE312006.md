@@ -24,6 +24,7 @@ Estimate differential expression for the declared case/control contrast.
 - results/bulk_deg_GSE312006/deg_results.tsv
 - results/bulk_deg_GSE312006/qc_summary.tsv
 - results/bulk_deg_GSE312006/run_manifest.json
+- results/bulk_deg_GSE312006/executor_manifest.json
 ## QC Checks
 - expression sample columns match metadata sample_id values
 - case and control labels are present in metadata.group

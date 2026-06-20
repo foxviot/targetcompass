@@ -3,15 +3,15 @@
   "work_orders": [
     {
       "schema_version": "v4.work_order/0.1",
-      "work_order_id": "wo_4a2136e699f2c3bf",
+      "work_order_id": "wo_e0984ae1383221cf",
       "project_id": "vascular_aging_demo",
-      "plan_hash": "ccb8df104bd2e2f38afccc905109aa40b02262b3c88ae9881f8d633132a327ce",
+      "plan_hash": "b79a326d51aa7d04b2a6a7207e2430d0fee7ea4dc07e8cf06548744248047730",
       "work_order_type": "RUN_REGISTERED_MODULE",
       "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
       "module": "bulk_deg",
       "dataset_id": "ds_fixture_vascular_aging",
       "status": "compiled",
-      "idempotency_key": "idem_4a2136e699f2c3bfffce9299",
+      "idempotency_key": "idem_e0984ae1383221cf6f3db2e4",
       "execution_backend": "local_executor",
       "target_backend": "temporal_nextflow_compatible",
       "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset ds_fixture_vascular_aging",
@@ -31,7 +31,8 @@
       "expected_artifacts": [
         "results/bulk_deg_ds_fixture_vascular_aging/deg_results.tsv",
         "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.tsv",
-        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/executor_manifest.json"
       ],
       "qc_checks": [
         "expression sample columns match metadata sample_id values",
@@ -51,15 +52,15 @@
     },
     {
       "schema_version": "v4.work_order/0.1",
-      "work_order_id": "wo_cc582372dc5b1fba",
+      "work_order_id": "wo_5eec40a91f001b66",
       "project_id": "vascular_aging_demo",
-      "plan_hash": "ccb8df104bd2e2f38afccc905109aa40b02262b3c88ae9881f8d633132a327ce",
+      "plan_hash": "b79a326d51aa7d04b2a6a7207e2430d0fee7ea4dc07e8cf06548744248047730",
       "work_order_type": "RUN_REGISTERED_MODULE",
       "module_id": "P4_bulk_deg_GSE312006",
       "module": "bulk_deg",
       "dataset_id": "GSE312006",
       "status": "compiled",
-      "idempotency_key": "idem_cc582372dc5b1fbac0195572",
+      "idempotency_key": "idem_5eec40a91f001b66b5a12d77",
       "execution_backend": "local_executor",
       "target_backend": "temporal_nextflow_compatible",
       "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset GSE312006",
@@ -79,7 +80,8 @@
       "expected_artifacts": [
         "results/bulk_deg_GSE312006/deg_results.tsv",
         "results/bulk_deg_GSE312006/qc_summary.tsv",
-        "results/bulk_deg_GSE312006/run_manifest.json"
+        "results/bulk_deg_GSE312006/run_manifest.json",
+        "results/bulk_deg_GSE312006/executor_manifest.json"
       ],
       "qc_checks": [
         "expression sample columns match metadata sample_id values",
@@ -99,15 +101,15 @@
     },
     {
       "schema_version": "v4.work_order/0.1",
-      "work_order_id": "wo_9afc53ef7a668c16",
+      "work_order_id": "wo_7a7cd07c97381236",
       "project_id": "vascular_aging_demo",
-      "plan_hash": "ccb8df104bd2e2f38afccc905109aa40b02262b3c88ae9881f8d633132a327ce",
+      "plan_hash": "b79a326d51aa7d04b2a6a7207e2430d0fee7ea4dc07e8cf06548744248047730",
       "work_order_type": "RUN_REGISTERED_MODULE",
       "module_id": "P4_bulk_deg_GSE43292",
       "module": "bulk_deg",
       "dataset_id": "GSE43292",
       "status": "compiled",
-      "idempotency_key": "idem_9afc53ef7a668c163c4b963f",
+      "idempotency_key": "idem_7a7cd07c973812365aec0dca",
       "execution_backend": "local_executor",
       "target_backend": "temporal_nextflow_compatible",
       "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset GSE43292",
@@ -127,7 +129,8 @@
       "expected_artifacts": [
         "results/bulk_deg_GSE43292/deg_results.tsv",
         "results/bulk_deg_GSE43292/qc_summary.tsv",
-        "results/bulk_deg_GSE43292/run_manifest.json"
+        "results/bulk_deg_GSE43292/run_manifest.json",
+        "results/bulk_deg_GSE43292/executor_manifest.json"
       ],
       "qc_checks": [
         "expression sample columns match metadata sample_id values",

@@ -1,0 +1,71 @@
+{
+  "schema_version": "executor_artifact_manifest_v1",
+  "module_id": "bulk_deg_GSE43292",
+  "backend": "local_python_r",
+  "runner": "targetcompass_lite.deg.run_deg",
+  "status": "success",
+  "started_at": "2026-06-20T11:17:42.658018+00:00",
+  "finished_at": "2026-06-20T11:17:46.365957+00:00",
+  "failure_reason": "",
+  "resume_key": "resume_29b6ecece7ee2e12",
+  "contract": {
+    "schema_version": "executor_contract_v1",
+    "module_id": "bulk_deg_GSE43292",
+    "backend": "local_python_r",
+    "runner": "targetcompass_lite.deg.run_deg",
+    "inputs": {
+      "dataset_card": "dataset_cards\\GSE43292.yaml",
+      "expression_matrix": "data/GSE43292/expression_matrix.tsv",
+      "metadata": "data/GSE43292/metadata.tsv"
+    },
+    "input_hashes": {
+      "dataset_card": "008d32ee63e834cd4d2e1d2decf0a1cf61eadb230bfade772a9bd32573e48dcf",
+      "expression_matrix": "81518bcceec968a709f4ce8f4326d2ff30a37dd0539a78295dc0b3534315d18d",
+      "metadata": "3407f70e4f749b3055de9e80f7357ecd4e14066d0411228a4e96f3c689117784"
+    },
+    "parameters": {
+      "case": "atheroma_plaque",
+      "control": "intact_carotid",
+      "runner_type": "r_limma",
+      "batch_covariates": [
+        "batch"
+      ],
+      "dropped_batch_covariates": []
+    },
+    "expected_outputs": [
+      "results/bulk_deg_GSE43292/deg_results.tsv",
+      "results/bulk_deg_GSE43292/qc_summary.tsv",
+      "results/bulk_deg_GSE43292/qc_summary.json",
+      "results/bulk_deg_GSE43292/run_manifest.json"
+    ],
+    "resume_key": "resume_29b6ecece7ee2e12",
+    "nextflow_compatible": {
+      "module_contract": "nextflow/bulk_deg_GSE43292.contract.yaml",
+      "profile": "local",
+      "container_digest": "",
+      "process": "bulk_limma_or_python_fallback"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "results/bulk_deg_GSE43292/deg_results.tsv",
+      "artifact_id": "artifact_b7c5d77dd563b607",
+      "sha256": "c538c2aeb9d62550e0cb67293fdf6dd361ce0c779a0f183d05908b8b8a0122d3"
+    },
+    {
+      "path": "results/bulk_deg_GSE43292/qc_summary.tsv",
+      "artifact_id": "artifact_9bac4f179bbba63c",
+      "sha256": "a8f0e5cd301987d0692ef9023fd0020d3227d95a3a52aa07f47434b966ef2a1c"
+    },
+    {
+      "path": "results/bulk_deg_GSE43292/qc_summary.json",
+      "artifact_id": "artifact_53a319ba2f40d464",
+      "sha256": "a8306806dc4834e5ead60414efae63b6a253996d389c827e5f9db231eaaf1b8c"
+    },
+    {
+      "path": "results/bulk_deg_GSE43292/run_manifest.json",
+      "artifact_id": "artifact_051d31ba8ef65e0d",
+      "sha256": "2eb200717ef1bbba30963b7084aaeef65e13d539310bfc767e3c448276e04b0a"
+    }
+  ]
+}

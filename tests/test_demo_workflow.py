@@ -45,6 +45,7 @@ class DemoWorkflowTest(unittest.TestCase):
             PROJECT / "analysis_module_registry.json",
             PROJECT / "results" / "bulk_deg_ds_fixture_vascular_aging" / "deg_results.tsv",
             PROJECT / "results" / "bulk_deg_ds_fixture_vascular_aging" / "run_manifest.json",
+            PROJECT / "results" / "bulk_deg_ds_fixture_vascular_aging" / "executor_manifest.json",
             PROJECT / "results" / "bulk_deg_ds_fixture_vascular_aging" / "qc_summary.json",
             PROJECT / "results" / "annotation" / "accessibility_annotation.tsv",
             PROJECT / "results" / "annotation" / "safety_flags.tsv",
@@ -53,6 +54,7 @@ class DemoWorkflowTest(unittest.TestCase):
             PROJECT / "reports" / "target_report.html",
             PROJECT / "reports" / "target_report.docx",
             PROJECT / "reports" / "target_report_structured.json",
+            PROJECT / "v4" / "agent_roles.json",
         ]
         for path in expected:
             with self.subTest(path=path):

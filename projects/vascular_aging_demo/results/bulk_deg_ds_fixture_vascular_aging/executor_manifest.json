@@ -1,0 +1,71 @@
+{
+  "schema_version": "executor_artifact_manifest_v1",
+  "module_id": "bulk_deg_ds_fixture_vascular_aging",
+  "backend": "local_python_r",
+  "runner": "targetcompass_lite.deg.run_deg",
+  "status": "success",
+  "started_at": "2026-06-20T11:17:39.058913+00:00",
+  "finished_at": "2026-06-20T11:17:39.758357+00:00",
+  "failure_reason": "",
+  "resume_key": "resume_d9e25a872316f7fb",
+  "contract": {
+    "schema_version": "executor_contract_v1",
+    "module_id": "bulk_deg_ds_fixture_vascular_aging",
+    "backend": "local_python_r",
+    "runner": "targetcompass_lite.deg.run_deg",
+    "inputs": {
+      "dataset_card": "dataset_cards\\ds_fixture_vascular_aging.yaml",
+      "expression_matrix": "data/ds_fixture_vascular_aging/expression_matrix.tsv",
+      "metadata": "data/ds_fixture_vascular_aging/metadata.tsv"
+    },
+    "input_hashes": {
+      "dataset_card": "ad8934fba29afc97c3fba2272de1546ad3adcdc165877cbd94626ef1b8688a17",
+      "expression_matrix": "68901d3bcf1074a9fb7f24453ccfb35261563e9422524e0066de8d5b552c034d",
+      "metadata": "f69676a3db9dfba8565f3987b4eb33c72401345a6a4b5b16e1f6df1ad5585ed5"
+    },
+    "parameters": {
+      "case": "aged",
+      "control": "young",
+      "runner_type": "r_limma",
+      "batch_covariates": [
+        "batch"
+      ],
+      "dropped_batch_covariates": []
+    },
+    "expected_outputs": [
+      "results/bulk_deg_ds_fixture_vascular_aging/deg_results.tsv",
+      "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.tsv",
+      "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+      "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+    ],
+    "resume_key": "resume_d9e25a872316f7fb",
+    "nextflow_compatible": {
+      "module_contract": "nextflow/bulk_deg_ds_fixture_vascular_aging.contract.yaml",
+      "profile": "local",
+      "container_digest": "",
+      "process": "bulk_limma_or_python_fallback"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "results/bulk_deg_ds_fixture_vascular_aging/deg_results.tsv",
+      "artifact_id": "artifact_c3b379a52fc9a9d1",
+      "sha256": "c45f9b2eb80ab714577c971ade2012e181f1a2f0165c09ab5dbedac145880084"
+    },
+    {
+      "path": "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.tsv",
+      "artifact_id": "artifact_f5cac00df91c5489",
+      "sha256": "c9471dd8d9f7b9573f3123b70ba9fb2ddee645592492d40838a5b1b184668665"
+    },
+    {
+      "path": "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+      "artifact_id": "artifact_2b12fc25cd13fbc3",
+      "sha256": "67128b4eb15e6c581683794939b658fb5250cb641ac9a380e5c88830f0696347"
+    },
+    {
+      "path": "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json",
+      "artifact_id": "artifact_b2ce6ea8653e601e",
+      "sha256": "01e3d38b6a01175a20d8915b36d0174c0b3c0eeb4382fd4b8fc9e65452efeeb9"
+    }
+  ]
+}

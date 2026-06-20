@@ -1,0 +1,49 @@
+{
+  "schema_version": "v4.work_order/0.1",
+  "work_order_id": "wo_5eec40a91f001b66",
+  "project_id": "vascular_aging_demo",
+  "plan_hash": "b79a326d51aa7d04b2a6a7207e2430d0fee7ea4dc07e8cf06548744248047730",
+  "work_order_type": "RUN_REGISTERED_MODULE",
+  "module_id": "P4_bulk_deg_GSE312006",
+  "module": "bulk_deg",
+  "dataset_id": "GSE312006",
+  "status": "compiled",
+  "idempotency_key": "idem_5eec40a91f001b66b5a12d77",
+  "execution_backend": "local_executor",
+  "target_backend": "temporal_nextflow_compatible",
+  "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset GSE312006",
+  "inputs": {
+    "dataset_card": "dataset_cards/GSE312006.yaml",
+    "expression_matrix": "data/GSE312006/expression_matrix.tsv",
+    "metadata": "data/GSE312006/metadata.tsv"
+  },
+  "parameters": {
+    "case": "replicative_senescence",
+    "control": "young",
+    "method": "python_demo_welch_like_effect_screen",
+    "p_adjustment": "benjamini_hochberg",
+    "batch_covariates": [],
+    "formal_method_available": "limma via scripts/r/bulk_limma_deg.R when local R dependencies are installed"
+  },
+  "expected_artifacts": [
+    "results/bulk_deg_GSE312006/deg_results.tsv",
+    "results/bulk_deg_GSE312006/qc_summary.tsv",
+    "results/bulk_deg_GSE312006/run_manifest.json",
+    "results/bulk_deg_GSE312006/executor_manifest.json"
+  ],
+  "qc_checks": [
+    "expression sample columns match metadata sample_id values",
+    "case and control labels are present in metadata.group",
+    "case_n >= 3 and control_n >= 3 preferred for MVP analysis",
+    "run_manifest records input hashes"
+  ],
+  "allowed_paths": [
+    "targetcompass_lite/deg.py",
+    "projects/vascular_aging_demo/results/**"
+  ],
+  "lineage": {
+    "analysis_plan": "analysis_plan.json",
+    "module_registry": "analysis_module_registry.json"
+  },
+  "requires_codex": false
+}

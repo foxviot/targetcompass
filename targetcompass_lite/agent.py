@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .annotation import annotate_project
+from .agent_roles import write_agent_role_manifest
 from .cli import init_project
 from .deg import run_deg
 from .enrichment import run_enrichment
@@ -302,6 +303,7 @@ class TargetDiscoveryAgent:
             docx_report=str(docx_path),
         )
         build_v4_manifest(self.project_dir, analysis_plan)
+        write_agent_role_manifest(self.project_dir, self._role_observations())
         return self._finish("success", "Agent workflow completed.", stdout.getvalue(), stderr.getvalue())
 
     def _validate_selected_dataset_cards(self, selected_datasets: list[str]) -> None:
@@ -404,12 +406,23 @@ class TargetDiscoveryAgent:
             "work_orders": "v4/work_orders.json",
             "mcp_resources": "v4/mcp_resources.json",
             "evidence_snapshot": "v4/evidence_snapshot.json",
+            "agent_roles": "v4/agent_roles.json",
         }
         trace["state_machine"] = AGENT_STATE_MACHINE
         trace["method_config"] = load_method_config(self.project_dir)
         path = self.project_dir / "results" / "agent_trace.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(trace, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    def _role_observations(self) -> dict[str, Any]:
+        return {
+            "disease_normalizer": {"request": self.last_request.get("interest", ""), "parser": self.last_request.get("parser", "")},
+            "dataset_scout": {"selected_datasets": self.last_request.get("selected_datasets", [])},
+            "planner": {"analysis_plan": "analysis_plan.json"},
+            "method_reviewer": {"review_queue": "results/review_queue.json"},
+            "result_reviewer": {"scores": "candidate_scores.csv"},
+            "report_writer": {"report": "reports/target_report.html"},
+        }
 
 
 def _errors_to_exception(errors: list[str]) -> str:

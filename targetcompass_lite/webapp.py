@@ -749,7 +749,11 @@ def _v4_work_order_panel(project_dir: Path) -> str:
     orders = load_v4_work_orders(project_dir)
     resources = _read_json(project_dir / "v4" / "mcp_resources.json", {}).get("resources", [])
     if not orders:
-        return '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
+        return (
+            '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
+            + _executor_manifest_panel(project_dir)
+            + _agent_roles_panel(project_dir)
+        )
     cards = []
     for order in orders:
         status = order.get("status", "compiled")
@@ -817,7 +821,53 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         if attempt_rows
         else '<p class="muted">No WorkOrder attempts recorded yet.</p>'
     )
-    return "".join(cards) + attempt_table + resource_table
+    return "".join(cards) + attempt_table + _executor_manifest_panel(project_dir) + _agent_roles_panel(project_dir) + resource_table
+
+
+def _executor_manifest_panel(project_dir: Path) -> str:
+    manifests = sorted((project_dir / "results").glob("bulk_deg_*/executor_manifest.json"))
+    if not manifests:
+        return '<p class="muted">No local executor manifests recorded yet.</p>'
+    rows = []
+    for path in manifests:
+        data = _read_json(path, {})
+        rows.append(
+            "<tr>"
+            f"<td>{html.escape(data.get('module_id', ''))}</td>"
+            f"<td>{html.escape(data.get('backend', ''))}</td>"
+            f"<td>{html.escape(data.get('status', ''))}</td>"
+            f"<td><code>{html.escape(data.get('resume_key', ''))}</code></td>"
+            f"<td>{html.escape(str(len(data.get('artifacts', []))))}</td>"
+            f"<td><code>{html.escape(str(path.relative_to(project_dir)))}</code></td>"
+            "</tr>"
+        )
+    return (
+        "<details><summary>Local executor manifests</summary>"
+        "<table><thead><tr><th>Module</th><th>Backend</th><th>Status</th><th>Resume key</th><th>Artifacts</th><th>Manifest</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></details>"
+    )
+
+
+def _agent_roles_panel(project_dir: Path) -> str:
+    manifest = _read_json(project_dir / "v4" / "agent_roles.json", {})
+    roles = manifest.get("roles", [])
+    if not roles:
+        return '<p class="muted">No v4 Agent role manifest yet.</p>'
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('role_id', ''))}</td>"
+        f"<td>{html.escape(row.get('worker', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(row.get('schema', ''))}</td>"
+        f"<td><code>{html.escape(row.get('decision_id', ''))}</code></td>"
+        "</tr>"
+        for row in roles
+    )
+    return (
+        "<details><summary>v4 Agent role split</summary>"
+        "<table><thead><tr><th>Role</th><th>Worker</th><th>Status</th><th>Schema</th><th>Decision</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></details>"
+    )
 
 
 def _review_form(item_type: str, item_id: str, label: str) -> str:

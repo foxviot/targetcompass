@@ -12,7 +12,8 @@
         "deg_results.tsv",
         "qc_summary.tsv",
         "qc_summary.json",
-        "run_manifest.json"
+        "run_manifest.json",
+        "executor_manifest.json"
       ],
       "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization."
     },
@@ -169,7 +170,8 @@
       "expected_outputs": [
         "results/bulk_deg_ds_fixture_vascular_aging/deg_results.tsv",
         "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.tsv",
-        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/executor_manifest.json"
       ],
       "qc_checks": [
         "expression sample columns match metadata sample_id values",
@@ -222,7 +224,8 @@
       "expected_outputs": [
         "results/bulk_deg_GSE312006/deg_results.tsv",
         "results/bulk_deg_GSE312006/qc_summary.tsv",
-        "results/bulk_deg_GSE312006/run_manifest.json"
+        "results/bulk_deg_GSE312006/run_manifest.json",
+        "results/bulk_deg_GSE312006/executor_manifest.json"
       ],
       "qc_checks": [
         "expression sample columns match metadata sample_id values",
@@ -277,7 +280,8 @@
       "expected_outputs": [
         "results/bulk_deg_GSE43292/deg_results.tsv",
         "results/bulk_deg_GSE43292/qc_summary.tsv",
-        "results/bulk_deg_GSE43292/run_manifest.json"
+        "results/bulk_deg_GSE43292/run_manifest.json",
+        "results/bulk_deg_GSE43292/executor_manifest.json"
       ],
       "qc_checks": [
         "expression sample columns match metadata sample_id values",

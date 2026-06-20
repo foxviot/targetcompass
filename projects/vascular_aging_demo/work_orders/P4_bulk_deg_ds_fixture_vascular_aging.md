@@ -24,6 +24,7 @@ Estimate differential expression for the declared case/control contrast.
 - results/bulk_deg_ds_fixture_vascular_aging/deg_results.tsv
 - results/bulk_deg_ds_fixture_vascular_aging/qc_summary.tsv
 - results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json
+- results/bulk_deg_ds_fixture_vascular_aging/executor_manifest.json
 ## QC Checks
 - expression sample columns match metadata sample_id values
 - case and control labels are present in metadata.group

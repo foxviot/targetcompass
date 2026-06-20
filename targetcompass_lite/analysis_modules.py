@@ -8,7 +8,7 @@ ANALYSIS_MODULES = [
         "status": "implemented",
         "input_modality": "bulk_expression",
         "runner": "targetcompass_lite.deg.run_deg",
-        "outputs": ["deg_results.tsv", "qc_summary.tsv", "qc_summary.json", "run_manifest.json"],
+        "outputs": ["deg_results.tsv", "qc_summary.tsv", "qc_summary.json", "run_manifest.json", "executor_manifest.json"],
         "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization.",
     },
     {

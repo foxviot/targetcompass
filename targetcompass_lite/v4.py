@@ -325,6 +325,10 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "path": "v4/mcp_resources.json",
                 "count": len(mcp_manifest["resources"]),
             },
+            "agent_roles": {
+                "path": "v4/agent_roles.json",
+                "exists": (project_dir / "v4" / "agent_roles.json").exists(),
+            },
         },
     }
     path = v4_dir(project_dir) / "object_manifest.json"
