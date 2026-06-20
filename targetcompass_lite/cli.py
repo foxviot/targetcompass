@@ -222,6 +222,9 @@ def main() -> None:
     p.add_argument("--group-column", default="group")
     p.add_argument("--cell-type-column", default="cell_type")
     p.add_argument("--min-cells-per-donor", type=int, default=1)
+    p.add_argument("--min-donors-per-group", type=int, default=1)
+    p.add_argument("--case-group", default="")
+    p.add_argument("--control-group", default="")
     p = sub.add_parser("meta-analysis")
     p.add_argument("--project", required=True)
     p = sub.add_parser("causal-grade")
@@ -409,6 +412,9 @@ def main() -> None:
                 group_column=args.group_column,
                 cell_type_column=args.cell_type_column,
                 min_cells_per_donor=args.min_cells_per_donor,
+                min_donors_per_group=args.min_donors_per_group,
+                case_group=args.case_group,
+                control_group=args.control_group,
             )
         )
     elif args.cmd == "meta-analysis":

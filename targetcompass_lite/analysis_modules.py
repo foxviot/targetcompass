@@ -40,8 +40,15 @@ ANALYSIS_MODULES = [
         "status": "implemented",
         "input_modality": "single_cell_expression",
         "runner": "targetcompass_lite.scrna.run_scrna_pseudobulk",
-        "outputs": ["results/scrna_pseudobulk_{dataset_id}/pseudobulk_matrix.tsv", "results/scrna_pseudobulk_{dataset_id}/pseudobulk_metadata.tsv", "qc_summary.json"],
-        "notes": "Donor-aware pseudobulk aggregation. Cells are never treated as biological replicates. Legacy interface alias: scrna_pseudobulk_v0.",
+        "outputs": [
+            "results/scrna_pseudobulk_{dataset_id}/pseudobulk_matrix.tsv",
+            "results/scrna_pseudobulk_{dataset_id}/pseudobulk_metadata.tsv",
+            "results/scrna_pseudobulk_{dataset_id}/donor_group_qc.tsv",
+            "results/scrna_pseudobulk_{dataset_id}/group_qc.tsv",
+            "qc_summary.json",
+            "run_manifest.json",
+        ],
+        "notes": "Donor-aware pseudobulk aggregation with group-level donor QC, contrast declaration, and input hashes. Cells are never treated as biological replicates. Legacy interface alias: scrna_pseudobulk_v0.",
     },
     {
         "module_id": "deg_meta_analysis_v1",

@@ -58,7 +58,60 @@ class AnalysisExtensionsTest(unittest.TestCase):
             self.assertTrue(out.exists())
             qc = json.loads((out.parent / "qc_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(qc["pseudobulk_samples"], 2)
+            self.assertEqual(qc["contrast"]["source"], "inferred_two_groups")
+            self.assertTrue((out.parent / "donor_group_qc.tsv").exists())
+            self.assertTrue((out.parent / "group_qc.tsv").exists())
+            manifest = json.loads((out.parent / "run_manifest.json").read_text(encoding="utf-8"))
+            self.assertTrue(manifest["inputs"]["count_matrix_hash"])
             self.assertIn("d1__case", out.read_text(encoding="utf-8"))
+
+    def test_scrna_pseudobulk_enforces_donor_group_qc_and_explicit_contrast(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            _write_spec(project)
+            data = project / "data" / "scrna"
+            data.mkdir(parents=True)
+            (data / "counts.tsv").write_text(
+                "gene_symbol\tc1\tc2\tc3\tc4\tc5\tc6\n"
+                "IL6\t1\t2\t3\t4\t5\t6\n"
+                "CXCL8\t0\t1\t0\t1\t0\t1\n",
+                encoding="utf-8",
+            )
+            (data / "metadata.tsv").write_text(
+                "cell_id\tdonor_id\tgroup\tcell_type\n"
+                "c1\td1\tcase\tendo\n"
+                "c2\td1\tcase\tendo\n"
+                "c3\td2\tcase\tendo\n"
+                "c4\td2\tcase\tendo\n"
+                "c5\td3\tcontrol\tendo\n"
+                "c6\td3\tcontrol\tendo\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "below min_donors_per_group"):
+                run_scrna_pseudobulk(
+                    project,
+                    "scrna_demo",
+                    "data/scrna/counts.tsv",
+                    "data/scrna/metadata.tsv",
+                    cell_type="endo",
+                    min_donors_per_group=2,
+                    case_group="case",
+                    control_group="control",
+                )
+            out = run_scrna_pseudobulk(
+                project,
+                "scrna_demo",
+                "data/scrna/counts.tsv",
+                "data/scrna/metadata.tsv",
+                cell_type="endo",
+                min_donors_per_group=1,
+                case_group="case",
+                control_group="control",
+            )
+            metadata_text = (out.parent / "pseudobulk_metadata.tsv").read_text(encoding="utf-8")
+            self.assertIn("contrast_role", metadata_text)
+            self.assertIn("case", metadata_text)
+            self.assertIn("control", metadata_text)
 
     def test_enrichment_writes_manifest_and_qc(self):
         with tempfile.TemporaryDirectory() as tmp:
