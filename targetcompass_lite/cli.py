@@ -294,6 +294,30 @@ def main() -> None:
     p.add_argument("--args-json", default="{}")
     p = sub.add_parser("registry-snapshot")
     p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("codex-workspace")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--work-order-id", required=True)
+    p = sub.add_parser("codex-register-patch")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--codex-job-id", required=True)
+    p.add_argument("--patch-path", required=True)
+    p.add_argument("--summary", default="")
+    p = sub.add_parser("codex-register-test")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--codex-job-id", required=True)
+    p.add_argument("--command", required=True)
+    p.add_argument("--status", choices=["passed", "failed", "skipped"], required=True)
+    p.add_argument("--stdout-ref", default="")
+    p.add_argument("--stderr-ref", default="")
+    p.add_argument("--duration-seconds", type=float, default=None)
+    p = sub.add_parser("codex-record-result")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--codex-job-id", required=True)
+    p.add_argument("--status", choices=["success", "failed", "cancelled", "needs_review"], required=True)
+    p.add_argument("--artifact", action="append", default=[])
+    p.add_argument("--failure-reason", default="")
+    p = sub.add_parser("codex-engineering")
+    p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("system-status")
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("reset-demo")
@@ -480,6 +504,41 @@ def main() -> None:
         from .registry_snapshots import build_registry_snapshots
 
         print(json.dumps(build_registry_snapshots(pdir), indent=2, ensure_ascii=False))
+    elif args.cmd == "codex-workspace":
+        from .codex_engineering import create_isolated_workspace
+
+        print(json.dumps(create_isolated_workspace(pdir, args.work_order_id, actor="cli"), indent=2, ensure_ascii=False))
+    elif args.cmd == "codex-register-patch":
+        from .codex_engineering import register_codex_patch
+
+        print(json.dumps(register_codex_patch(pdir, args.codex_job_id, args.patch_path, summary=args.summary, actor="cli"), indent=2, ensure_ascii=False))
+    elif args.cmd == "codex-register-test":
+        from .codex_engineering import register_codex_test_result
+
+        print(
+            json.dumps(
+                register_codex_test_result(
+                    pdir,
+                    args.codex_job_id,
+                    args.command,
+                    args.status,
+                    stdout_ref=args.stdout_ref,
+                    stderr_ref=args.stderr_ref,
+                    duration_seconds=args.duration_seconds,
+                    actor="cli",
+                ),
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+    elif args.cmd == "codex-record-result":
+        from .codex_engineering import record_codex_result
+
+        print(json.dumps(record_codex_result(pdir, args.codex_job_id, args.status, args.artifact, args.failure_reason, actor="cli"), indent=2, ensure_ascii=False))
+    elif args.cmd == "codex-engineering":
+        from .codex_engineering import load_codex_engineering
+
+        print(json.dumps(load_codex_engineering(pdir), indent=2, ensure_ascii=False))
     elif args.cmd == "system-status":
         from .system_status import system_status
 

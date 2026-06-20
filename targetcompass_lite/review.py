@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from .codex_engineering import load_codex_engineering, mark_codex_result_reviewed
 from .v4 import load_codex_task_packet, load_v4_work_orders, save_codex_task_packet, save_v4_work_order
 
 
@@ -148,6 +149,21 @@ def build_review_queue(project_dir: Path) -> dict:
                         "report_ref": _default_report_ref("codex_task", packet.get("codex_job_id", order.get("work_order_id", ""))),
                     }
                 )
+    for result in load_codex_engineering(project_dir).get("results", []):
+        review_status = result.get("review_status", "")
+        if review_status == "approve":
+            continue
+        queue.append(
+            {
+                "item_type": "codex_result",
+                "item_id": result.get("result_id", ""),
+                "title": f"Codex result: {result.get('codex_job_id', '')}",
+                "execution_status": result.get("status", ""),
+                "review_status": review_status or "pending",
+                "reason": result.get("review_reason", ""),
+                "report_ref": _default_report_ref("codex_result", result.get("result_id", "")),
+            }
+        )
     reviews = load_reviews(project_dir)
     approved = sum(1 for row in reviews if row.get("action") == "approve")
     rejected = sum(1 for row in reviews if row.get("action") == "reject")
@@ -258,6 +274,15 @@ def _apply_review_to_artifacts(project_dir: Path, review: dict) -> None:
                 save_codex_task_packet(project_dir, order, packet)
                 return
         return
+    if review["item_type"] == "codex_result":
+        mark_codex_result_reviewed(
+            project_dir,
+            review["item_id"],
+            review["action"],
+            review.get("reason", review.get("note", "")),
+            reviewer=review["reviewer"],
+        )
+        return
     if review["item_type"] != "idea":
         return
     path = project_dir / "results" / "ideas" / "idea_batch.json"
@@ -315,6 +340,25 @@ def _artifact_snapshot(project_dir: Path, item_type: str, item_id: str) -> dict:
                     "review_id",
                 ]
                 return {key: packet.get(key, "") for key in keys}
+        return {}
+    if item_type == "codex_result":
+        for result in load_codex_engineering(project_dir).get("results", []):
+            if result.get("result_id") == item_id:
+                keys = [
+                    "result_id",
+                    "codex_job_id",
+                    "work_order_id",
+                    "status",
+                    "merge_status",
+                    "patch_refs",
+                    "test_refs",
+                    "artifacts",
+                    "failure_reason",
+                    "review_status",
+                    "review_reason",
+                    "reviewer",
+                ]
+                return {key: result.get(key, "") for key in keys}
         return {}
     if item_type != "idea":
         return {}

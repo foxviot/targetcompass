@@ -314,6 +314,10 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "path": "v4/role_runs.json",
                 "exists": (project_dir / "v4" / "role_runs.json").exists(),
             },
+            "codex_engineering": {
+                "path": "v4/codex_engineering/result_registry.json",
+                "exists": (project_dir / "v4" / "codex_engineering" / "result_registry.json").exists(),
+            },
         },
     }
     path = v4_dir(project_dir) / "object_manifest.json"

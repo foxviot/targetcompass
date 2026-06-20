@@ -14,6 +14,7 @@ from .agent import TargetDiscoveryAgent
 from .adapter_audit import build_adapter_audit
 from .annotation import annotate_project
 from .cli import init_project
+from .codex_engineering import load_codex_engineering
 from .db_adapters import available_database_adapters
 from .enrichment import run_enrichment
 from .evidence_db import import_evidence
@@ -828,6 +829,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
     return (
         "".join(cards)
         + attempt_table
+        + _codex_engineering_panel(project_dir)
         + _role_runs_panel(project_dir)
         + _mcp_gateway_panel(project_dir)
         + _registry_snapshot_panel(project_dir)
@@ -835,6 +837,63 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         + _agent_roles_panel(project_dir)
         + resource_table
     )
+
+
+def _codex_engineering_panel(project_dir: Path) -> str:
+    data = load_codex_engineering(project_dir)
+    workspaces = {row.get("codex_job_id", ""): row for row in data.get("workspaces", [])}
+    patches_by_job: dict[str, list[dict]] = {}
+    tests_by_job: dict[str, list[dict]] = {}
+    for row in data.get("patches", []):
+        patches_by_job.setdefault(row.get("codex_job_id", ""), []).append(row)
+    for row in data.get("tests", []):
+        tests_by_job.setdefault(row.get("codex_job_id", ""), []).append(row)
+    rows = []
+    for result in data.get("results", [])[-12:]:
+        job_id = result.get("codex_job_id", "")
+        workspace = workspaces.get(job_id, {})
+        tests = tests_by_job.get(job_id, [])
+        test_status = ", ".join(row.get("status", "") for row in tests[-3:]) or "none"
+        rows.append(
+            "<tr>"
+            f"<td><code>{html.escape(result.get('result_id', ''))}</code><small>{html.escape(job_id)}</small></td>"
+            f"<td>{html.escape(result.get('status', ''))}</td>"
+            f"<td>{html.escape(str(len(patches_by_job.get(job_id, []))))}</td>"
+            f"<td>{html.escape(test_status)}</td>"
+            f"<td><code>{html.escape(workspace.get('workspace_path', ''))}</code></td>"
+            f"<td>{html.escape(result.get('merge_status', ''))}</td>"
+            f"<td>{html.escape(result.get('review_status', ''))}</td>"
+            "<td>"
+            + _review_form("codex_result", result.get("result_id", ""), "Approve result")
+            + "</td>"
+            "</tr>"
+        )
+    if not rows and not data.get("workspaces"):
+        return '<p class="muted">No Codex engineering runs recorded yet.</p>'
+    workspace_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('codex_job_id', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('workspace_path', ''))}</code></td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(str(len(row.get('copied_inputs', []))))}</td>"
+        "</tr>"
+        for row in data.get("workspaces", [])[-12:]
+    )
+    workspace_table = (
+        "<details><summary>Isolated workspaces</summary>"
+        "<table><thead><tr><th>Codex job</th><th>Workspace</th><th>Status</th><th>Copied inputs</th></tr></thead>"
+        f"<tbody>{workspace_rows}</tbody></table></details>"
+        if workspace_rows
+        else ""
+    )
+    result_table = (
+        "<details open><summary>Codex engineering loop</summary>"
+        "<table><thead><tr><th>Result</th><th>Status</th><th>Patches</th><th>Tests</th><th>Workspace</th><th>Merge gate</th><th>Review</th><th>Action</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></details>"
+        if rows
+        else '<p class="muted">No Codex execution results recorded yet.</p>'
+    )
+    return result_table + workspace_table
 
 
 def _executor_manifest_panel(project_dir: Path) -> str:
