@@ -166,7 +166,7 @@ class AnalysisExtensionsTest(unittest.TestCase):
             self.assertIn("CXCL8\tC2\tC2\tB\tgenetic_limited", causal_meta_text)
             manifest = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["rubric_id"], "causal_review")
-            self.assertEqual(manifest["rubric_version"], "0.1.0")
+            self.assertEqual(manifest["rubric_version"], "0.2.0")
             self.assertTrue(manifest["rubric_hash"])
             import_evidence(project)
             con = sqlite3.connect(project / "evidence.sqlite")
@@ -226,6 +226,16 @@ class AnalysisExtensionsTest(unittest.TestCase):
             manifest_causal = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest_causal["schema_version"], "v4.causal_evidence_manifest/0.2")
             self.assertIn("C4", manifest_causal["causal_level_policy"])
+            self.assertEqual(manifest_causal["rubric_version"], "0.2.0")
+            bundle = json.loads((project / "results" / "causal_evidence" / "causal_review_bundle.json").read_text(encoding="utf-8"))
+            self.assertEqual(bundle["schema_version"], "v4.causal_review_bundle/0.1")
+            self.assertEqual(bundle["rubric_version"], "0.2.0")
+            item = bundle["items"][0]
+            self.assertEqual(item["causal_support_level"], "C4")
+            self.assertEqual(item["formal_inputs"]["genetic_manifest_schema"], "v4.genetic_coloc_mr_manifest/0.2")
+            self.assertEqual(item["formal_inputs"]["ld_reference_status"], "placeholder")
+            self.assertEqual(len(item["formal_inputs"]["coloc_rows"]), 1)
+            self.assertEqual(len(item["formal_inputs"]["mr_rows"]), 1)
 
             con = sqlite3.connect(project / "evidence.sqlite")
             try:

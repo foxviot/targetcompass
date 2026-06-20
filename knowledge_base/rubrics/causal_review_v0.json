@@ -1,8 +1,8 @@
 {
-  "schema_version": "v4.causal_review_rubric/0.1",
+  "schema_version": "v4.causal_review_rubric/0.2",
   "rubric_id": "causal_review",
-  "version": "0.1.0",
-  "description": "Configurable triage rubric for automated causal evidence review. All grades require human/statistical review before scientific claims.",
+  "version": "0.2.0",
+  "description": "Configurable C0-C4 causal evidence reviewer for formal GWAS/QTL/coloc/MR outputs. Legacy A/B/C/D triage is retained only as a compatibility field.",
   "recognized_evidence_types": {
     "gwas_association": "association",
     "qtl_colocalization": "coloc",
@@ -43,7 +43,48 @@
     "A": "triage_high",
     "B": "triage_moderate",
     "C": "triage_low",
-    "D": "insufficient"
+    "D": "insufficient",
+    "C4": "genetic_strong",
+    "C3": "genetic_moderate",
+    "C2": "genetic_limited",
+    "C1": "genetic_mapping_only",
+    "C0": "genetic_insufficient"
+  },
+  "causal_levels": {
+    "thresholds": {
+      "strong_coloc_pp_h4": 0.7,
+      "moderate_coloc_pp_h4": 0.5,
+      "minimum_instrument_f": 10.0,
+      "genome_wide_p": 5e-8
+    },
+    "major_bias_flags": [
+      "opposite_direction",
+      "weak_instrument_f_lt_10",
+      "zero_qtl_beta",
+      "invalid_wald_ratio"
+    ],
+    "levels": {
+      "C4": {
+        "requires": ["coloc", "mr"],
+        "rationale": "Coloc and MR support are both present with acceptable proxy sensitivity."
+      },
+      "C3": {
+        "requires_any": ["coloc", "mr"],
+        "rationale": "Coloc or cis-MR support is present and sensitivity flags are reviewable."
+      },
+      "C2": {
+        "requires_any": ["formal_gwas", "formal_qtl", "coloc", "mr"],
+        "rationale": "Genetic support is present but sensitivity, LD, or method completeness limits interpretation."
+      },
+      "C1": {
+        "requires_any": ["association"],
+        "rationale": "Association or database genetic evidence is present without reliable coloc/MR support."
+      },
+      "C0": {
+        "default": true,
+        "rationale": "No reliable formal genetic causal support is available."
+      }
+    }
   },
   "review_flags": {
     "base": ["human_review_required"],
