@@ -251,9 +251,10 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
 
 
 def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
-    from .evidence_index import build_evidence_review_report_index, evidence_review_report_index_path
+    from .evidence_index import evidence_review_report_index_path
     from .registry_snapshots import build_registry_snapshots
-    from .work_order_dag import build_work_order_dag, work_order_dag_path
+    from .trace_orchestrator import refresh_traceability
+    from .work_order_dag import work_order_dag_path
 
     plan = plan or read_json(project_dir / "analysis_plan.json", {})
     research_spec = read_json(project_dir / "research_spec.json", {})
@@ -262,9 +263,10 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     disease_spec_path.write_text(json.dumps(disease_spec, indent=2, ensure_ascii=False), encoding="utf-8")
     state_machine_path = write_v4_state_machine(project_dir)
     work_orders = compile_v4_work_orders(project_dir, plan)
-    work_order_dag = build_work_order_dag(project_dir)
     evidence_snapshot = build_evidence_snapshot(project_dir)
-    evidence_index = build_evidence_review_report_index(project_dir)
+    traceability = refresh_traceability(project_dir)
+    work_order_dag = traceability.get("refreshed", {}).get("work_order_dag", {})
+    evidence_index = traceability.get("refreshed", {}).get("evidence_review_report_index", {})
     mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
     registry_snapshots = build_registry_snapshots(project_dir)
     manifest = {
@@ -438,12 +440,7 @@ def finish_work_order_attempt(
             updated = row
             break
     _write_attempt_manifest(project_dir, manifest)
-    try:
-        from .work_order_dag import build_work_order_dag
-
-        build_work_order_dag(project_dir)
-    except Exception:
-        pass
+    _refresh_traceability(project_dir)
     return updated
 
 
@@ -467,3 +464,12 @@ def _git_commit(project_dir: Path) -> str:
         ref = project_dir.parents[1] / ".git" / text.split(" ", 1)[1]
         return ref.read_text(encoding="utf-8").strip()[:12] if ref.exists() else "unknown"
     return text[:12]
+
+
+def _refresh_traceability(project_dir: Path) -> None:
+    try:
+        from .trace_orchestrator import refresh_traceability
+
+        refresh_traceability(project_dir, include_review_queue=True)
+    except Exception:
+        pass

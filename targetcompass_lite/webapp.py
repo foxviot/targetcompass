@@ -855,7 +855,7 @@ def _evidence_trace_index_panel(project_dir: Path) -> str:
         f"<td><code>{html.escape(row.get('artifact_path', ''))}</code></td>"
         f"<td>{html.escape(str(len(row.get('review_items', []))))}</td>"
         f"<td>{html.escape(str(len(row.get('report_refs', []))))}</td>"
-        f"<td>{html.escape(row.get('review_status', ''))}</td>"
+        f"<td>{html.escape(str(row.get('review_status') or ''))}</td>"
         "</tr>"
         for row in items[:20]
     )

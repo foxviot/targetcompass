@@ -93,12 +93,13 @@ def record_review(
         writer.writerow({field: json.dumps(row[field], ensure_ascii=False) if field == "diff" else row.get(field, "") for field in fields})
     with review_event_path(project_dir).open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
-    build_review_queue(project_dir)
+    build_review_queue(project_dir, refresh_trace=False)
     update_approval_state(project_dir)
+    _refresh_traceability(project_dir)
     return row
 
 
-def build_review_queue(project_dir: Path) -> dict:
+def build_review_queue(project_dir: Path, refresh_trace: bool = False) -> dict:
     ideas = _load_ideas(project_dir)
     queue = []
     for idea in ideas:
@@ -196,6 +197,8 @@ def build_review_queue(project_dir: Path) -> dict:
     path = review_queue_path(project_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    if refresh_trace:
+        _refresh_traceability(project_dir)
     return payload
 
 
@@ -510,3 +513,12 @@ def _snapshot_diff(before: dict, after: dict) -> dict:
 def _default_report_ref(item_type: str, item_id: str) -> str:
     anchor = f"{item_type}-{item_id}".lower().replace(" ", "-").replace("_", "-")
     return f"reports/target_report.html#{anchor}"
+
+
+def _refresh_traceability(project_dir: Path) -> None:
+    try:
+        from .trace_orchestrator import refresh_traceability
+
+        refresh_traceability(project_dir, include_review_queue=False)
+    except Exception:
+        pass

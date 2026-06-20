@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .codex_engineering import load_codex_engineering
-from .evidence_index import build_evidence_review_report_index, evidence_review_report_index_path
+from .trace_orchestrator import refresh_traceability
 
 
 PROHIBITED_CLAIMS = ["clinical recommendation", "cure"]
@@ -733,14 +733,8 @@ def build_report(project_dir: Path) -> tuple[Path, Path]:
     docx_path = reports / "target_report.docx"
     structured_path = reports / "target_report_structured.json"
     _write_json(structured_path, structured)
-    evidence_index = build_evidence_review_report_index(project_dir)
-    structured["evidence_review_report_index"] = {
-        "path": str(evidence_review_report_index_path(project_dir).relative_to(project_dir)).replace("\\", "/"),
-        "index_id": evidence_index.get("index_id", ""),
-        "evidence_count": evidence_index.get("evidence_count", 0),
-        "review_item_count": evidence_index.get("review_item_count", 0),
-        "report_ref_count": evidence_index.get("report_ref_count", 0),
-    }
+    traceability = refresh_traceability(project_dir)
+    structured["evidence_review_report_index"] = traceability.get("refreshed", {}).get("evidence_review_report_index", {})
     html_text = _html_report(project_dir, context, structured)
     for phrase in PROHIBITED_CLAIMS:
         if phrase.lower() in html_text.lower():
