@@ -5,7 +5,8 @@ import unittest
 from pathlib import Path
 
 from targetcompass_lite.screening import screen_project
-from targetcompass_lite.webapp import _dataset_controls, _find_available_port, _run_status, _write_status
+from targetcompass_lite.v4 import compile_v4_work_orders
+from targetcompass_lite.webapp import _dataset_controls, _find_available_port, _run_status, _v4_work_order_panel, _write_status
 
 
 CARD = """dataset_id: ds_web
@@ -90,6 +91,34 @@ class WebAppTest(unittest.TestCase):
     def test_find_available_port_accepts_ephemeral_port(self):
         chosen = _find_available_port("127.0.0.1", 0)
         self.assertGreater(chosen, 0)
+
+    def test_v4_work_order_panel_exposes_codex_task_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            compile_v4_work_orders(
+                project,
+                {
+                    "project_id": "demo",
+                    "modules": [
+                        {
+                            "module_id": "P9_new_adapter_x",
+                            "module": "new_external_adapter",
+                            "dataset_id": "external_x",
+                            "inputs": {},
+                            "parameters": {},
+                            "expected_outputs": ["results/external_x/normalized.tsv"],
+                            "qc_checks": ["schema validated"],
+                            "allowed_files": ["targetcompass_lite/db_adapters/**"],
+                        }
+                    ],
+                },
+            )
+            html = _v4_work_order_panel(project)
+            self.assertIn("BUILD_ADAPTER", html)
+            self.assertIn("Codex task packet", html)
+            self.assertIn('name="item_type" value="work_order"', html)
+            self.assertIn('name="item_type" value="codex_task"', html)
 
 
 if __name__ == "__main__":

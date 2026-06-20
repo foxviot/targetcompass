@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import html
 import json
 import os
@@ -42,6 +42,7 @@ from .secrets import apply_project_secrets, clear_openai_api_key, masked_openai_
 from .status_ui import build_status_center
 from .system_status import system_status
 from .validators import load_dataset_card
+from .v4 import build_v4_manifest, load_codex_task_packet, load_v4_work_orders
 
 
 class _Args:
@@ -59,6 +60,12 @@ def _read_csv(path: Path) -> list[dict]:
         return []
     with path.open(encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+def _read_json(path: Path, fallback):
+    if not path.exists():
+        return fallback
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _status_path(project_dir: Path) -> Path:
@@ -733,6 +740,83 @@ def _markdown_method_panel(project_dir: Path) -> str:
     """
 
 
+def _v4_work_order_panel(project_dir: Path) -> str:
+    if not (project_dir / "v4" / "work_orders.json").exists() and (project_dir / "analysis_plan.json").exists():
+        try:
+            build_v4_manifest(project_dir)
+        except Exception:
+            pass
+    orders = load_v4_work_orders(project_dir)
+    resources = _read_json(project_dir / "v4" / "mcp_resources.json", {}).get("resources", [])
+    if not orders:
+        return '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
+    cards = []
+    for order in orders:
+        status = order.get("status", "compiled")
+        review_status = order.get("review_status", "pending")
+        command = order.get("command", "") or "manual / codex"
+        packet = load_codex_task_packet(project_dir, order)
+        packet_html = ""
+        if packet:
+            allowed = ", ".join(packet.get("allowed_paths", []))
+            tests = "; ".join(packet.get("tests", []))
+            packet_html = (
+                "<details><summary>Codex task packet</summary>"
+                f'<small>job: <code>{html.escape(packet.get("codex_job_id", ""))}</code></small>'
+                f'<small>baseline: <code>{html.escape(packet.get("baseline_commit", ""))}</code></small>'
+                f'<small>allowed: {html.escape(allowed)}</small>'
+                f'<small>tests: {html.escape(tests)}</small>'
+                f'<small>release gate: {html.escape(packet.get("release_gate", ""))}</small>'
+                "</details>"
+                + _review_form("codex_task", packet.get("codex_job_id", ""), "Approve Codex task")
+            )
+        cards.append(
+            '<div class="idea-row">'
+            f'<span class="pill {html.escape(status)}">{html.escape(status.upper())}</span>'
+            "<div>"
+            f'<strong>{html.escape(order.get("module_id", ""))}</strong>'
+            f'<small>{html.escape(order.get("work_order_type", ""))} · dataset {html.escape(order.get("dataset_id", ""))} · review {html.escape(review_status)}</small>'
+            f'<small>id: <code>{html.escape(order.get("work_order_id", ""))}</code> · backend {html.escape(order.get("target_backend", ""))}</small>'
+            f'<small>command: <code>{html.escape(command)}</code></small>'
+            + _review_form("work_order", order.get("work_order_id", ""), "Approve work order")
+            + packet_html
+            + "</div>"
+            + "</div>"
+        )
+    resource_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('uri', ''))}</td>"
+        f"<td><code>{html.escape(row.get('path', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('content_hash', '')[:12])}</code></td>"
+        "</tr>"
+        for row in resources
+    )
+    resource_table = (
+        "<details><summary>MCP Resource manifest</summary>"
+        "<table><thead><tr><th>URI</th><th>Path</th><th>Hash</th></tr></thead>"
+        f"<tbody>{resource_rows}</tbody></table></details>"
+        if resource_rows
+        else ""
+    )
+    return "".join(cards) + resource_table
+
+
+def _review_form(item_type: str, item_id: str, label: str) -> str:
+    escaped_type = html.escape(item_type)
+    escaped_id = html.escape(item_id)
+    return f"""
+      <form class="mini-form review-form" method="post" action="/review">
+        <input type="hidden" name="item_type" value="{escaped_type}">
+        <input type="hidden" name="item_id" value="{escaped_id}">
+        <input type="text" name="reason" placeholder="required review reason">
+        <input type="text" name="report_ref" placeholder="optional report ref">
+        <button class="small-button" name="action" value="approve" type="submit">{html.escape(label)}</button>
+        <button class="small-button ghost" name="action" value="needs_review" type="submit">Needs review</button>
+        <button class="small-button ghost" name="action" value="reject" type="submit">Reject</button>
+      </form>
+    """
+
+
 def _api_key_panel(project_dir: Path) -> str:
     return (
         '<div class="method-grid">'
@@ -1354,6 +1438,10 @@ def _page(project_dir: Path, message: str = "") -> bytes:
       <section>
         <h2>Approval workflow</h2>
         {_approval_panel(project_dir)}
+      </section>
+      <section>
+        <h2>v4 WorkOrders / Codex tasks</h2>
+        {_v4_work_order_panel(project_dir)}
       </section>
       <section>
         <h2>{html.escape(t("experiment_designs"))}</h2>

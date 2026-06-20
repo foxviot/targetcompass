@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from .v4 import load_codex_task_packet, load_v4_work_orders, save_codex_task_packet, save_v4_work_order
+
 
 VALID_ACTIONS = {"approve", "reject", "needs_review"}
 SIGNOFF_STATUSES = {"draft", "review_required", "ready_for_signoff", "signed_off", "rejected"}
@@ -115,6 +117,37 @@ def build_review_queue(project_dir: Path) -> dict:
                     "report_ref": _default_report_ref("idea", idea.get("idea_id", "")),
                 }
             )
+    for order in load_v4_work_orders(project_dir):
+        review_status = order.get("review_status", "")
+        needs_review = order.get("requires_codex") or order.get("work_order_type") in {"BUILD_ADAPTER", "FIX_CODE"}
+        if review_status == "approve" or not needs_review:
+            continue
+        queue.append(
+            {
+                "item_type": "work_order",
+                "item_id": order.get("work_order_id", ""),
+                "title": f"{order.get('work_order_type', '')}: {order.get('module_id', '')}",
+                "execution_status": order.get("status", "compiled"),
+                "review_status": review_status or "pending",
+                "reason": order.get("review_reason", ""),
+                "report_ref": _default_report_ref("work_order", order.get("work_order_id", "")),
+            }
+        )
+        if order.get("codex_task_packet"):
+            packet = load_codex_task_packet(project_dir, order)
+            packet_status = packet.get("review_status", "")
+            if packet_status != "approve":
+                queue.append(
+                    {
+                        "item_type": "codex_task",
+                        "item_id": packet.get("codex_job_id", order.get("work_order_id", "")),
+                        "title": f"Codex task packet: {order.get('module_id', '')}",
+                        "execution_status": packet.get("release_gate", "review_required"),
+                        "review_status": packet_status or "pending",
+                        "reason": packet.get("review_reason", ""),
+                        "report_ref": _default_report_ref("codex_task", packet.get("codex_job_id", order.get("work_order_id", ""))),
+                    }
+                )
     reviews = load_reviews(project_dir)
     approved = sum(1 for row in reviews if row.get("action") == "approve")
     rejected = sum(1 for row in reviews if row.get("action") == "reject")
@@ -193,6 +226,38 @@ def load_review_events(project_dir: Path) -> list[dict]:
 
 
 def _apply_review_to_artifacts(project_dir: Path, review: dict) -> None:
+    if review["item_type"] == "work_order":
+        for order in load_v4_work_orders(project_dir):
+            if order.get("work_order_id") == review["item_id"]:
+                order["review_status"] = review["action"]
+                order["review_reason"] = review.get("reason", review.get("note", ""))
+                order["review_note"] = review["note"]
+                order["reviewer"] = review["reviewer"]
+                order["review_id"] = review.get("review_id", "")
+                order["reviewed_at"] = review.get("timestamp", "")
+                if review["action"] == "approve":
+                    order["status"] = "approved"
+                elif review["action"] == "reject":
+                    order["status"] = "rejected"
+                else:
+                    order["status"] = "review_required"
+                save_v4_work_order(project_dir, order)
+                return
+        return
+    if review["item_type"] == "codex_task":
+        for order in load_v4_work_orders(project_dir):
+            packet = load_codex_task_packet(project_dir, order)
+            if packet.get("codex_job_id") == review["item_id"]:
+                packet["review_status"] = review["action"]
+                packet["review_reason"] = review.get("reason", review.get("note", ""))
+                packet["review_note"] = review["note"]
+                packet["reviewer"] = review["reviewer"]
+                packet["review_id"] = review.get("review_id", "")
+                packet["reviewed_at"] = review.get("timestamp", "")
+                packet["release_gate"] = "approved_for_codex_worker" if review["action"] == "approve" else "human_review_required"
+                save_codex_task_packet(project_dir, order, packet)
+                return
+        return
     if review["item_type"] != "idea":
         return
     path = project_dir / "results" / "ideas" / "idea_batch.json"
@@ -211,6 +276,46 @@ def _apply_review_to_artifacts(project_dir: Path, review: dict) -> None:
 
 
 def _artifact_snapshot(project_dir: Path, item_type: str, item_id: str) -> dict:
+    if item_type == "work_order":
+        for order in load_v4_work_orders(project_dir):
+            if order.get("work_order_id") == item_id:
+                keys = [
+                    "work_order_id",
+                    "work_order_type",
+                    "module_id",
+                    "module",
+                    "dataset_id",
+                    "status",
+                    "requires_codex",
+                    "review_status",
+                    "review_reason",
+                    "review_note",
+                    "reviewer",
+                    "review_id",
+                    "codex_task_packet",
+                ]
+                return {key: order.get(key, "") for key in keys}
+        return {}
+    if item_type == "codex_task":
+        for order in load_v4_work_orders(project_dir):
+            packet = load_codex_task_packet(project_dir, order)
+            if packet.get("codex_job_id") == item_id:
+                keys = [
+                    "codex_job_id",
+                    "work_order_id",
+                    "task_type",
+                    "baseline_commit",
+                    "release_gate",
+                    "allowed_paths",
+                    "tests",
+                    "review_status",
+                    "review_reason",
+                    "review_note",
+                    "reviewer",
+                    "review_id",
+                ]
+                return {key: packet.get(key, "") for key in keys}
+        return {}
     if item_type != "idea":
         return {}
     ideas = _load_ideas(project_dir)

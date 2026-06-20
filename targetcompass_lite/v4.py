@@ -307,6 +307,50 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     return manifest
 
 
+def load_v4_work_orders(project_dir: Path) -> list[dict[str, Any]]:
+    index = v4_dir(project_dir) / "work_orders.json"
+    if not index.exists():
+        return []
+    return json.loads(index.read_text(encoding="utf-8")).get("work_orders", [])
+
+
+def save_v4_work_order(project_dir: Path, work_order: dict[str, Any]) -> None:
+    work_order_id = work_order["work_order_id"]
+    order_dir = v4_dir(project_dir) / "work_orders"
+    order_dir.mkdir(parents=True, exist_ok=True)
+    (order_dir / f"{work_order_id}.json").write_text(json.dumps(work_order, indent=2, ensure_ascii=False), encoding="utf-8")
+    index = v4_dir(project_dir) / "work_orders.json"
+    orders = load_v4_work_orders(project_dir)
+    replaced = False
+    for idx, row in enumerate(orders):
+        if row.get("work_order_id") == work_order_id:
+            orders[idx] = work_order
+            replaced = True
+            break
+    if not replaced:
+        orders.append(work_order)
+    index.write_text(json.dumps({"schema_version": "v4.work_order_index/0.1", "work_orders": orders}, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def load_codex_task_packet(project_dir: Path, work_order: dict[str, Any]) -> dict[str, Any]:
+    rel = work_order.get("codex_task_packet", "")
+    if not rel:
+        return {}
+    path = project_dir / rel
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_codex_task_packet(project_dir: Path, work_order: dict[str, Any], packet: dict[str, Any]) -> None:
+    rel = work_order.get("codex_task_packet", "")
+    if not rel:
+        return
+    path = project_dir / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(packet, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def _stable_id(prefix: str, value: str) -> str:
     return prefix + "_" + hashlib.sha256(value.lower().strip().encode("utf-8")).hexdigest()[:12]
 

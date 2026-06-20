@@ -13,6 +13,7 @@ from targetcompass_lite.review import (
 )
 from targetcompass_lite.run_state import check_cancelled, clear_cancel, read_status, request_cancel, write_status
 from targetcompass_lite.webapp import _run_status
+from targetcompass_lite.v4 import compile_v4_work_orders, load_codex_task_packet, load_v4_work_orders
 
 
 def _project(tmp: str) -> Path:
@@ -101,6 +102,38 @@ class ReviewAndRunStateTest(unittest.TestCase):
                 check_cancelled(project)
             clear_cancel(project)
             check_cancelled(project)
+
+    def test_review_can_approve_v4_work_order_and_codex_task(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            plan = {
+                "project_id": "demo",
+                "modules": [
+                    {
+                        "module_id": "P9_new_adapter_x",
+                        "module": "new_external_adapter",
+                        "dataset_id": "external_x",
+                        "inputs": {},
+                        "parameters": {},
+                        "expected_outputs": ["results/external_x/normalized.tsv"],
+                        "qc_checks": ["schema validated"],
+                        "allowed_files": ["targetcompass_lite/db_adapters/**"],
+                    }
+                ],
+            }
+            order = compile_v4_work_orders(project, plan)[0]
+            packet = load_codex_task_packet(project, order)
+            record_review(project, "work_order", order["work_order_id"], "approve", reason="adapter build is scoped")
+            updated = load_v4_work_orders(project)[0]
+            self.assertEqual(updated["status"], "approved")
+            self.assertEqual(updated["review_status"], "approve")
+            record_review(project, "codex_task", packet["codex_job_id"], "approve", reason="task packet has fixtures and tests")
+            updated_packet = load_codex_task_packet(project, load_v4_work_orders(project)[0])
+            self.assertEqual(updated_packet["review_status"], "approve")
+            self.assertEqual(updated_packet["release_gate"], "approved_for_codex_worker")
+            queue = build_review_queue(project)
+            self.assertEqual(queue["queue_count"], 0)
 
 
 if __name__ == "__main__":
