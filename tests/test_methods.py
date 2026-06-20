@@ -61,6 +61,8 @@ class MethodsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project = _write_project(tmp)
             self.assertIn("query", available_methods())
+            self.assertIn("dataset_scout", available_methods())
+            self.assertIn("local_dataset_scout_v0", [row["method_id"] for row in available_project_methods(project)["dataset_scout"]])
             self.assertEqual(load_method_config(project)["query"], "local_idea_query_v0")
             saved = save_method_config(
                 project,
@@ -68,10 +70,13 @@ class MethodsTest(unittest.TestCase):
                     "query": "gpt_review_ready_query_v0",
                     "audit": "strict_feasibility_audit_v0",
                     "experiment": "review_first_experiment_design_v0",
+                    "dataset_scout": "local_dataset_scout_v0",
+                    "report_writer": "local_report_writer_v0",
                 },
             )
             self.assertEqual(saved["audit"], "strict_feasibility_audit_v0")
             self.assertEqual(load_method_config(project)["experiment"], "review_first_experiment_design_v0")
+            self.assertEqual(load_method_config(project)["report_writer"], "local_report_writer_v0")
 
     def test_agent_trace_records_replaceable_method_config(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -131,6 +136,19 @@ class MethodsTest(unittest.TestCase):
             )
             self.assertIn("Markdown method guidance attached", result.message)
             self.assertEqual(result.details["markdown_method_id"], installed["method_id"])
+
+    def test_markdown_method_stage_supports_v4_role_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = _write_project(tmp)
+            installed = install_markdown_method(
+                project,
+                "dataset_scout",
+                "dataset_scout_skill.md",
+                "# Dataset scout skill\nPrefer datasets with explicit donor-level metadata.",
+            )
+            self.assertIn(installed["method_id"], [row["method_id"] for row in available_project_methods(project)["dataset_scout"]])
+            save_method_config(project, {"dataset_scout": installed["method_id"]})
+            self.assertEqual(load_method_config(project)["dataset_scout"], installed["method_id"])
 
 
 if __name__ == "__main__":

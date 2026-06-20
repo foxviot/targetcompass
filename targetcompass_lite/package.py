@@ -9,6 +9,7 @@ PACKAGE_FILES = [
     "research_spec.json",
     "analysis_module_registry.json",
     "configs/agent_methods.json",
+    "configs/causal_review_rubric.json",
     "configs/knowledge_registry.json",
     "results/agent_trace.json",
     "results/run_status.json",
@@ -35,6 +36,11 @@ PACKAGE_FILES = [
     "v4/traceability_refresh.json",
     "v4/mcp_resources.json",
     "v4/mcp_tools.json",
+    "v4/mcp_call_audit.jsonl",
+    "v4/mcp_call_audit_summary.json",
+    "v4/registry_snapshots.json",
+    "v4/role_runs.json",
+    "v4/agent_roles.json",
 ]
 
 

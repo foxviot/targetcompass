@@ -5,6 +5,7 @@ from typing import Any
 
 from .knowledge import load_registry
 from .methods.registry import available_project_methods, load_method_config
+from .causal_evidence import DEFAULT_CAUSAL_RUBRIC, load_causal_review_rubric
 from .scoring import DEFAULT_RULES, load_scoring_rules
 from .v4 import content_hash, file_hash, v4_dir
 
@@ -16,6 +17,7 @@ def build_registry_snapshots(project_dir: Path, rules_path: Path = DEFAULT_RULES
     method_snapshot = _method_snapshot(project_dir)
     source_snapshot = _source_snapshot(project_dir)
     rubric_snapshot = _rubric_snapshot(rules_path)
+    causal_rubric_snapshot = _causal_rubric_snapshot(project_dir)
     payload = {
         "schema_version": SNAPSHOT_SCHEMA,
         "project_id": project_dir.name,
@@ -24,12 +26,14 @@ def build_registry_snapshots(project_dir: Path, rules_path: Path = DEFAULT_RULES
             "method_registry": method_snapshot,
             "source_registry": source_snapshot,
             "rubric": rubric_snapshot,
+            "causal_review_rubric": causal_rubric_snapshot,
         },
         "snapshot_hash": content_hash(
             {
                 "method_registry": method_snapshot["hash"],
                 "source_registry": source_snapshot["hash"],
                 "rubric": rubric_snapshot["hash"],
+                "causal_review_rubric": causal_rubric_snapshot["hash"],
             }
         ),
     }
@@ -64,6 +68,7 @@ def _method_snapshot(project_dir: Path) -> dict[str, Any]:
                     "gpt_compatible": row["gpt_compatible"],
                     "human_replaceable": row["human_replaceable"],
                     "selected": selected.get(stage) == row["method_id"],
+                    "stage_label": row.get("stage_label", stage),
                 }
             )
     payload = {
@@ -71,6 +76,22 @@ def _method_snapshot(project_dir: Path) -> dict[str, Any]:
         "selected": selected,
         "method_count": len(method_rows),
         "methods": method_rows,
+    }
+    payload["hash"] = content_hash(payload)
+    return payload
+
+
+def _causal_rubric_snapshot(project_dir: Path) -> dict[str, Any]:
+    rubric, meta = load_causal_review_rubric(project_dir)
+    path = Path(meta.get("path", ""))
+    payload = {
+        "schema_version": "v4.causal_review_rubric_snapshot/0.1",
+        "rubric_id": rubric.get("rubric_id", ""),
+        "version": rubric.get("version", ""),
+        "path": str(path if path else DEFAULT_CAUSAL_RUBRIC),
+        "file_hash": meta.get("file_hash", ""),
+        "rules_hash": meta.get("hash", ""),
+        "sections": sorted(rubric.keys()),
     }
     payload["hash"] = content_hash(payload)
     return payload

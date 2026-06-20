@@ -39,6 +39,8 @@ class RegistrySnapshotTest(unittest.TestCase):
             self.assertGreater(snapshot["snapshots"]["method_registry"]["method_count"], 0)
             self.assertEqual(snapshot["snapshots"]["source_registry"]["resource_count"], 1)
             self.assertTrue(snapshot["snapshots"]["rubric"]["hash"])
+            self.assertTrue(snapshot["snapshots"]["causal_review_rubric"]["hash"])
+            self.assertEqual(snapshot["snapshots"]["causal_review_rubric"]["rubric_id"], "causal_review")
 
             (project / "research_spec.json").write_text(json.dumps({"project_id": "demo"}), encoding="utf-8")
             (project / "analysis_plan.json").write_text(json.dumps({"project_id": "demo", "modules": []}), encoding="utf-8")

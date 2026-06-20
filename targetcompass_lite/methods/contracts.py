@@ -11,6 +11,9 @@ class MethodContext:
     selected_datasets: list[str]
     confirmed: bool
     idea_count: int
+    role_id: str = ""
+    input_refs: dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

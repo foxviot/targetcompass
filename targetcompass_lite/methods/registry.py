@@ -8,16 +8,38 @@ from .experiment_methods import METHODS as EXPERIMENT_METHODS
 from .query_methods import METHODS as QUERY_METHODS
 
 
+V4_METHOD_STAGES = {
+    "query": "Idea generation / disease normalization",
+    "audit": "Initial feasibility and method review",
+    "experiment": "Experiment design / result review",
+    "disease_normalizer": "Normalize user research request",
+    "dataset_scout": "Find and qualify datasets",
+    "planner": "Compile analysis plan and work orders",
+    "method_reviewer": "Review methods before execution",
+    "result_reviewer": "Review results after execution",
+    "causal_reviewer": "Review causal evidence bundle",
+    "report_writer": "Write report from accepted evidence",
+}
+
 DEFAULT_METHOD_CONFIG = {
     "query": "local_idea_query_v0",
     "audit": "local_feasibility_audit_v0",
     "experiment": "local_experiment_design_v0",
+    "disease_normalizer": "local_disease_normalizer_v0",
+    "dataset_scout": "local_dataset_scout_v0",
+    "planner": "local_planner_v0",
+    "method_reviewer": "local_method_reviewer_v0",
+    "result_reviewer": "local_result_reviewer_v0",
+    "causal_reviewer": "local_causal_reviewer_v0",
+    "report_writer": "local_report_writer_v0",
 }
 
 
 def _registry() -> dict[str, dict[str, MethodSpec]]:
-    registry: dict[str, dict[str, MethodSpec]] = {"query": {}, "audit": {}, "experiment": {}}
+    registry: dict[str, dict[str, MethodSpec]] = {stage: {} for stage in V4_METHOD_STAGES}
     for method in [*QUERY_METHODS, *AUDIT_METHODS, *EXPERIMENT_METHODS]:
+        registry.setdefault(method.stage, {})[method.method_id] = method
+    for method in _role_method_specs():
         registry.setdefault(method.stage, {})[method.method_id] = method
     for method in _markdown_method_specs():
         registry.setdefault(method.stage, {})[method.method_id] = method
@@ -69,6 +91,7 @@ def available_methods() -> dict[str, list[dict[str, str | bool]]]:
                 "description": method.description,
                 "gpt_compatible": method.gpt_compatible,
                 "human_replaceable": method.human_replaceable,
+                "stage_label": V4_METHOD_STAGES.get(stage, stage),
             }
             for method in methods.values()
         ]
@@ -85,6 +108,7 @@ def available_project_methods(project_dir: Path) -> dict[str, list[dict[str, str
                 "description": method.description,
                 "gpt_compatible": method.gpt_compatible,
                 "human_replaceable": method.human_replaceable,
+                "stage_label": V4_METHOD_STAGES.get(stage, stage),
             }
             for method in methods.values()
         ]
@@ -104,7 +128,7 @@ def run_method(stage: str, context: MethodContext, method_id: str | None = None)
 
 
 def install_markdown_method(project_dir: Path, stage: str, filename: str, content: str) -> dict[str, str]:
-    if stage not in DEFAULT_METHOD_CONFIG:
+    if stage not in V4_METHOD_STAGES:
         raise ValueError(f"unsupported method stage: {stage}")
     if not content.strip():
         raise ValueError("markdown method content is required")
@@ -180,8 +204,7 @@ def _markdown_method_dirs(project_dir: Path | None = None) -> list[Path]:
 def _parse_markdown_method(path: Path) -> dict[str, str]:
     text = path.read_text(encoding="utf-8")
     method_id = path.stem
-    parts = method_id.split("_", 2)
-    stage = parts[1] if len(parts) > 2 and parts[1] in DEFAULT_METHOD_CONFIG else "query"
+    stage = _stage_from_markdown_method_id(method_id)
     title = next((line.lstrip("# ").strip() for line in text.splitlines() if line.strip().startswith("#")), method_id)
     description = next((line.strip() for line in text.splitlines() if line.strip() and not line.strip().startswith("#")), "")
     return {
@@ -211,3 +234,83 @@ def _safe_stem(filename: str) -> str:
     stem = Path(filename).stem.lower()
     stem = re.sub(r"[^a-z0-9]+", "_", stem).strip("_")
     return stem[:48] or "method"
+
+
+def _stage_from_markdown_method_id(method_id: str) -> str:
+    if not method_id.startswith("md_"):
+        return "query"
+    remainder = method_id[3:]
+    for stage in sorted(V4_METHOD_STAGES, key=len, reverse=True):
+        if remainder == stage or remainder.startswith(f"{stage}_"):
+            return stage
+    return "query"
+
+
+def _role_method_specs() -> list[MethodSpec]:
+    return [
+        MethodSpec(
+            method_id="local_disease_normalizer_v0",
+            stage="disease_normalizer",
+            label="Local disease normalizer v0",
+            description="Rule-based ResearchSpec/DiseaseSpec normalization entrypoint used by the local app.",
+            runner=_metadata_runner("disease_normalizer"),
+        ),
+        MethodSpec(
+            method_id="local_dataset_scout_v0",
+            stage="dataset_scout",
+            label="Local dataset scout v0",
+            description="Local GEO/GSE discovery and dataset eligibility scout contract.",
+            runner=_metadata_runner("dataset_scout"),
+        ),
+        MethodSpec(
+            method_id="local_planner_v0",
+            stage="planner",
+            label="Local planner v0",
+            description="Deterministic planner that compiles registered modules and WorkOrders.",
+            runner=_metadata_runner("planner"),
+        ),
+        MethodSpec(
+            method_id="local_method_reviewer_v0",
+            stage="method_reviewer",
+            label="Local method reviewer v0",
+            description="Local readiness gates and feasibility audit before execution.",
+            runner=_metadata_runner("method_reviewer"),
+        ),
+        MethodSpec(
+            method_id="local_result_reviewer_v0",
+            stage="result_reviewer",
+            label="Local result reviewer v0",
+            description="Local QC, candidate score, and result review contract.",
+            runner=_metadata_runner("result_reviewer"),
+        ),
+        MethodSpec(
+            method_id="local_causal_reviewer_v0",
+            stage="causal_reviewer",
+            label="Local causal reviewer v0",
+            description="Configurable causal evidence rubric reviewer for GWAS/QTL/coloc/MR outputs.",
+            runner=_metadata_runner("causal_reviewer"),
+        ),
+        MethodSpec(
+            method_id="local_report_writer_v0",
+            stage="report_writer",
+            label="Local report writer v0",
+            description="Deterministic report writer restricted to accepted/flagged evidence references.",
+            runner=_metadata_runner("report_writer"),
+        ),
+    ]
+
+
+def _metadata_runner(stage: str):
+    def run(context: MethodContext) -> MethodResult:
+        return MethodResult(
+            status="pass",
+            message=f"{stage} method contract selected.",
+            details={
+                "stage": stage,
+                "role_id": context.role_id or stage,
+                "input_refs": context.input_refs,
+                "parameters": context.parameters,
+            },
+        )
+
+    return run

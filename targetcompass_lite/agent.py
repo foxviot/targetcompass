@@ -179,6 +179,8 @@ class TargetDiscoveryAgent:
                 {"interest": interest, "parser": parser, "confirmed": confirmed},
                 lambda: update_project_spec(self.project_dir, interest, parser=parser, confirmed=confirmed),
                 runner="targetcompass_lite.spec_builder.update_project_spec",
+                method_id=load_method_config(self.project_dir).get("disease_normalizer"),
+                parameters={"parser": parser, "confirmed": confirmed},
             )
             rc = _errors_to_exception(validate_research_spec(self.project_dir / "research_spec.json"))
             if rc:
@@ -222,6 +224,8 @@ class TargetDiscoveryAgent:
                 {"research_spec": "research_spec.json", "analysis_plan": "pending", "method_stage": "audit"},
                 lambda: run_method("audit", method_context),
                 runner="targetcompass_lite.methods.run_method:audit",
+                method_id=load_method_config(self.project_dir).get("method_reviewer") or load_method_config(self.project_dir).get("audit"),
+                parameters={"method_stage": "audit"},
             )
         except Exception as exc:
             self._stage("initial_review", "failed", str(exc))
@@ -243,6 +247,8 @@ class TargetDiscoveryAgent:
                 {"research_spec": "research_spec.json", "selected_datasets": selected_datasets},
                 lambda: discover_geo_datasets(self.project_dir, limit=6, timeout=6),
                 runner="targetcompass_lite.geo_discovery.discover_geo_datasets",
+                method_id=load_method_config(self.project_dir).get("dataset_scout"),
+                parameters={"limit": 6, "timeout": 6},
             )
             self._validate_selected_dataset_cards(selected_datasets)
             rows = screen_project(self.project_dir, set(selected_datasets))
@@ -253,6 +259,7 @@ class TargetDiscoveryAgent:
                 {"eligible_datasets": "eligible_datasets.csv", "selected_datasets": selected_datasets},
                 lambda: build_plan(self.project_dir),
                 runner="targetcompass_lite.planning.build_plan",
+                method_id=load_method_config(self.project_dir).get("planner"),
             )
         except Exception as exc:
             self._stage("verification", "failed", str(exc))
@@ -307,6 +314,8 @@ class TargetDiscoveryAgent:
                 {"candidate_scores": "candidate_scores.csv", "qc": "results/*/qc_summary.json", "method_stage": "experiment"},
                 lambda: run_method("experiment", method_context),
                 runner="targetcompass_lite.methods.run_method:experiment",
+                method_id=load_method_config(self.project_dir).get("result_reviewer") or load_method_config(self.project_dir).get("experiment"),
+                parameters={"method_stage": "experiment"},
             )
             review_summary = self._review_summary()
         except Exception as exc:
@@ -330,6 +339,7 @@ class TargetDiscoveryAgent:
                 {"evidence_db": "evidence.sqlite", "scores": "candidate_scores.csv"},
                 lambda: build_report(self.project_dir),
                 runner="targetcompass_lite.reporting.build_report",
+                method_id=load_method_config(self.project_dir).get("report_writer"),
             )
             html_path, docx_path = report_output
         except Exception as exc:

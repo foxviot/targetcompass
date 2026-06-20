@@ -75,6 +75,51 @@ TOOL_CONTRACTS = [
         "output_schema": "CodexTaskPacket",
         "handler": "targetcompass_lite.mcp_gateway.inspect_codex_task_packet",
     },
+    {
+        "tool_id": "method.registry.list",
+        "purpose": "List replaceable method/agent contracts registered for this project.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "MethodRegistry",
+        "handler": "targetcompass_lite.methods.registry.available_project_methods",
+    },
+    {
+        "tool_id": "method.config.read",
+        "purpose": "Read the selected replaceable method config for this project.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "MethodConfig",
+        "handler": "targetcompass_lite.methods.registry.load_method_config",
+    },
+    {
+        "tool_id": "method.config.update",
+        "purpose": "Update selected replaceable methods. This is a project policy change and must be reviewed.",
+        "risk": "project_policy_write",
+        "requires_review": True,
+        "input_schema": {"config": "object"},
+        "output_schema": "MethodConfig",
+        "handler": "targetcompass_lite.methods.registry.save_method_config",
+    },
+    {
+        "tool_id": "role.runs.list",
+        "purpose": "List audited v4 role/agent runs including method, model, parameters hash, and packets.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "RoleRunIndex",
+        "handler": "targetcompass_lite.role_runner.load_role_runs",
+    },
+    {
+        "tool_id": "role.run.inspect",
+        "purpose": "Inspect one audited role run input packet, output packet, and log.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {"role_run_id": "string"},
+        "output_schema": "RoleRunDetail",
+        "handler": "targetcompass_lite.mcp_gateway.inspect_role_run",
+    },
 ]
 
 
@@ -212,6 +257,26 @@ def inspect_codex_task_packet(project_dir: Path, work_order_id: str) -> dict[str
     return read_json(project_dir / rel, {})
 
 
+def inspect_role_run(project_dir: Path, role_run_id: str) -> dict[str, Any]:
+    from .role_runner import load_role_runs
+
+    runs = load_role_runs(project_dir).get("runs", [])
+    record = next((row for row in runs if row.get("role_run_id") == role_run_id), None)
+    if not record:
+        raise ValueError(f"role run not found: {role_run_id}")
+    input_packet = read_json(project_dir / record.get("input_packet", ""), {})
+    output_packet = read_json(project_dir / record.get("output_packet", ""), {})
+    log_path = project_dir / record.get("log", "")
+    return {
+        "schema_version": "v4.role_run_detail/0.1",
+        "project_id": project_dir.name,
+        "record": record,
+        "input_packet": input_packet,
+        "output_packet": output_packet,
+        "log": log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else "",
+    }
+
+
 def audit_log_path(project_dir: Path) -> Path:
     return v4_dir(project_dir) / "mcp_call_audit.jsonl"
 
@@ -269,6 +334,7 @@ def _discover_core_resources(project_dir: Path) -> list[dict[str, Any]]:
         (f"work-order://{project_dir.name}/index", v4_dir(project_dir) / "work_orders.json", "read"),
         (f"work-order-dag://{project_dir.name}/latest", v4_dir(project_dir) / "work_order_dag.json", "read"),
         (f"role-run://{project_dir.name}/index", v4_dir(project_dir) / "role_runs.json", "read"),
+        (f"method-registry://{project_dir.name}/config", project_dir / "configs" / "agent_methods.json", "read"),
         (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
         (f"evidence://{project_dir.name}/review-report-index/latest", v4_dir(project_dir) / "evidence_review_report_index.json", "read"),
         (f"mcp-tool://{project_dir.name}/index", v4_dir(project_dir) / "mcp_tools.json", "read"),
@@ -321,6 +387,36 @@ def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any]) -
         return adapt_resources(project_dir)
     if tool_id == "codex.task_packet.inspect":
         return inspect_codex_task_packet(project_dir, arguments["work_order_id"])
+    if tool_id == "method.registry.list":
+        from .methods.registry import available_project_methods
+
+        return {
+            "schema_version": "v4.method_registry/0.1",
+            "project_id": project_dir.name,
+            "methods": available_project_methods(project_dir),
+        }
+    if tool_id == "method.config.read":
+        from .methods.registry import load_method_config
+
+        return {
+            "schema_version": "v4.method_config/0.1",
+            "project_id": project_dir.name,
+            "config": load_method_config(project_dir),
+        }
+    if tool_id == "method.config.update":
+        from .methods.registry import save_method_config
+
+        return {
+            "schema_version": "v4.method_config/0.1",
+            "project_id": project_dir.name,
+            "config": save_method_config(project_dir, arguments.get("config", {})),
+        }
+    if tool_id == "role.runs.list":
+        from .role_runner import load_role_runs
+
+        return load_role_runs(project_dir)
+    if tool_id == "role.run.inspect":
+        return inspect_role_run(project_dir, arguments["role_run_id"])
     raise ValueError(f"unsupported tool: {tool_id}")
 
 

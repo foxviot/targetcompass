@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .agent_roles import AGENT_ROLES, write_agent_role_manifest
+from .methods.registry import load_method_config
 from .v4 import content_hash, v4_dir
 
 
@@ -37,10 +38,24 @@ def run_role(
     input_refs: dict[str, Any],
     operation: Callable[[], Any],
     runner: str = "local_wrapped_function",
+    method_id: str | None = None,
+    model: str = "local",
+    parameters: dict[str, Any] | None = None,
+    manual_override: dict[str, Any] | None = None,
 ) -> tuple[Any, dict[str, Any]]:
     role = _role_by_id(role_id)
+    parameters = parameters or {}
+    manual_override = manual_override or {}
+    method_config = load_method_config(project_dir)
+    selected_method = method_id or method_config.get(role_id) or _legacy_stage_method(role_id, method_config)
     started_at = datetime.now(timezone.utc).isoformat()
-    seed = {"project": project_dir.name, "role": role_id, "started_at": started_at, "input_refs": input_refs}
+    seed = {
+        "project": project_dir.name,
+        "role": role_id,
+        "started_at": started_at,
+        "input_refs": input_refs,
+        "method_id": selected_method,
+    }
     run_id = "role_run_" + content_hash(seed)[:16]
     out_dir = role_runs_dir(project_dir)
     packet_path = out_dir / f"{run_id}_input.json"
@@ -52,6 +67,10 @@ def run_role(
         "role_id": role_id,
         "run_id": run_id,
         "runner": runner,
+        "method_id": selected_method,
+        "model": model,
+        "parameters": parameters,
+        "manual_override": manual_override,
         "stage": role.get("stage", ""),
         "expected_schema": role.get("schema", ""),
         "input_refs": input_refs,
@@ -82,6 +101,10 @@ def run_role(
         "failure_reason": failure_reason,
         "output_summary": _summarize_output(output),
         "schema": role.get("schema", ""),
+        "method_id": selected_method,
+        "model": model,
+        "parameters_hash": content_hash(parameters),
+        "manual_override_hash": content_hash(manual_override),
         "output_refs": _existing_outputs(project_dir, role.get("output_refs", [])),
         "finished_at": finished_at,
     }
@@ -93,6 +116,10 @@ def run_role(
         "role_id": role_id,
         "stage": role.get("stage", ""),
         "runner": runner,
+        "method_id": selected_method,
+        "model": model,
+        "parameters_hash": content_hash(parameters),
+        "manual_override": manual_override,
         "status": status,
         "started_at": started_at,
         "finished_at": finished_at,
@@ -102,6 +129,7 @@ def run_role(
         "log": str(log_path.relative_to(project_dir)),
         "decision_id": "decision_" + content_hash(output_packet)[:16],
         "resume_key": "role_resume_" + content_hash({"role": role_id, "input_refs": input_refs})[:16],
+        "method_config_hash": content_hash(method_config),
     }
     _append_role_run(project_dir, record)
     _refresh_role_manifest(project_dir)
@@ -133,6 +161,16 @@ def _role_by_id(role_id: str) -> dict[str, Any]:
         if role["role_id"] == role_id:
             return role
     raise ValueError(f"Unknown v4 role: {role_id}")
+
+
+def _legacy_stage_method(role_id: str, method_config: dict[str, str]) -> str:
+    if role_id == "method_reviewer":
+        return method_config.get("audit", "")
+    if role_id == "result_reviewer":
+        return method_config.get("experiment", "")
+    if role_id == "disease_normalizer":
+        return method_config.get("query", "")
+    return ""
 
 
 def _existing_outputs(project_dir: Path, refs: list[str]) -> list[str]:

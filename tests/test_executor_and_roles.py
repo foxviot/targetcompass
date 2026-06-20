@@ -92,6 +92,10 @@ class ExecutorAndRolesTest(unittest.TestCase):
             self.assertTrue((project / record["log"]).exists())
             runs = load_role_runs(project)["runs"]
             self.assertEqual(runs[0]["role_id"], "planner")
+            self.assertEqual(runs[0]["method_id"], "local_planner_v0")
+            self.assertEqual(runs[0]["model"], "local")
+            self.assertTrue(runs[0]["parameters_hash"])
+            self.assertTrue(runs[0]["method_config_hash"])
             self.assertTrue((project / "v4" / "agent_roles.json").exists())
             html = _v4_work_order_panel(project)
             self.assertIn("v4 Role runs", html)

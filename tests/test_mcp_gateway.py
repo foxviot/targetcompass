@@ -24,6 +24,8 @@ class McpGatewayTest(unittest.TestCase):
             self.assertIn("resource.read", {row["tool_id"] for row in gateway["tools"]["tools"]})
             self.assertIn("evidence.index.build", {row["tool_id"] for row in gateway["tools"]["tools"]})
             self.assertIn("evidence.trace.query", {row["tool_id"] for row in gateway["tools"]["tools"]})
+            self.assertIn("method.registry.list", {row["tool_id"] for row in gateway["tools"]["tools"]})
+            self.assertIn("role.runs.list", {row["tool_id"] for row in gateway["tools"]["tools"]})
             self.assertIn("evidence://demo/review-report-index/latest", {row["uri"] for row in gateway["resources"]["resources"]})
 
             uri = "project://demo"
@@ -33,6 +35,16 @@ class McpGatewayTest(unittest.TestCase):
             self.assertEqual(audit[-1]["tool_id"], "resource.read")
             self.assertEqual(audit[-1]["status"], "success")
             self.assertTrue((project / "v4" / "mcp_call_audit_summary.json").exists())
+
+            methods = call_tool(project, "method.registry.list", actor="unit_test")
+            self.assertIn("dataset_scout", methods["methods"])
+            config = call_tool(
+                project,
+                "method.config.update",
+                {"config": {"dataset_scout": "local_dataset_scout_v0"}},
+                actor="unit_test",
+            )
+            self.assertEqual(config["config"]["dataset_scout"], "local_dataset_scout_v0")
 
             html = _v4_work_order_panel(project)
             self.assertIn("Local MCP Gateway", html)
