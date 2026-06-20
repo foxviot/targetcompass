@@ -10,6 +10,7 @@ ANALYSIS_MODULES = [
         "runner": "targetcompass_lite.deg.run_deg",
         "outputs": ["deg_results.tsv", "qc_summary.tsv", "qc_summary.json", "run_manifest.json", "executor_manifest.json"],
         "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization.",
+        "nextflow": {"process": "BULK_DEG", "contract": "workflows/common/modules/bulk_deg/module_contract.json"},
     },
     {
         "module_id": "enrichment_v2",
@@ -24,6 +25,7 @@ ANALYSIS_MODULES = [
             "results/enrichment/qc_summary.json",
         ],
         "notes": "Consumes local and adapter-imported MSigDB/Reactome gene sets with version/hash snapshots; separates ORA from lightweight preranked enrichment.",
+        "nextflow": {"process": "ENRICHMENT", "contract": "workflows/common/modules/enrichment/module_contract.json"},
     },
     {
         "module_id": "accessibility_annotation_v1",
@@ -55,6 +57,7 @@ ANALYSIS_MODULES = [
             "run_manifest.json",
         ],
         "notes": "Donor-aware pseudobulk aggregation with group-level donor QC, contrast declaration, and input hashes. Cells are never treated as biological replicates. Legacy interface alias: scrna_pseudobulk_v0.",
+        "nextflow": {"process": "SCRNA_PSEUDOBULK", "contract": "workflows/common/modules/scrna_pseudobulk/module_contract.json"},
     },
     {
         "module_id": "deg_meta_analysis_v1",
@@ -69,6 +72,7 @@ ANALYSIS_MODULES = [
             "results/meta_analysis/run_manifest.json",
         ],
         "notes": "Fixed/random effects DEG meta-analysis with heterogeneity, direction consistency QC, and lightweight SVG forest plots.",
+        "nextflow": {"process": "META_ANALYSIS", "contract": "workflows/common/modules/meta_analysis/module_contract.json"},
     },
     {
         "module_id": "genetic_coloc_mr_v1",
@@ -88,6 +92,7 @@ ANALYSIS_MODULES = [
             "results/genetic_coloc_mr/run_manifest.json",
         ],
         "notes": "Standard GWAS/QTL summary schema, harmonization, LD reference contract, coloc/MR proxy runner, sensitivity/QC outputs. Legacy interface alias: genetic_coloc_mr_v0.",
+        "nextflow": {"process": "GENETIC_COLOC_MR", "contract": "workflows/common/modules/genetic_coloc_mr/module_contract.json"},
     },
     {
         "module_id": "causal_evidence_grading_v1",

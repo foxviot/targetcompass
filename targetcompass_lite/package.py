@@ -41,6 +41,13 @@ PACKAGE_FILES = [
     "v4/registry_snapshots.json",
     "v4/role_runs.json",
     "v4/agent_roles.json",
+    "workflows/target_discovery/main.nf",
+    "workflows/target_discovery/nextflow.config",
+    "workflows/target_discovery/params.schema.json",
+    "workflows/target_discovery/container_manifest.json",
+    "workflows/target_discovery/resume_manifest.template.json",
+    "workflows/target_discovery/nextflow_execution_plane.json",
+    "workflows/target_discovery/nextflow_validation.json",
 ]
 
 

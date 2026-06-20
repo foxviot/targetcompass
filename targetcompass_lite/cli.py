@@ -339,6 +339,9 @@ def main() -> None:
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("registry-snapshot")
     p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("nextflow-plane")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--validate", action="store_true")
     p = sub.add_parser("codex-workspace")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--work-order-id", required=True)
@@ -598,6 +601,12 @@ def main() -> None:
         from .registry_snapshots import build_registry_snapshots
 
         print(json.dumps(build_registry_snapshots(pdir), indent=2, ensure_ascii=False))
+    elif args.cmd == "nextflow-plane":
+        from .nextflow_plane import build_nextflow_execution_plane, validate_nextflow_execution_plane
+
+        manifest = build_nextflow_execution_plane(pdir)
+        validation = validate_nextflow_execution_plane(pdir) if args.validate else None
+        print(json.dumps({"manifest": manifest, "validation": validation}, indent=2, ensure_ascii=False))
     elif args.cmd == "codex-workspace":
         from .codex_engineering import create_isolated_workspace
 
