@@ -150,9 +150,28 @@ def _evidence_writes(project_dir: Path, order: dict[str, Any], outputs: list[dic
             """,
             params,
         ).fetchall()
-        return [dict(row) for row in rows]
+        trace_index = _trace_index_by_evidence(project_dir)
+        out = []
+        for row in rows:
+            payload = dict(row)
+            trace = trace_index.get(payload.get("evidence_id", ""), {})
+            payload["review_items"] = trace.get("review_items", [])
+            payload["report_refs"] = trace.get("report_refs", [])
+            out.append(payload)
+        return out
     finally:
         con.close()
+
+
+def _trace_index_by_evidence(project_dir: Path) -> dict[str, dict[str, Any]]:
+    path = v4_dir(project_dir) / "evidence_review_report_index.json"
+    if not path.exists():
+        return {}
+    try:
+        index = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return {row.get("evidence_id", ""): row for row in index.get("items", [])}
 
 
 def _dependencies(order: dict[str, Any], orders: list[dict[str, Any]]) -> list[str]:

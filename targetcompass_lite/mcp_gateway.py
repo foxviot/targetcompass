@@ -49,6 +49,15 @@ TOOL_CONTRACTS = [
         "handler": "targetcompass_lite.evidence_index.build_evidence_review_report_index",
     },
     {
+        "tool_id": "evidence.trace.query",
+        "purpose": "Query EvidenceItem -> ReviewItem -> ReportRef links by gene, evidence_id, or review_status.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {"gene": "string", "evidence_id": "string", "review_status": "string"},
+        "output_schema": "EvidenceTraceQueryResult",
+        "handler": "targetcompass_lite.evidence_index.query_evidence_trace",
+    },
+    {
         "tool_id": "knowledge.adapt_resources",
         "purpose": "Normalize registered knowledge/database resources through configured adapters.",
         "risk": "project_data_write",
@@ -297,6 +306,15 @@ def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any]) -
         from .evidence_index import build_evidence_review_report_index
 
         return build_evidence_review_report_index(project_dir)
+    if tool_id == "evidence.trace.query":
+        from .evidence_index import query_evidence_trace
+
+        return query_evidence_trace(
+            project_dir,
+            gene=arguments.get("gene", ""),
+            evidence_id=arguments.get("evidence_id", ""),
+            review_status=arguments.get("review_status", ""),
+        )
     if tool_id == "knowledge.adapt_resources":
         from .knowledge import adapt_resources
 

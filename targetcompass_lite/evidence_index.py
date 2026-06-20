@@ -52,6 +52,32 @@ def evidence_review_report_index_path(project_dir: Path) -> Path:
     return v4_dir(project_dir) / "evidence_review_report_index.json"
 
 
+def query_evidence_trace(project_dir: Path, gene: str = "", evidence_id: str = "", review_status: str = "") -> dict[str, Any]:
+    path = evidence_review_report_index_path(project_dir)
+    index = _read_json(path, {})
+    if not index:
+        index = build_evidence_review_report_index(project_dir)
+    gene_l = gene.lower().strip()
+    evidence_id_l = evidence_id.lower().strip()
+    review_status_l = review_status.lower().strip()
+    matches = []
+    for row in index.get("items", []):
+        if gene_l and gene_l not in str(row.get("entity_symbol", "")).lower():
+            continue
+        if evidence_id_l and evidence_id_l not in str(row.get("evidence_id", "")).lower():
+            continue
+        if review_status_l and review_status_l not in str(row.get("review_status", "")).lower():
+            continue
+        matches.append(row)
+    return {
+        "schema_version": "v4.evidence_trace_query/0.1",
+        "project_id": project_dir.name,
+        "query": {"gene": gene, "evidence_id": evidence_id, "review_status": review_status},
+        "match_count": len(matches),
+        "items": matches,
+    }
+
+
 def _evidence_rows(project_dir: Path) -> list[dict[str, Any]]:
     db = project_dir / "evidence.sqlite"
     if not db.exists():

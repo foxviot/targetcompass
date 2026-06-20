@@ -84,6 +84,7 @@ class ReviewAndRunStateTest(unittest.TestCase):
             state = final_signoff(project, signer="pi", reason="all candidates reviewed")
             self.assertEqual(state["status"], "signed_off")
             self.assertEqual(load_approval_state(project)["signer"], "pi")
+            self.assertIn("traceability_snapshot", state)
 
     def test_run_status_tracks_failure_reason_and_cancel(self):
         with tempfile.TemporaryDirectory() as tmp:

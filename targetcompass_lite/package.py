@@ -28,6 +28,13 @@ PACKAGE_FILES = [
     "reports/target_report.html",
     "reports/target_report.docx",
     "reports/target_report_structured.json",
+    "v4/object_manifest.json",
+    "v4/work_order_dag.json",
+    "v4/evidence_snapshot.json",
+    "v4/evidence_review_report_index.json",
+    "v4/traceability_refresh.json",
+    "v4/mcp_resources.json",
+    "v4/mcp_tools.json",
 ]
 
 

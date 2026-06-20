@@ -214,6 +214,7 @@ def update_approval_state(project_dir: Path, status: str | None = None, signer: 
     if status == "signed_off" and queue.get("queue_count", 0):
         raise ValueError("cannot sign off while review queue is not empty")
     previous = load_approval_state(project_dir)
+    traceability = _traceability_snapshot(project_dir) if status in {"signed_off", "rejected"} else {}
     payload = {
         "status": status,
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -225,6 +226,7 @@ def update_approval_state(project_dir: Path, status: str | None = None, signer: 
         "rejected_count": sum(1 for row in reviews if row.get("action") == "reject"),
         "previous_status": previous.get("status", "draft"),
         "report_ref": "reports/target_report.html#approval-audit",
+        "traceability_snapshot": traceability,
     }
     path = approval_state_path(project_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -522,3 +524,28 @@ def _refresh_traceability(project_dir: Path) -> None:
         refresh_traceability(project_dir, include_review_queue=False)
     except Exception:
         pass
+
+
+def _traceability_snapshot(project_dir: Path) -> dict:
+    _refresh_traceability(project_dir)
+    files = {
+        "evidence_review_report_index": project_dir / "v4" / "evidence_review_report_index.json",
+        "work_order_dag": project_dir / "v4" / "work_order_dag.json",
+        "traceability_refresh": project_dir / "v4" / "traceability_refresh.json",
+    }
+    snapshot = {}
+    for name, path in files.items():
+        if path.exists():
+            snapshot[name] = {
+                "path": str(path.relative_to(project_dir)).replace("\\", "/"),
+                "hash": _file_hash(path),
+            }
+    return snapshot
+
+
+def _file_hash(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()

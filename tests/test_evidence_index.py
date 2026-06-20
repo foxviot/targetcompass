@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from targetcompass_lite.evidence_index import build_evidence_review_report_index
+from targetcompass_lite.evidence_index import build_evidence_review_report_index, query_evidence_trace
 from targetcompass_lite.v4 import build_v4_manifest
 
 
@@ -56,6 +56,9 @@ class EvidenceIndexTest(unittest.TestCase):
             self.assertEqual(item["evidence_id"], "ev1")
             self.assertEqual(item["review_items"][0]["item_type"], "causal_grade")
             self.assertEqual(item["report_refs"][0]["score_id"], "score_1")
+            query = query_evidence_trace(project, gene="CXCL8")
+            self.assertEqual(query["match_count"], 1)
+            self.assertEqual(query["items"][0]["evidence_id"], "ev1")
 
             manifest = build_v4_manifest(project, json.loads((project / "analysis_plan.json").read_text(encoding="utf-8")))
             self.assertIn("evidence_review_report_index", manifest["objects"])

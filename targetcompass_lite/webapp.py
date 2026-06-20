@@ -36,6 +36,7 @@ from .methods import (
 from .package import export_run_package
 from .reporting import build_report
 from .review import build_review_queue, final_signoff, load_approval_state, load_reviews, record_review
+from .evidence_index import query_evidence_trace
 from .reset_demo import reset_demo_outputs
 from .run_state import new_run_id, read_status, request_cancel, write_status
 from .scoring import score_project
@@ -846,8 +847,32 @@ def _v4_work_order_panel(project_dir: Path) -> str:
 def _evidence_trace_index_panel(project_dir: Path) -> str:
     index = _read_json(project_dir / "v4" / "evidence_review_report_index.json", {})
     items = index.get("items", [])
+    query_gene = _read_json(project_dir / "v4" / "evidence_trace_last_query.json", {}).get("gene", "")
+    query_result = query_evidence_trace(project_dir, gene=query_gene) if query_gene else {"items": []}
+    search = (
+        '<form class="mini-form" method="post" action="/evidence-trace/query">'
+        '<input type="text" name="gene" placeholder="Gene or target" value="' + html.escape(query_gene) + '">'
+        '<button type="submit">Search trace</button>'
+        "</form>"
+    )
+    result_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('evidence_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('entity_symbol', ''))}</td>"
+        f"<td>{html.escape(row.get('evidence_type', ''))}</td>"
+        f"<td>{html.escape(str(len(row.get('review_items', []))))}</td>"
+        f"<td>{html.escape(str(len(row.get('report_refs', []))))}</td>"
+        "</tr>"
+        for row in query_result.get("items", [])[:20]
+    )
+    result_table = (
+        "<table><thead><tr><th>Evidence</th><th>Gene</th><th>Type</th><th>Reviews</th><th>Reports</th></tr></thead>"
+        f"<tbody>{result_rows}</tbody></table>"
+        if query_gene
+        else ""
+    )
     if not items:
-        return '<p class="muted">No Evidence -> Review -> Report index recorded yet.</p>'
+        return '<p class="muted">No Evidence -> Review -> Report index recorded yet.</p>' + search + result_table
     rows = "".join(
         "<tr>"
         f"<td><code>{html.escape(row.get('evidence_id', ''))}</code><small>{html.escape(row.get('entity_symbol', ''))}</small></td>"
@@ -862,7 +887,9 @@ def _evidence_trace_index_panel(project_dir: Path) -> str:
     return (
         "<details open><summary>Evidence -> Review -> Report index</summary>"
         f'<p class="muted">evidence: {html.escape(str(index.get("evidence_count", 0)))} · review items: {html.escape(str(index.get("review_item_count", 0)))} · report refs: {html.escape(str(index.get("report_ref_count", 0)))} · index: <code>{html.escape(index.get("index_id", ""))}</code></p>'
-        "<table><thead><tr><th>Evidence</th><th>Type</th><th>Artifact</th><th>Reviews</th><th>Report refs</th><th>Status</th></tr></thead>"
+        + search
+        + result_table
+        + "<table><thead><tr><th>Evidence</th><th>Type</th><th>Artifact</th><th>Reviews</th><th>Report refs</th><th>Status</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></details>"
     )
 
@@ -2058,6 +2085,20 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                     self._send(200, _page(project_dir, f"Approval state updated: {state['status']}"))
                 except Exception as exc:
                     self._send(400, _page(project_dir, f"Approval signoff failed: {exc}"))
+                return
+            if self.path == "/evidence-trace/query":
+                length = int(self.headers.get("Content-Length", "0"))
+                form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+                gene = form.get("gene", [""])[0].strip()
+                try:
+                    out = project_dir / "v4" / "evidence_trace_last_query.json"
+                    out.parent.mkdir(parents=True, exist_ok=True)
+                    out.write_text(json.dumps({"gene": gene}, indent=2, ensure_ascii=False), encoding="utf-8")
+                    self.send_response(303)
+                    self.send_header("Location", "/")
+                    self.end_headers()
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"Evidence trace query failed: {exc}"))
                 return
             if self.path == "/adapter-audit":
                 try:

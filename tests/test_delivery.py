@@ -83,11 +83,14 @@ class DeliveryTest(unittest.TestCase):
             json_path, tsv_path = build_adapter_audit(project)
             self.assertTrue(json_path.exists())
             self.assertIn("sqlite_evidence_v0", tsv_path.read_text(encoding="utf-8"))
+            (project / "v4").mkdir()
+            (project / "v4" / "evidence_review_report_index.json").write_text("{}", encoding="utf-8")
             package = export_run_package(project)
             self.assertTrue(package.exists())
             with zipfile.ZipFile(package) as zf:
                 self.assertIn("package_manifest.json", zf.namelist())
                 self.assertIn("results/adapter_audit/adapter_audit.tsv", zf.namelist())
+                self.assertIn("v4/evidence_review_report_index.json", zf.namelist())
 
 
 if __name__ == "__main__":

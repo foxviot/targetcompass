@@ -47,6 +47,7 @@ class McpServerTest(unittest.TestCase):
             tool_names = {row["name"] for row in tools["result"]["tools"]}
             self.assertIn("review.queue.build", tool_names)
             self.assertIn("evidence.index.build", tool_names)
+            self.assertIn("evidence.trace.query", tool_names)
 
             called = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "review.queue.build", "arguments": {}}})
             self.assertFalse(called["result"]["isError"])
