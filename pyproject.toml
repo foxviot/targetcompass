@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 targetcompass-lite = "targetcompass_lite.cli:main"
 tc-lite = "targetcompass_lite.cli:main"
+targetcompass-mcp = "targetcompass_lite.mcp_server:main"
 
 [tool.setuptools]
 packages = ["targetcompass_lite"]

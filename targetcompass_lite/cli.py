@@ -306,6 +306,8 @@ def main() -> None:
     p.add_argument("--read-resource", default="")
     p.add_argument("--call-tool", default="")
     p.add_argument("--args-json", default="{}")
+    p = sub.add_parser("mcp-server")
+    p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("registry-snapshot")
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("codex-workspace")
@@ -538,6 +540,10 @@ def main() -> None:
             print(json.dumps(call_tool(pdir, args.call_tool, json.loads(args.args_json), actor="cli"), indent=2, ensure_ascii=False))
         else:
             print(json.dumps(build_mcp_gateway(pdir), indent=2, ensure_ascii=False))
+    elif args.cmd == "mcp-server":
+        from .mcp_server import run_stdio_server
+
+        run_stdio_server(args.project)
     elif args.cmd == "registry-snapshot":
         from .registry_snapshots import build_registry_snapshots
 
