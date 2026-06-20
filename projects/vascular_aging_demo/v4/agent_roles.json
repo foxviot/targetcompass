@@ -21,9 +21,13 @@
       ],
       "schema": "ResearchSpec",
       "status": "complete",
-      "decision_id": "decision_1ef91e5ece3420b7",
-      "observations": {},
-      "generated_at": "2026-06-20T11:18:16.064810+00:00"
+      "decision_id": "decision_7f688be8f5d82f6b",
+      "observations": {
+        "latest_role_run_id": "role_run_88867df9813281f6",
+        "latest_status": "success",
+        "latest_output_packet": "v4\\role_runs\\role_run_88867df9813281f6_output.json"
+      },
+      "generated_at": "2026-06-20T12:01:07.945309+00:00"
     },
     {
       "role_id": "dataset_scout",
@@ -40,9 +44,13 @@
       ],
       "schema": "DatasetCandidate",
       "status": "complete",
-      "decision_id": "decision_1e0d91e5773927c4",
-      "observations": {},
-      "generated_at": "2026-06-20T11:18:16.064997+00:00"
+      "decision_id": "decision_70c7bf951005483b",
+      "observations": {
+        "latest_role_run_id": "role_run_f279e66cab90076c",
+        "latest_status": "success",
+        "latest_output_packet": "v4\\role_runs\\role_run_f279e66cab90076c_output.json"
+      },
+      "generated_at": "2026-06-20T12:01:07.945719+00:00"
     },
     {
       "role_id": "planner",
@@ -59,9 +67,13 @@
       ],
       "schema": "AnalysisPlan",
       "status": "complete",
-      "decision_id": "decision_4bc21b1bebbf118b",
-      "observations": {},
-      "generated_at": "2026-06-20T11:18:16.065143+00:00"
+      "decision_id": "decision_3fe7a088cbe96cb9",
+      "observations": {
+        "latest_role_run_id": "role_run_9ede1a77992026c0",
+        "latest_status": "success",
+        "latest_output_packet": "v4\\role_runs\\role_run_9ede1a77992026c0_output.json"
+      },
+      "generated_at": "2026-06-20T12:01:07.946086+00:00"
     },
     {
       "role_id": "method_reviewer",
@@ -81,7 +93,7 @@
       "status": "pending",
       "decision_id": "decision_dbc10c3bf96d39a3",
       "observations": {},
-      "generated_at": "2026-06-20T11:18:16.065281+00:00"
+      "generated_at": "2026-06-20T12:01:07.946366+00:00"
     },
     {
       "role_id": "result_reviewer",
@@ -98,9 +110,13 @@
       ],
       "schema": "ReviewDecision",
       "status": "complete",
-      "decision_id": "decision_e9c286614230c393",
-      "observations": {},
-      "generated_at": "2026-06-20T11:18:16.065371+00:00"
+      "decision_id": "decision_55da2d051ac1fbf0",
+      "observations": {
+        "latest_role_run_id": "role_run_a103a5cfdf9610c1",
+        "latest_status": "success",
+        "latest_output_packet": "v4\\role_runs\\role_run_a103a5cfdf9610c1_output.json"
+      },
+      "generated_at": "2026-06-20T12:01:07.946596+00:00"
     },
     {
       "role_id": "causal_reviewer",
@@ -117,7 +133,7 @@
       "status": "pending",
       "decision_id": "decision_9057d8b907f803a9",
       "observations": {},
-      "generated_at": "2026-06-20T11:18:16.065432+00:00"
+      "generated_at": "2026-06-20T12:01:07.946751+00:00"
     },
     {
       "role_id": "report_writer",
@@ -135,9 +151,13 @@
       ],
       "schema": "Report",
       "status": "complete",
-      "decision_id": "decision_93f0def1bf5ad385",
-      "observations": {},
-      "generated_at": "2026-06-20T11:18:16.065567+00:00"
+      "decision_id": "decision_0e0bb693699c5b0e",
+      "observations": {
+        "latest_role_run_id": "role_run_b21b4f9fa0725a09",
+        "latest_status": "success",
+        "latest_output_packet": "v4\\role_runs\\role_run_b21b4f9fa0725a09_output.json"
+      },
+      "generated_at": "2026-06-20T12:01:07.947099+00:00"
     }
   ]
 }

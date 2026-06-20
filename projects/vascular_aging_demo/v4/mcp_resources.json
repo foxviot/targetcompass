@@ -1,7 +1,7 @@
 {
   "schema_version": "v4.mcp_resource_manifest/0.1",
   "project_id": "vascular_aging_demo",
-  "generated_at": "2026-06-20T11:17:38.523728+00:00",
+  "generated_at": "2026-06-20T11:59:31.480112+00:00",
   "policy": {
     "mcp_is_gateway_not_state_store": true,
     "write_tools_must_call_orchestrator": true,
@@ -44,10 +44,17 @@
       "version": "0.1"
     },
     {
+      "uri": "role-run://vascular_aging_demo/index",
+      "path": "v4\\role_runs.json",
+      "access": "read",
+      "content_hash": "f947b316d1b4ebbcf145fdf69564af9d2e4d484661d9ffbc3c6e10458ed04b60",
+      "version": "0.1"
+    },
+    {
       "uri": "evidence://vascular_aging_demo/snapshot/latest",
       "path": "v4\\evidence_snapshot.json",
       "access": "read",
-      "content_hash": "257a40d95a3a93c75b0074a9dcd4e7bc05b47ba4370697fd1413f146778423db",
+      "content_hash": "d1f3e6fc7ec8de9ea0b839882df3475bc2622839d0c401d05714ef25d4a0b625",
       "version": "0.1"
     }
   ]

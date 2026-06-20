@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-20T04:50:58.264175+00:00",
+  "created_at": "2026-06-20T11:32:04.181445+00:00",
   "mode": "online",
   "query": "(\"vascular aging\" OR \"vascular endothelium\" OR \"endothelial cell\" OR monocyte OR macrophage) AND (human) AND (\"expression profiling by array\" OR \"high throughput sequencing\" OR \"RNA-seq\" OR transcriptome)",
   "recommendations": [
@@ -55,6 +55,25 @@
         "organism match",
         "bulk expression compatible",
         "sample count appears usable: 35"
+      ],
+      "warnings": [],
+      "source": "ncbi_geo",
+      "import_status": "candidate",
+      "suggested_next_step": "Review GEO metadata, define case/control patterns, then run geo-import."
+    },
+    {
+      "accession": "GSE335644",
+      "title": "Synergistic activation of gingival fibroblasts by Fusobacterium nucleatum and IFNγ is driven by autocrine mechanisms and enhances inflammatory responses of immune cells",
+      "summary": "Gingival fibroblasts (GFs) are important sentinel cells which modulate immune responses within inflamed gingival tissue in response to oral bacteria and inflammatory mediators during periodontitis. Yet, the mechanisms governing GF-immune cell cross-talk remain poorly defined. Here, we investigated how the interaction between the oral pathobiont Fusobacterium nucleatum and the proinflammatory cytokine interferon-γ (IFNγ) modulates primary human GF inflammatory responses and interactions with immune cells. Transcriptomic analysis using RNA-seq revealed a unique transcriptional program induced in GFs infected with F. nucleatum in the presence of IFNγ. This program was characterized by synergistic upregulation of multiple genes involved in immune cells recruitment and activation, including CXC",
+      "organism": "Homo sapiens",
+      "sample_count": 16,
+      "platform": "24676",
+      "score": 63,
+      "reasons": [
+        "cell match: macrophage",
+        "organism match",
+        "bulk expression compatible",
+        "sample count appears usable: 16"
       ],
       "warnings": [],
       "source": "ncbi_geo",

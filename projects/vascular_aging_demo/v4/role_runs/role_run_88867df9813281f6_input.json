@@ -1,0 +1,21 @@
+{
+  "schema_version": "v4.role_input_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "disease_normalizer",
+  "run_id": "role_run_88867df9813281f6",
+  "runner": "tc_lite.demo:existing_research_spec",
+  "stage": "generation",
+  "expected_schema": "ResearchSpec",
+  "input_refs": {
+    "research_spec": "research_spec.json",
+    "source": "demo_existing_spec"
+  },
+  "declared_input_refs": [
+    "research_interest.md"
+  ],
+  "declared_output_refs": [
+    "research_spec.json",
+    "v4/disease_spec.json"
+  ],
+  "created_at": "2026-06-20T11:59:31.256033+00:00"
+}

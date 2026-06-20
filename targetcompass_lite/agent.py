@@ -19,6 +19,7 @@ from .methods.contracts import MethodContext
 from .methods.registry import load_method_config, run_method
 from .planning import build_plan
 from .reporting import build_report
+from .role_runner import load_role_runs, run_role
 from .run_state import check_cancelled, clear_cancel, write_status
 from .scoring import score_project
 from .screening import screen_project
@@ -170,7 +171,13 @@ class TargetDiscoveryAgent:
             idea_count=idea_count,
         )
         try:
-            spec = update_project_spec(self.project_dir, interest, parser=parser, confirmed=confirmed)
+            spec, _ = run_role(
+                self.project_dir,
+                "disease_normalizer",
+                {"interest": interest, "parser": parser, "confirmed": confirmed},
+                lambda: update_project_spec(self.project_dir, interest, parser=parser, confirmed=confirmed),
+                runner="targetcompass_lite.spec_builder.update_project_spec",
+            )
             rc = _errors_to_exception(validate_research_spec(self.project_dir / "research_spec.json"))
             if rc:
                 raise ValueError(rc)
@@ -207,7 +214,13 @@ class TargetDiscoveryAgent:
             if ready_errors:
                 self._stage("initial_review", "blocked", "ResearchSpec did not pass readiness gates.", errors=ready_errors)
                 return self._finish("blocked", "Cannot run analysis: " + " ".join(ready_errors), stdout.getvalue(), stderr.getvalue())
-            audit_result = run_method("audit", method_context)
+            audit_result, _ = run_role(
+                self.project_dir,
+                "method_reviewer",
+                {"research_spec": "research_spec.json", "analysis_plan": "pending", "method_stage": "audit"},
+                lambda: run_method("audit", method_context),
+                runner="targetcompass_lite.methods.run_method:audit",
+            )
         except Exception as exc:
             self._stage("initial_review", "failed", str(exc))
             return self._finish("failed", f"Initial review failed: {exc}", stdout.getvalue(), stderr.getvalue())
@@ -222,11 +235,23 @@ class TargetDiscoveryAgent:
         check_cancelled(self.project_dir)
         self._stage("verification", "running", "Validate datasets, screen eligibility, match ResearchSpec, and compile plan.")
         try:
-            geo_discovery = discover_geo_datasets(self.project_dir, limit=6, timeout=6)
+            geo_discovery, _ = run_role(
+                self.project_dir,
+                "dataset_scout",
+                {"research_spec": "research_spec.json", "selected_datasets": selected_datasets},
+                lambda: discover_geo_datasets(self.project_dir, limit=6, timeout=6),
+                runner="targetcompass_lite.geo_discovery.discover_geo_datasets",
+            )
             self._validate_selected_dataset_cards(selected_datasets)
             rows = screen_project(self.project_dir, set(selected_datasets))
             matches = match_project(self.project_dir, set(selected_datasets))
-            analysis_plan = build_plan(self.project_dir)
+            analysis_plan, _ = run_role(
+                self.project_dir,
+                "planner",
+                {"eligible_datasets": "eligible_datasets.csv", "selected_datasets": selected_datasets},
+                lambda: build_plan(self.project_dir),
+                runner="targetcompass_lite.planning.build_plan",
+            )
         except Exception as exc:
             self._stage("verification", "failed", str(exc))
             return self._finish("failed", f"Verification failed: {exc}", stdout.getvalue(), stderr.getvalue())
@@ -274,7 +299,13 @@ class TargetDiscoveryAgent:
         check_cancelled(self.project_dir)
         self._stage("final_review", "running", "Draft experiments and summarize remaining review gates.")
         try:
-            experiment_result = run_method("experiment", method_context)
+            experiment_result, _ = run_role(
+                self.project_dir,
+                "result_reviewer",
+                {"candidate_scores": "candidate_scores.csv", "qc": "results/*/qc_summary.json", "method_stage": "experiment"},
+                lambda: run_method("experiment", method_context),
+                runner="targetcompass_lite.methods.run_method:experiment",
+            )
             review_summary = self._review_summary()
         except Exception as exc:
             self._stage("final_review", "failed", str(exc))
@@ -291,7 +322,14 @@ class TargetDiscoveryAgent:
         check_cancelled(self.project_dir)
         self._stage("report", "running", "Generate final report artifacts.")
         try:
-            html_path, docx_path = build_report(self.project_dir)
+            report_output, _ = run_role(
+                self.project_dir,
+                "report_writer",
+                {"evidence_db": "evidence.sqlite", "scores": "candidate_scores.csv"},
+                lambda: build_report(self.project_dir),
+                runner="targetcompass_lite.reporting.build_report",
+            )
+            html_path, docx_path = report_output
         except Exception as exc:
             self._stage("report", "failed", str(exc))
             return self._finish("failed", f"Report generation failed: {exc}", stdout.getvalue(), stderr.getvalue())
@@ -415,7 +453,7 @@ class TargetDiscoveryAgent:
         path.write_text(json.dumps(trace, indent=2, ensure_ascii=False), encoding="utf-8")
 
     def _role_observations(self) -> dict[str, Any]:
-        return {
+        observations = {
             "disease_normalizer": {"request": self.last_request.get("interest", ""), "parser": self.last_request.get("parser", "")},
             "dataset_scout": {"selected_datasets": self.last_request.get("selected_datasets", [])},
             "planner": {"analysis_plan": "analysis_plan.json"},
@@ -423,6 +461,21 @@ class TargetDiscoveryAgent:
             "result_reviewer": {"scores": "candidate_scores.csv"},
             "report_writer": {"report": "reports/target_report.html"},
         }
+        for record in load_role_runs(self.project_dir).get("runs", []):
+            role_id = record.get("role_id", "")
+            if not role_id:
+                continue
+            observations.setdefault(role_id, {})
+            observations[role_id].update(
+                {
+                    "latest_role_run_id": record.get("role_run_id", ""),
+                    "latest_status": record.get("status", ""),
+                    "latest_input_packet": record.get("input_packet", ""),
+                    "latest_output_packet": record.get("output_packet", ""),
+                    "latest_log": record.get("log", ""),
+                }
+            )
+        return observations
 
 
 def _errors_to_exception(errors: list[str]) -> str:

@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from targetcompass_lite.agent_roles import write_agent_role_manifest
+from targetcompass_lite.role_runner import load_role_runs, run_role
 from targetcompass_lite.deg import run_deg
 from targetcompass_lite.webapp import _v4_work_order_panel
 
@@ -72,6 +73,39 @@ class ExecutorAndRolesTest(unittest.TestCase):
             self.assertIn("v4 Agent role split", html)
             self.assertIn("disease_normalizer", html)
             self.assertIn("report_writer", html)
+
+    def test_role_runner_writes_input_output_log_and_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            output, record = run_role(
+                project,
+                "planner",
+                {"eligible_datasets": "eligible_datasets.csv"},
+                lambda: {"modules": [{"module_id": "P1"}]},
+                runner="unit_test_runner",
+            )
+            self.assertEqual(output["modules"][0]["module_id"], "P1")
+            self.assertEqual(record["status"], "success")
+            self.assertTrue((project / record["input_packet"]).exists())
+            self.assertTrue((project / record["output_packet"]).exists())
+            self.assertTrue((project / record["log"]).exists())
+            runs = load_role_runs(project)["runs"]
+            self.assertEqual(runs[0]["role_id"], "planner")
+            self.assertTrue((project / "v4" / "agent_roles.json").exists())
+            html = _v4_work_order_panel(project)
+            self.assertIn("v4 Role runs", html)
+            self.assertIn("unit_test_runner", json.dumps(runs))
+
+    def test_role_runner_records_failures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            with self.assertRaises(RuntimeError):
+                run_role(project, "dataset_scout", {"research_spec": "missing"}, lambda: (_ for _ in ()).throw(ValueError("boom")))
+            runs = load_role_runs(project)["runs"]
+            self.assertEqual(runs[0]["status"], "failed")
+            self.assertIn("boom", runs[0]["failure_reason"])
 
 
 if __name__ == "__main__":

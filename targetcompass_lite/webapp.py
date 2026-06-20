@@ -43,6 +43,7 @@ from .status_ui import build_status_center
 from .system_status import system_status
 from .validators import load_dataset_card
 from .v4 import build_v4_manifest, load_codex_task_packet, load_v4_work_orders, read_work_order_attempts
+from .role_runner import load_role_runs
 
 
 class _Args:
@@ -751,6 +752,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
     if not orders:
         return (
             '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
+            + _role_runs_panel(project_dir)
             + _executor_manifest_panel(project_dir)
             + _agent_roles_panel(project_dir)
         )
@@ -821,7 +823,14 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         if attempt_rows
         else '<p class="muted">No WorkOrder attempts recorded yet.</p>'
     )
-    return "".join(cards) + attempt_table + _executor_manifest_panel(project_dir) + _agent_roles_panel(project_dir) + resource_table
+    return (
+        "".join(cards)
+        + attempt_table
+        + _role_runs_panel(project_dir)
+        + _executor_manifest_panel(project_dir)
+        + _agent_roles_panel(project_dir)
+        + resource_table
+    )
 
 
 def _executor_manifest_panel(project_dir: Path) -> str:
@@ -866,6 +875,29 @@ def _agent_roles_panel(project_dir: Path) -> str:
     return (
         "<details><summary>v4 Agent role split</summary>"
         "<table><thead><tr><th>Role</th><th>Worker</th><th>Status</th><th>Schema</th><th>Decision</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></details>"
+    )
+
+
+def _role_runs_panel(project_dir: Path) -> str:
+    runs = load_role_runs(project_dir).get("runs", [])
+    if not runs:
+        return '<p class="muted">No v4 role runs recorded yet.</p>'
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('role_id', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td><code>{html.escape(row.get('role_run_id', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('input_packet', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('output_packet', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('log', ''))}</code></td>"
+        f"<td>{html.escape(row.get('failure_reason', ''))}</td>"
+        "</tr>"
+        for row in runs[-12:]
+    )
+    return (
+        "<details open><summary>v4 Role runs</summary>"
+        "<table><thead><tr><th>Role</th><th>Status</th><th>Run</th><th>Input</th><th>Output</th><th>Log</th><th>Failure</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></details>"
     )
 

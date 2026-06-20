@@ -124,7 +124,8 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
         )
     scored.sort(key=lambda r: (-float(r["final_score"]), r["hard_gate_status"], r["entity_symbol"]))
     out = project_dir / "candidate_scores.csv"
-    with out.open("w", newline="", encoding="utf-8") as f:
+    tmp = out.with_name(out.name + ".tmp")
+    with tmp.open("w", newline="", encoding="utf-8") as f:
         fields = [
             "score_id",
             "evidence_snapshot_id",
@@ -141,6 +142,7 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         writer.writerows(scored)
+    tmp.replace(out)
     _write_score_manifest(project_dir, evidence_snapshot_id, rubric_hash, scored)
     return out
 

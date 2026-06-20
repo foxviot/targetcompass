@@ -11,8 +11,10 @@
         "label": "生成",
         "purpose": "Convert the user request into ResearchSpec and generate candidate ideas.",
         "parser": "rule_based",
-        "confirmed": false,
+        "confirmed": true,
         "selected_datasets": [
+          "ds_fixture_vascular_aging",
+          "GSE312006",
           "GSE43292"
         ],
         "idea_count": 4
@@ -75,20 +77,58 @@
     {
       "name": "verification",
       "status": "review",
-      "message": "1 dataset(s) checked; 1 eligible; 1 module(s) planned.",
+      "message": "3 dataset(s) checked; 3 eligible; 3 module(s) planned.",
       "details": {
         "order": 6,
         "label": "查证",
         "purpose": "Validate selected datasets, screen eligibility, match ResearchSpec, and compile an AnalysisPlan.",
         "selected_datasets": [
+          "ds_fixture_vascular_aging",
+          "GSE312006",
           "GSE43292"
         ],
         "review_count": 1,
-        "eligible_count": 1,
-        "module_count": 1,
+        "eligible_count": 3,
+        "module_count": 3,
         "datasets": [
+          "ds_fixture_vascular_aging",
+          "GSE312006",
           "GSE43292"
-        ]
+        ],
+        "geo_discovery_mode": "online",
+        "geo_recommendations": [
+          {
+            "accession": "GSE312006",
+            "score": 75,
+            "source": "ncbi_geo",
+            "import_status": "candidate"
+          },
+          {
+            "accession": "GSE287738",
+            "score": 63,
+            "source": "ncbi_geo",
+            "import_status": "candidate"
+          },
+          {
+            "accession": "GSE285125",
+            "score": 63,
+            "source": "ncbi_geo",
+            "import_status": "candidate"
+          },
+          {
+            "accession": "GSE335644",
+            "score": 63,
+            "source": "ncbi_geo",
+            "import_status": "candidate"
+          },
+          {
+            "accession": "GSE313389",
+            "score": 55,
+            "source": "ncbi_geo",
+            "import_status": "candidate"
+          }
+        ],
+        "geo_discovery_warnings": []
       }
     },
     {
@@ -112,8 +152,21 @@
         "executed_modules": [
           {
             "module": "bulk_deg",
+            "dataset_id": "ds_fixture_vascular_aging",
+            "status": "executed",
+            "attempt_id": "attempt_5a76322ad130d9c5"
+          },
+          {
+            "module": "bulk_deg",
+            "dataset_id": "GSE312006",
+            "status": "executed",
+            "attempt_id": "attempt_5a05cdbb1f42666c"
+          },
+          {
+            "module": "bulk_deg",
             "dataset_id": "GSE43292",
-            "status": "executed"
+            "status": "executed",
+            "attempt_id": "attempt_5aca2dba34364891"
           },
           {
             "module": "enrichment",
@@ -170,7 +223,7 @@
         "dataset_review_count": 1,
         "top_candidate_count": 20,
         "top_candidate_hard_gate_issues": 0,
-        "unknown_annotation_rows": 19007,
+        "unknown_annotation_rows": 23375,
         "design_count": 3,
         "method_id": "local_experiment_design_v0",
         "method_label": "Local experiment design v0"
@@ -202,8 +255,16 @@
   "stdout": "",
   "stderr": "",
   "project": "vascular_aging_demo",
-  "timestamp": "2026-06-20T03:17:13.574881+00:00",
+  "timestamp": "2026-06-20T11:33:34.059702+00:00",
   "architecture": "local_state_machine_agent_v1",
+  "v4_compatibility": {
+    "object_manifest": "v4/object_manifest.json",
+    "state_machine": "v4/state_machine.json",
+    "work_orders": "v4/work_orders.json",
+    "mcp_resources": "v4/mcp_resources.json",
+    "evidence_snapshot": "v4/evidence_snapshot.json",
+    "agent_roles": "v4/agent_roles.json"
+  },
   "state_machine": [
     {
       "state": "generation",

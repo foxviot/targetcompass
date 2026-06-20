@@ -12,6 +12,7 @@ from .matching import match_project
 from .paths import ensure_project_dirs, project_path
 from .planning import build_plan
 from .reporting import build_report
+from .role_runner import run_role
 from .scoring import score_project
 from .screening import screen_project
 from .spec_builder import confirm_project_spec, readiness_errors, update_project_spec
@@ -75,6 +76,13 @@ def cmd_demo(args) -> int:
     if rc:
         return rc
     spec = json.loads((p / "research_spec.json").read_text(encoding="utf-8"))
+    run_role(
+        p,
+        "disease_normalizer",
+        {"research_spec": "research_spec.json", "source": "demo_existing_spec"},
+        lambda: spec,
+        runner="tc_lite.demo:existing_research_spec",
+    )
     ready_errors = readiness_errors(spec)
     if ready_errors:
         for err in ready_errors:
@@ -104,9 +112,22 @@ def cmd_demo(args) -> int:
     rows = screen_project(p, selected)
     print(f"screened {len(rows)} dataset card(s)")
     matches = match_project(p, selected)
+    run_role(
+        p,
+        "dataset_scout",
+        {"selected_datasets": sorted(selected) if selected else "all", "screening_report": "screening_report.md"},
+        lambda: {"screened": len(rows), "matched": len(matches)},
+        runner="tc_lite.demo:screen_and_match",
+    )
     review_count = sum(1 for row in matches if row["match_status"] != "MATCH")
     print(f"matched {len(matches)} dataset card(s); {review_count} require review")
-    plan = build_plan(p)
+    plan, _ = run_role(
+        p,
+        "planner",
+        {"eligible_datasets": "eligible_datasets.csv", "selected_datasets": sorted(selected) if selected else "all"},
+        lambda: build_plan(p),
+        runner="targetcompass_lite.planning.build_plan",
+    )
     print(f"planned {len(plan['modules'])} module(s)")
     for module in plan["modules"]:
         if module["module"] == "bulk_deg":
@@ -134,8 +155,20 @@ def cmd_demo(args) -> int:
     annotate_project(p)
     import_evidence(p)
     score_project(p)
-    html_path, docx_path = build_report(p)
-    write_agent_role_manifest(p)
+    run_role(
+        p,
+        "result_reviewer",
+        {"candidate_scores": "candidate_scores.csv", "qc": "results/*/qc_summary.json"},
+        lambda: {"candidate_scores": "candidate_scores.csv", "review_queue": "results/review_queue.json"},
+        runner="tc_lite.demo:result_review_summary",
+    )
+    html_path, docx_path = run_role(
+        p,
+        "report_writer",
+        {"evidence_db": "evidence.sqlite", "scores": "candidate_scores.csv"},
+        lambda: build_report(p),
+        runner="targetcompass_lite.reporting.build_report",
+    )[0]
     print(f"report: {html_path}")
     print(f"word-compatible report: {docx_path}")
     return 0

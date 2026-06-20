@@ -55,6 +55,7 @@ class DemoWorkflowTest(unittest.TestCase):
             PROJECT / "reports" / "target_report.docx",
             PROJECT / "reports" / "target_report_structured.json",
             PROJECT / "v4" / "agent_roles.json",
+            PROJECT / "v4" / "role_runs.json",
         ]
         for path in expected:
             with self.subTest(path=path):

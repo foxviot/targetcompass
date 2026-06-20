@@ -200,6 +200,7 @@ def build_mcp_resource_manifest(project_dir: Path, plan: dict[str, Any] | None =
         (f"spec://{project_dir.name}/disease/latest", disease_spec_path, "read"),
         (f"plan://{project_dir.name}/latest", project_dir / "analysis_plan.json", "read"),
         (f"work-order://{project_dir.name}/index", work_order_index, "read"),
+        (f"role-run://{project_dir.name}/index", v4_dir(project_dir) / "role_runs.json", "read"),
         (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
     ]:
         if path.exists():
@@ -328,6 +329,10 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
             "agent_roles": {
                 "path": "v4/agent_roles.json",
                 "exists": (project_dir / "v4" / "agent_roles.json").exists(),
+            },
+            "role_runs": {
+                "path": "v4/role_runs.json",
+                "exists": (project_dir / "v4" / "role_runs.json").exists(),
             },
         },
     }
