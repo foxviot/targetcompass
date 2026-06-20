@@ -1,0 +1,22 @@
+dataset_id: ds_fixture_vascular_aging
+source: local_fixture
+accession: FIXTURE001
+modality: bulk_expression
+organism: human
+tissue: vascular endothelium
+contrast:
+  case: aged
+  control: young
+sample_summary:
+  case_n: 4
+  control_n: 4
+  donor_n: 8
+metadata_fields: [sample_id, group, batch, sex, age]
+matrix_available: true
+license_status: public
+file_paths:
+  expression_matrix: data/ds_fixture_vascular_aging/expression_matrix.tsv
+  metadata: data/ds_fixture_vascular_aging/metadata.tsv
+known_limitations: [synthetic fixture, small sample size]
+recommended_use: [bulk_deg]
+blocked_use: []

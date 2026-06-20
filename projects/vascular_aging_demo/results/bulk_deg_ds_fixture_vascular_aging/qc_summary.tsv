@@ -1,0 +1,22 @@
+metric	value
+dataset_id	ds_fixture_vascular_aging
+sample_count	8
+metadata_rows	8
+case_samples	4
+control_samples	4
+genes	8
+duplicated_gene_rows	0
+matrix_type	microarray_or_log_expression_like
+min_value	0.7
+max_value	8.2
+mean_value	5.13594
+negative_values	0
+design_rank	3
+design_columns	3
+design_full_rank	True
+batch_covariates	batch
+dropped_batch_covariates	
+design_warnings	
+runner_type	r_limma
+runner_reason	Rscript and limma available
+qc_status	PASS

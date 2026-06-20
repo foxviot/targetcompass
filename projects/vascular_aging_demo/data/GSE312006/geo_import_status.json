@@ -1,0 +1,21 @@
+{
+  "accession": "GSE312006",
+  "status": "failed",
+  "timestamp": "2026-06-20T05:12:26.625619+00:00",
+  "error": {
+    "code": "GEO_SERIES_MATRIX_PARSE_FAILED",
+    "stage": "parse_series_matrix",
+    "message": "The GEO series matrix did not contain usable sample ids and expression values.",
+    "retryable": false,
+    "recovery": [
+      "Confirm the GEO series has a downloadable expression series matrix.",
+      "Choose another recommended GSE if this record is not expression data.",
+      "If the matrix is custom formatted, prepare expression_matrix.tsv and metadata.tsv manually."
+    ],
+    "details": {
+      "sample_count": 9,
+      "matrix_rows": 0,
+      "series_matrix": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE312006\\GSE312006_series_matrix.txt.gz"
+    }
+  }
+}

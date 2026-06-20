@@ -1,0 +1,22 @@
+dataset_id: GSE43292
+source: GEO
+accession: GSE43292
+modality: bulk_expression
+organism: human
+tissue: carotid artery
+contrast:
+  case: atheroma_plaque
+  control: intact_carotid
+sample_summary:
+  case_n: 32
+  control_n: 32
+  donor_n: 64
+metadata_fields: [sample_id, group, patient_id, batch, tissue, title, geo_blob]
+matrix_available: true
+license_status: public
+file_paths:
+  expression_matrix: data/GSE43292/expression_matrix.tsv
+  metadata: data/GSE43292/metadata.tsv
+known_limitations: [auto-imported from GEO series matrix, case/control assignment inferred from metadata column source_name_ch1 with confidence 80, MVP lightweight DEG; inspect metadata_profile.json and group_inference.json before interpreting]
+recommended_use: [bulk_deg]
+blocked_use: []

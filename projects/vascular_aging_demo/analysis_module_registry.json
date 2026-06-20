@@ -1,0 +1,71 @@
+{
+  "modules": [
+    {
+      "module_id": "bulk_deg_v1",
+      "status": "implemented",
+      "input_modality": "bulk_expression",
+      "runner": "targetcompass_lite.deg.run_deg",
+      "outputs": [
+        "deg_results.tsv",
+        "qc_summary.tsv",
+        "qc_summary.json",
+        "run_manifest.json"
+      ],
+      "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization."
+    },
+    {
+      "module_id": "enrichment_v1",
+      "status": "implemented",
+      "input_modality": "deg_results",
+      "runner": "targetcompass_lite.enrichment.run_enrichment",
+      "outputs": [
+        "results/enrichment/enrichment_results.tsv"
+      ],
+      "notes": "Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files."
+    },
+    {
+      "module_id": "accessibility_annotation_v1",
+      "status": "implemented",
+      "input_modality": "gene_symbols",
+      "runner": "targetcompass_lite.annotation.annotate_project",
+      "outputs": [
+        "accessibility_annotation.tsv"
+      ],
+      "notes": "Consumes local annotation plus UniProt/HPA/custom normalized accessibility tables."
+    },
+    {
+      "module_id": "safety_annotation_v1",
+      "status": "implemented",
+      "input_modality": "gene_symbols",
+      "runner": "targetcompass_lite.annotation.annotate_project",
+      "outputs": [
+        "safety_flags.tsv",
+        "unknown_review.tsv"
+      ],
+      "notes": "Preserves UNKNOWN values for manual review rather than silently passing candidates."
+    },
+    {
+      "module_id": "scrna_pseudobulk_v0",
+      "status": "reserved_interface",
+      "input_modality": "single_cell_expression",
+      "runner": "reserved",
+      "outputs": [
+        "pseudobulk_matrix.tsv",
+        "pseudobulk_metadata.tsv",
+        "qc_summary.json"
+      ],
+      "notes": "Reserved MVP interface. Requires donor-aware aggregation before DEG; cells must not be treated as biological replicates."
+    },
+    {
+      "module_id": "genetic_coloc_mr_v0",
+      "status": "reserved_interface",
+      "input_modality": "gwas_qtl_summary",
+      "runner": "reserved",
+      "outputs": [
+        "genetic_evidence.tsv",
+        "sensitivity_summary.tsv"
+      ],
+      "notes": "Reserved post-MVP interface for GWAS/QTL/colocalization/MR evidence."
+    }
+  ]
+}

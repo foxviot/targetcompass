@@ -1,0 +1,32 @@
+rule_id: vaccine_target_v0
+description: Deterministic MVP scoring rules for vaccine-oriented candidate target prioritization.
+expression:
+  max_score: 25
+  abs_effect_multiplier: 10
+  significant_bonus: 10
+  significance_p_value: 0.05
+route:
+  supported_score: 15
+  unknown_score: 3
+  supported_routes: [surface, secreted, ECD, T_cell_peptide]
+safety:
+  default_score: 5
+  scores:
+    PASS: 20
+    REVIEW_REQUIRED: 8
+    EXCLUDED: 0
+    UNKNOWN: 5
+reproducibility:
+  single_dataset_score: 7
+  per_dataset_score: 5
+  max_score: 15
+specificity:
+  default_score: 5
+  priority_score: 10
+  priority_genes: [VCAM1, CXCL8, IL6, ICAM1]
+genetic:
+  mvp_score: 0
+tiers:
+  A_min_score: 70
+  B_min_score: 50
+next_experiments: qPCR/WB; flow/IF localization; perturbation or neutralization assay

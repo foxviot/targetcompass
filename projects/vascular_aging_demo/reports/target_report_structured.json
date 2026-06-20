@@ -1,0 +1,1652 @@
+{
+  "project": "vascular_aging_demo",
+  "report_version": "0.4",
+  "sections": [
+    "执行摘要",
+    "研究问题与边界",
+    "方法与模块",
+    "数据来源与QC",
+    "候选排序",
+    "证据链",
+    "限制与风险",
+    "实验建议",
+    "审批与审计"
+  ],
+  "executive_summary": {
+    "decision": "REVIEW_REQUIRED",
+    "checklist": [
+      {
+        "check": "ResearchSpec schema",
+        "status": "PASS",
+        "note": "research_spec.json exists and has passed validation before execution"
+      },
+      {
+        "check": "Dataset match",
+        "status": "REVIEW",
+        "note": "4 dataset match warning(s)"
+      },
+      {
+        "check": "DEG QC",
+        "status": "PASS",
+        "note": "bulk_deg results include qc_summary and run_manifest when the module is executed"
+      },
+      {
+        "check": "Candidate hard gates",
+        "status": "PASS",
+        "note": "0 top candidate hard-gate issue(s)"
+      },
+      {
+        "check": "Safety annotation",
+        "status": "REVIEW",
+        "note": "Top20 UNKNOWN safety=0; unknown rows=23375"
+      },
+      {
+        "check": "Traceability",
+        "status": "PASS",
+        "note": "Evidence rows preserve source_dataset and artifact_path"
+      }
+    ],
+    "evidence_rows": 60317
+  },
+  "research_question": {
+    "research_theme": "Find secreted targets for human endothelial senescence in vascular aging",
+    "disease_scope": "vascular aging",
+    "priority_tissues": [
+      "vascular endothelium"
+    ],
+    "target_routes": [
+      "secreted"
+    ],
+    "boundaries": [
+      "Exploratory target discovery only.",
+      "Expression association is not causal proof.",
+      "Manual review is required for dataset warnings and UNKNOWN annotations."
+    ]
+  },
+  "methods": {
+    "analysis_modules": [
+      {
+        "module_id": "bulk_deg_v1",
+        "status": "implemented",
+        "input_modality": "bulk_expression",
+        "runner": "targetcompass_lite.deg.run_deg",
+        "outputs": [
+          "deg_results.tsv",
+          "qc_summary.tsv",
+          "qc_summary.json",
+          "run_manifest.json"
+        ],
+        "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization."
+      },
+      {
+        "module_id": "enrichment_v1",
+        "status": "implemented",
+        "input_modality": "deg_results",
+        "runner": "targetcompass_lite.enrichment.run_enrichment",
+        "outputs": [
+          "results/enrichment/enrichment_results.tsv"
+        ],
+        "notes": "Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files."
+      },
+      {
+        "module_id": "accessibility_annotation_v1",
+        "status": "implemented",
+        "input_modality": "gene_symbols",
+        "runner": "targetcompass_lite.annotation.annotate_project",
+        "outputs": [
+          "accessibility_annotation.tsv"
+        ],
+        "notes": "Consumes local annotation plus UniProt/HPA/custom normalized accessibility tables."
+      },
+      {
+        "module_id": "safety_annotation_v1",
+        "status": "implemented",
+        "input_modality": "gene_symbols",
+        "runner": "targetcompass_lite.annotation.annotate_project",
+        "outputs": [
+          "safety_flags.tsv",
+          "unknown_review.tsv"
+        ],
+        "notes": "Preserves UNKNOWN values for manual review rather than silently passing candidates."
+      },
+      {
+        "module_id": "scrna_pseudobulk_v0",
+        "status": "reserved_interface",
+        "input_modality": "single_cell_expression",
+        "runner": "reserved",
+        "outputs": [
+          "pseudobulk_matrix.tsv",
+          "pseudobulk_metadata.tsv",
+          "qc_summary.json"
+        ],
+        "notes": "Reserved MVP interface. Requires donor-aware aggregation before DEG; cells must not be treated as biological replicates."
+      },
+      {
+        "module_id": "genetic_coloc_mr_v0",
+        "status": "reserved_interface",
+        "input_modality": "gwas_qtl_summary",
+        "runner": "reserved",
+        "outputs": [
+          "genetic_evidence.tsv",
+          "sensitivity_summary.tsv"
+        ],
+        "notes": "Reserved post-MVP interface for GWAS/QTL/colocalization/MR evidence."
+      }
+    ]
+  },
+  "data_sources_and_qc": {
+    "datasets": [
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "source_class": "fixture",
+        "grade": "A",
+        "modality": "bulk_expression",
+        "metadata_quality": "high 100",
+        "recommended_use": "bulk_deg",
+        "match_status": "MATCH",
+        "notes": "bulk expression dataset is analyzable"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "source_class": "real_public",
+        "grade": "A",
+        "modality": "bulk_expression",
+        "metadata_quality": "high 100",
+        "recommended_use": "bulk_deg",
+        "match_status": "MATCH",
+        "notes": "bulk expression dataset is analyzable"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "source_class": "real_public",
+        "grade": "A",
+        "modality": "bulk_expression",
+        "metadata_quality": "high 80",
+        "recommended_use": "bulk_deg",
+        "match_status": "REVIEW",
+        "notes": "tissue not matched: carotid artery; contrast may not represent vascular aging: atheroma_plaque vs intact_carotid"
+      }
+    ],
+    "bulk_rna_microarray_qc": [
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "matrix_type": "microarray_or_log_expression_like",
+        "runner_type": "r_limma",
+        "runner_reason": "Rscript and limma available",
+        "case_samples": 4,
+        "control_samples": 4,
+        "genes": 8,
+        "duplicated_gene_rows": 0,
+        "design_full_rank": true,
+        "batch_covariates": [
+          "batch"
+        ],
+        "qc_status": "PASS",
+        "artifact": "results\\bulk_deg_ds_fixture_vascular_aging\\qc_summary.json"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "matrix_type": "rna_seq_count_like",
+        "runner_type": "r_limma",
+        "runner_reason": "Rscript and limma available",
+        "case_samples": 3,
+        "control_samples": 3,
+        "genes": 17874,
+        "duplicated_gene_rows": 0,
+        "design_full_rank": true,
+        "batch_covariates": [],
+        "qc_status": "PASS",
+        "artifact": "results\\bulk_deg_GSE312006\\qc_summary.json"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "matrix_type": "microarray_or_log_expression_like",
+        "runner_type": "r_limma",
+        "runner_reason": "Rscript and limma available",
+        "case_samples": 32,
+        "control_samples": 32,
+        "genes": 19033,
+        "duplicated_gene_rows": 0,
+        "design_full_rank": true,
+        "batch_covariates": [
+          "batch"
+        ],
+        "qc_status": "PASS",
+        "artifact": "results\\bulk_deg_GSE43292\\qc_summary.json"
+      }
+    ],
+    "enrichment_overview": [
+      {
+        "dataset_id": "GSE312006",
+        "term_id": "GO_INFLAMMATORY_RESPONSE",
+        "term_name": "Inflammatory response",
+        "overlap_n": "5",
+        "selected_n": "901",
+        "term_n": "8",
+        "universe_n": "17874",
+        "p_value": "1.58699e-05",
+        "adj_p_value": "0.000285658",
+        "overlap_genes": "CCL2,CXCL1,CXCL2,CXCL8,ICAM1",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "term_id": "GO_CYTOKINE_CHEMOKINE",
+        "term_name": "Cytokine and chemokine signaling",
+        "overlap_n": "6",
+        "selected_n": "3838",
+        "term_n": "6",
+        "universe_n": "19033",
+        "p_value": "6.7024e-05",
+        "adj_p_value": "0.000603216",
+        "overlap_genes": "CXCL1,CXCL2,CXCL8,IL6,TGFB1,TNF",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "term_id": "GO_IMMUNE_CELL_MARKERS",
+        "term_name": "Immune cell markers",
+        "overlap_n": "6",
+        "selected_n": "3838",
+        "term_n": "6",
+        "universe_n": "19033",
+        "p_value": "6.7024e-05",
+        "adj_p_value": "0.000402144",
+        "overlap_genes": "CD14,CD3D,CD4,CD8A,ITGAM,PTPRC",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "term_id": "GO_CYTOKINE_CHEMOKINE",
+        "term_name": "Cytokine and chemokine signaling",
+        "overlap_n": "4",
+        "selected_n": "901",
+        "term_n": "6",
+        "universe_n": "17874",
+        "p_value": "8.86717e-05",
+        "adj_p_value": "0.000399023",
+        "overlap_genes": "CCL2,CXCL1,CXCL2,CXCL8",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "term_id": "GO_INFLAMMATORY_RESPONSE",
+        "term_name": "Inflammatory response",
+        "overlap_n": "7",
+        "selected_n": "3838",
+        "term_n": "8",
+        "universe_n": "19033",
+        "p_value": "8.8962e-05",
+        "adj_p_value": "0.000320263",
+        "overlap_genes": "CXCL1,CXCL2,CXCL8,ICAM1,IL6,SELE,TNF",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "term_id": "GO_ENDOTHELIAL_ACTIVATION",
+        "term_name": "Endothelial activation",
+        "overlap_n": "4",
+        "selected_n": "901",
+        "term_n": "9",
+        "universe_n": "17874",
+        "p_value": "0.000659091",
+        "adj_p_value": "0.00197727",
+        "overlap_genes": "CCL2,CXCL8,ICAM1,THBD",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "term_id": "GO_ENDOTHELIAL_ACTIVATION",
+        "term_name": "Endothelial activation",
+        "overlap_n": "6",
+        "selected_n": "3838",
+        "term_n": "8",
+        "universe_n": "19033",
+        "p_value": "0.00128582",
+        "adj_p_value": "0.00330639",
+        "overlap_genes": "CXCL8,ICAM1,IL6,SELE,THBD,VWF",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "term_id": "GO_VASCULAR_HOMEOSTASIS",
+        "term_name": "Vascular homeostasis",
+        "overlap_n": "6",
+        "selected_n": "3838",
+        "term_n": "8",
+        "universe_n": "19033",
+        "p_value": "0.00128582",
+        "adj_p_value": "0.0028931",
+        "overlap_genes": "CDH5,FLT1,KDR,NOS3,THBD,VWF",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "term_id": "GO_VASCULAR_HOMEOSTASIS",
+        "term_name": "Vascular homeostasis",
+        "overlap_n": "2",
+        "selected_n": "901",
+        "term_n": "8",
+        "universe_n": "17874",
+        "p_value": "0.0580501",
+        "adj_p_value": "0.1161",
+        "overlap_genes": "NOS3,THBD",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE43292",
+        "term_id": "GO_EXTRACELLULAR_MATRIX",
+        "term_name": "Extracellular matrix remodeling",
+        "overlap_n": "3",
+        "selected_n": "3838",
+        "term_n": "5",
+        "universe_n": "19033",
+        "p_value": "0.0591705",
+        "adj_p_value": "0.106507",
+        "overlap_genes": "MMP9,TGFB1,VWF",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "term_id": "GO_ENDOTHELIAL_ACTIVATION",
+        "term_name": "Endothelial activation",
+        "overlap_n": "4",
+        "selected_n": "5",
+        "term_n": "4",
+        "universe_n": "8",
+        "p_value": "0.0714286",
+        "adj_p_value": "0.116883",
+        "overlap_genes": "CXCL8,ICAM1,IL6,VCAM1",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "term_id": "GO_INFLAMMATORY_RESPONSE",
+        "term_name": "Inflammatory response",
+        "overlap_n": "4",
+        "selected_n": "5",
+        "term_n": "4",
+        "universe_n": "8",
+        "p_value": "0.0714286",
+        "adj_p_value": "0.107143",
+        "overlap_genes": "CXCL8,ICAM1,IL6,VCAM1",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "term_id": "GO_EXTRACELLULAR_MATRIX",
+        "term_name": "Extracellular matrix remodeling",
+        "overlap_n": "1",
+        "selected_n": "901",
+        "term_n": "4",
+        "universe_n": "17874",
+        "p_value": "0.186908",
+        "adj_p_value": "0.258796",
+        "overlap_genes": "SERPINE1",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "term_id": "GO_CYTOKINE_CHEMOKINE",
+        "term_name": "Cytokine and chemokine signaling",
+        "overlap_n": "2",
+        "selected_n": "5",
+        "term_n": "2",
+        "universe_n": "8",
+        "p_value": "0.357143",
+        "adj_p_value": "0.459184",
+        "overlap_genes": "CXCL8,IL6",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "term_id": "GO_EXTRACELLULAR_MATRIX",
+        "term_name": "Extracellular matrix remodeling",
+        "overlap_n": "1",
+        "selected_n": "5",
+        "term_n": "1",
+        "universe_n": "8",
+        "p_value": "0.625",
+        "adj_p_value": "0.75",
+        "overlap_genes": "MMP9",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "GSE312006",
+        "term_id": "GO_IMMUNE_CELL_MARKERS",
+        "term_name": "Immune cell markers",
+        "overlap_n": "0",
+        "selected_n": "901",
+        "term_n": "5",
+        "universe_n": "17874",
+        "p_value": "1",
+        "adj_p_value": "1",
+        "overlap_genes": "",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "term_id": "GO_IMMUNE_CELL_MARKERS",
+        "term_name": "Immune cell markers",
+        "overlap_n": "0",
+        "selected_n": "5",
+        "term_n": "0",
+        "universe_n": "8",
+        "p_value": "1",
+        "adj_p_value": "1",
+        "overlap_genes": "",
+        "source": "curated_local_v0"
+      },
+      {
+        "dataset_id": "ds_fixture_vascular_aging",
+        "term_id": "GO_VASCULAR_HOMEOSTASIS",
+        "term_name": "Vascular homeostasis",
+        "overlap_n": "0",
+        "selected_n": "5",
+        "term_n": "0",
+        "universe_n": "8",
+        "p_value": "1",
+        "adj_p_value": "1",
+        "overlap_genes": "",
+        "source": "curated_local_v0"
+      }
+    ]
+  },
+  "candidate_ranking": [
+    {
+      "entity_symbol": "CXCL8",
+      "route": "secreted",
+      "final_score": "85.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "safety_gate": "PASS",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 15, \"route\": 15, \"safety\": 20, \"specificity\": 10}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "ICAM1",
+      "route": "surface",
+      "final_score": "73.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 15, \"route\": 15, \"safety\": 8, \"specificity\": 10}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "IL6",
+      "route": "secreted",
+      "final_score": "73.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 15, \"route\": 15, \"safety\": 8, \"specificity\": 10}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "VCAM1",
+      "route": "surface",
+      "final_score": "73.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 15, \"route\": 15, \"safety\": 8, \"specificity\": 10}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "PECAM1",
+      "route": "surface",
+      "final_score": "68.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 15, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "CD14",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "CD4",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "CDH5",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "CXCL1",
+      "route": "secreted",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "CXCL2",
+      "route": "secreted",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "ENG",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "FLT1",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "KDR",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "MMP9",
+      "route": "secreted",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "PTPRC",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "SELE",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "SERPINE1",
+      "route": "secreted",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "TEK",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "TGFB1",
+      "route": "secreted",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    },
+    {
+      "entity_symbol": "THBD",
+      "route": "surface",
+      "final_score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "safety_gate": "REVIEW_REQUIRED",
+      "score_json": "{\"expression\": 25, \"genetic\": 0, \"reproducibility\": 10, \"route\": 15, \"safety\": 8, \"specificity\": 5}",
+      "next_experiments": "qPCR/WB; flow/IF localization; perturbation or neutralization assay"
+    }
+  ],
+  "evidence_chain": [
+    {
+      "gene": "CXCL8",
+      "score": "85.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 2306.33333333333,
+          "p_value": 0.0145379257337722,
+          "quality_score": 0.75,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.934450625,
+          "p_value": 0.000715844092550919,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 3.4,
+          "p_value": 1.36911181833345e-23,
+          "quality_score": 0.75,
+          "source_dataset": "ds_fixture_vascular_aging",
+          "artifact_path": "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "ICAM1",
+      "score": "73.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 424.0,
+          "p_value": 0.00757473455949718,
+          "quality_score": 0.75,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.7541378125,
+          "p_value": 8.43999732263359e-06,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 2.7,
+          "p_value": 2.05296054483436e-21,
+          "quality_score": 0.75,
+          "source_dataset": "ds_fixture_vascular_aging",
+          "artifact_path": "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "IL6",
+      "score": "73.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 100.666666666667,
+          "p_value": 0.143847130487052,
+          "quality_score": 0.45,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.5160928125,
+          "p_value": 0.0473974374252697,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 2.9,
+          "p_value": 4.69815055533377e-22,
+          "quality_score": 0.75,
+          "source_dataset": "ds_fixture_vascular_aging",
+          "artifact_path": "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "VCAM1",
+      "score": "73.00",
+      "tier": "A",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 16.6666666666667,
+          "p_value": 0.20699962412342,
+          "quality_score": 0.45,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.201894375,
+          "p_value": 0.0943688802553834,
+          "quality_score": 0.45,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 3.4,
+          "p_value": 1.36911181833345e-23,
+          "quality_score": 0.75,
+          "source_dataset": "ds_fixture_vascular_aging",
+          "artifact_path": "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "PECAM1",
+      "score": "68.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "down",
+          "effect_size": -2700.33333333333,
+          "p_value": 0.0216233578577165,
+          "quality_score": 0.75,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.64936375,
+          "p_value": 4.69160607419151e-05,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "down",
+          "effect_size": -0.599999999999999,
+          "p_value": 4.89907504396149e-08,
+          "quality_score": 0.75,
+          "source_dataset": "ds_fixture_vascular_aging",
+          "artifact_path": "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "CD14",
+      "score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 21.3333333333333,
+          "p_value": 0.251940255497524,
+          "quality_score": 0.45,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.836275937499999,
+          "p_value": 1.28059152865548e-05,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "CD4",
+      "score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 6.66666666666667,
+          "p_value": 0.259249391381994,
+          "quality_score": 0.45,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.934918749999999,
+          "p_value": 7.45970339012045e-06,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    },
+    {
+      "gene": "CDH5",
+      "score": "63.00",
+      "tier": "B",
+      "hard_gate_status": "PASS",
+      "evidence": [
+        {
+          "evidence_type": "accessibility",
+          "direction": null,
+          "effect_size": null,
+          "p_value": null,
+          "quality_score": 0.8,
+          "source_dataset": null,
+          "artifact_path": "results\\annotation\\accessibility_annotation.tsv",
+          "limitation": "SUPPORTED"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 4300.66666666666,
+          "p_value": 0.610262653243005,
+          "quality_score": 0.45,
+          "source_dataset": "GSE312006",
+          "artifact_path": "results\\bulk_deg_GSE312006\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        },
+        {
+          "evidence_type": "bulk_deg",
+          "direction": "up",
+          "effect_size": 0.641150625,
+          "p_value": 6.10782828402388e-06,
+          "quality_score": 0.75,
+          "source_dataset": "GSE43292",
+          "artifact_path": "results\\bulk_deg_GSE43292\\deg_results.tsv",
+          "limitation": "fixture demo evidence; association only"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    {
+      "gene": "A1BG",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A1BG-AS1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A1CF",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A2M",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A2M-AS1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A2ML1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A3GALT2",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A4GALT",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "A4GNT",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAAS",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AACS",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AADAC",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AADACL2",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AADACL3",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AADACL4",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AADACP1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AADAT",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAED1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAGAB",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAK1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAMDC",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAMP",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AANAT",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AAR2",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AARD",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AARS",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AARS1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AARS2",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AARSD1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AASDH",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AASDHPPT",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AASS",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AATBC",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AATF",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AATK",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "AATK-AS1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABAT",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA1",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA10",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA11P",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA12",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA13",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA15P",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA2",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA3",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA4",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA5",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA6",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA7",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "ABCA8",
+      "missing_fields": "accessibility,safety",
+      "route": "unknown",
+      "safety_gate": "UNKNOWN",
+      "recommended_action": "manual curation before interpreting candidate rank"
+    },
+    {
+      "gene": "DATASET_SCOPE",
+      "missing_fields": "dataset/spec mismatch or review warning",
+      "route": "",
+      "safety_gate": "REVIEW",
+      "recommended_action": "Review dataset cards and matching notes before interpreting candidates."
+    }
+  ],
+  "experiment_suggestions": [
+    {
+      "idea_id": "idea_001_d7548696",
+      "title": "Secreted senescence signal target",
+      "objective": "Validate feasibility of Secreted senescence signal target for Find secreted targets for human endothelial senescence in vascular aging",
+      "in_silico_steps": [
+        "Confirm differential expression across selected datasets.",
+        "Check accessibility and safety annotation gates.",
+        "Review enrichment context and evidence traceability."
+      ],
+      "wet_lab_followup": [
+        "qPCR or targeted proteomics in independent case/control samples.",
+        "Perturbation assay in relevant endothelial or immune-cell model.",
+        "Specificity check against critical normal tissues."
+      ],
+      "acceptance_criteria": [
+        "Replicated direction across at least two evidence sources when available.",
+        "No hard safety gate failure.",
+        "Clear assay path for target modulation or detection."
+      ],
+      "risks": [
+        "Requires expert review before experimental spend."
+      ]
+    },
+    {
+      "idea_id": "idea_002_80759d3b",
+      "title": "Surface accessibility target",
+      "objective": "Validate feasibility of Surface accessibility target for Find secreted targets for human endothelial senescence in vascular aging",
+      "in_silico_steps": [
+        "Confirm differential expression across selected datasets.",
+        "Check accessibility and safety annotation gates.",
+        "Review enrichment context and evidence traceability."
+      ],
+      "wet_lab_followup": [
+        "qPCR or targeted proteomics in independent case/control samples.",
+        "Perturbation assay in relevant endothelial or immune-cell model.",
+        "Specificity check against critical normal tissues."
+      ],
+      "acceptance_criteria": [
+        "Replicated direction across at least two evidence sources when available.",
+        "No hard safety gate failure.",
+        "Clear assay path for target modulation or detection."
+      ],
+      "risks": [
+        "Requires expert review before experimental spend."
+      ]
+    },
+    {
+      "idea_id": "idea_003_1bc96f40",
+      "title": "ECD shedding target",
+      "objective": "Validate feasibility of ECD shedding target for Find secreted targets for human endothelial senescence in vascular aging",
+      "in_silico_steps": [
+        "Confirm differential expression across selected datasets.",
+        "Check accessibility and safety annotation gates.",
+        "Review enrichment context and evidence traceability."
+      ],
+      "wet_lab_followup": [
+        "qPCR or targeted proteomics in independent case/control samples.",
+        "Perturbation assay in relevant endothelial or immune-cell model.",
+        "Specificity check against critical normal tissues."
+      ],
+      "acceptance_criteria": [
+        "Replicated direction across at least two evidence sources when available.",
+        "No hard safety gate failure.",
+        "Clear assay path for target modulation or detection."
+      ],
+      "risks": [
+        "Requires expert review before experimental spend."
+      ]
+    }
+  ],
+  "approval_and_audit": {
+    "agent_trace": [
+      {
+        "name": "generation",
+        "status": "running",
+        "message": "Generate ResearchSpec and candidate ideas from the user research request.",
+        "details": {
+          "order": 1,
+          "label": "生成",
+          "purpose": "Convert the user request into ResearchSpec and generate candidate ideas.",
+          "parser": "rule_based",
+          "confirmed": false,
+          "selected_datasets": [
+            "GSE43292"
+          ],
+          "idea_count": 4
+        }
+      },
+      {
+        "name": "generation",
+        "status": "pass",
+        "message": "ResearchSpec and candidate idea batch generated.",
+        "details": {
+          "order": 2,
+          "label": "生成",
+          "purpose": "Convert the user request into ResearchSpec and generate candidate ideas.",
+          "disease": "vascular aging",
+          "confidence": "high",
+          "parser_version": "rule_based_v0",
+          "query_method": "local_idea_query_v0",
+          "query_message": "4 idea(s) generated by the local query method.",
+          "idea_count": 4,
+          "top_score": 83,
+          "method_id": "local_idea_query_v0",
+          "method_label": "Local idea query v0"
+        }
+      },
+      {
+        "name": "initial_review",
+        "status": "running",
+        "message": "Run ResearchSpec readiness gates and feasibility audit.",
+        "details": {
+          "order": 3,
+          "label": "初审",
+          "purpose": "Run ResearchSpec readiness gates and feasibility audit before any computation."
+        }
+      },
+      {
+        "name": "initial_review",
+        "status": "review",
+        "message": "4 idea(s) audited; 3 passed feasibility thresholds.",
+        "details": {
+          "order": 4,
+          "label": "初审",
+          "purpose": "Run ResearchSpec readiness gates and feasibility audit before any computation.",
+          "audit_method": "local_feasibility_audit_v0",
+          "idea_count": 4,
+          "candidate_count": 3,
+          "method_id": "local_feasibility_audit_v0",
+          "method_label": "Local feasibility audit v0"
+        }
+      },
+      {
+        "name": "verification",
+        "status": "running",
+        "message": "Validate datasets, screen eligibility, match ResearchSpec, and compile plan.",
+        "details": {
+          "order": 5,
+          "label": "查证",
+          "purpose": "Validate selected datasets, screen eligibility, match ResearchSpec, and compile an AnalysisPlan."
+        }
+      },
+      {
+        "name": "verification",
+        "status": "review",
+        "message": "1 dataset(s) checked; 1 eligible; 1 module(s) planned.",
+        "details": {
+          "order": 6,
+          "label": "查证",
+          "purpose": "Validate selected datasets, screen eligibility, match ResearchSpec, and compile an AnalysisPlan.",
+          "selected_datasets": [
+            "GSE43292"
+          ],
+          "review_count": 1,
+          "eligible_count": 1,
+          "module_count": 1,
+          "datasets": [
+            "GSE43292"
+          ]
+        }
+      },
+      {
+        "name": "execution",
+        "status": "running",
+        "message": "Run deterministic analysis modules and evidence integration.",
+        "details": {
+          "order": 7,
+          "label": "执行",
+          "purpose": "Run deterministic local analysis modules and evidence integration."
+        }
+      },
+      {
+        "name": "execution",
+        "status": "pass",
+        "message": "Analysis modules, enrichment, annotation, evidence import, and scoring completed.",
+        "details": {
+          "order": 8,
+          "label": "执行",
+          "purpose": "Run deterministic local analysis modules and evidence integration.",
+          "executed_modules": [
+            {
+              "module": "bulk_deg",
+              "dataset_id": "GSE43292",
+              "status": "executed"
+            },
+            {
+              "module": "enrichment",
+              "dataset_id": "*",
+              "status": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\results\\enrichment\\enrichment_results.tsv"
+            },
+            {
+              "module": "annotation",
+              "dataset_id": "*",
+              "status": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\results\\annotation\\accessibility_annotation.tsv"
+            },
+            {
+              "module": "safety",
+              "dataset_id": "*",
+              "status": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\results\\annotation\\safety_flags.tsv"
+            },
+            {
+              "module": "unknown_review",
+              "dataset_id": "*",
+              "status": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\results\\annotation\\unknown_review.tsv"
+            },
+            {
+              "module": "evidence_import",
+              "dataset_id": "*",
+              "status": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\evidence.sqlite"
+            },
+            {
+              "module": "scoring",
+              "dataset_id": "*",
+              "status": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\candidate_scores.csv"
+            }
+          ]
+        }
+      },
+      {
+        "name": "final_review",
+        "status": "running",
+        "message": "Draft experiments and summarize remaining review gates.",
+        "details": {
+          "order": 9,
+          "label": "复审",
+          "purpose": "Draft experiments and summarize remaining review gates after execution."
+        }
+      },
+      {
+        "name": "final_review",
+        "status": "pass",
+        "message": "3 experiment design draft(s) prepared by the local method.",
+        "details": {
+          "order": 10,
+          "label": "复审",
+          "purpose": "Draft experiments and summarize remaining review gates after execution.",
+          "experiment_method": "local_experiment_design_v0",
+          "dataset_review_count": 1,
+          "top_candidate_count": 20,
+          "top_candidate_hard_gate_issues": 0,
+          "unknown_annotation_rows": 19007,
+          "design_count": 3,
+          "method_id": "local_experiment_design_v0",
+          "method_label": "Local experiment design v0"
+        }
+      },
+      {
+        "name": "report",
+        "status": "running",
+        "message": "Generate final report artifacts.",
+        "details": {
+          "order": 11,
+          "label": "报告",
+          "purpose": "Generate report and delivery-ready artifacts after final review."
+        }
+      },
+      {
+        "name": "report",
+        "status": "pass",
+        "message": "Report and audit artifacts are ready for user review.",
+        "details": {
+          "order": 12,
+          "label": "报告",
+          "purpose": "Generate report and delivery-ready artifacts after final review.",
+          "html_report": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\reports\\target_report.html",
+          "docx_report": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\reports\\target_report.docx"
+        }
+      }
+    ],
+    "manual_review_actions": [],
+    "review_queue": {
+      "items": [],
+      "queue_count": 0
+    },
+    "approval_state": {
+      "status": "draft"
+    },
+    "adapter_audit": []
+  }
+}

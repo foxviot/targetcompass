@@ -1,0 +1,19 @@
+dataset_id: GSE113957
+source: GEO
+accession: GSE113957
+modality: transcriptomic_reference
+organism: human
+tissue: immune cells
+contrast:
+  case: aging_or_senescence_context
+  control: reference_or_younger_context
+sample_summary:
+  case_n: 0
+  control_n: 0
+metadata_fields: [sample_id, age, cell_type, condition]
+matrix_available: false
+license_status: public
+file_paths:
+known_limitations: [reference card only, matrix not bundled, requires manual GEO review before analysis]
+recommended_use: [descriptive_reference, external_context]
+blocked_use: [bulk_deg]

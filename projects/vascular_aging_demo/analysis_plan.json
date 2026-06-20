@@ -1,0 +1,329 @@
+{
+  "plan_version": "0.3",
+  "project_id": "vascular_aging_demo",
+  "module_registry": "analysis_module_registry.json",
+  "available_modules": [
+    {
+      "module_id": "bulk_deg_v1",
+      "status": "implemented",
+      "input_modality": "bulk_expression",
+      "runner": "targetcompass_lite.deg.run_deg",
+      "outputs": [
+        "deg_results.tsv",
+        "qc_summary.tsv",
+        "qc_summary.json",
+        "run_manifest.json"
+      ],
+      "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization."
+    },
+    {
+      "module_id": "enrichment_v1",
+      "status": "implemented",
+      "input_modality": "deg_results",
+      "runner": "targetcompass_lite.enrichment.run_enrichment",
+      "outputs": [
+        "results/enrichment/enrichment_results.tsv"
+      ],
+      "notes": "Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files."
+    },
+    {
+      "module_id": "accessibility_annotation_v1",
+      "status": "implemented",
+      "input_modality": "gene_symbols",
+      "runner": "targetcompass_lite.annotation.annotate_project",
+      "outputs": [
+        "accessibility_annotation.tsv"
+      ],
+      "notes": "Consumes local annotation plus UniProt/HPA/custom normalized accessibility tables."
+    },
+    {
+      "module_id": "safety_annotation_v1",
+      "status": "implemented",
+      "input_modality": "gene_symbols",
+      "runner": "targetcompass_lite.annotation.annotate_project",
+      "outputs": [
+        "safety_flags.tsv",
+        "unknown_review.tsv"
+      ],
+      "notes": "Preserves UNKNOWN values for manual review rather than silently passing candidates."
+    },
+    {
+      "module_id": "scrna_pseudobulk_v0",
+      "status": "reserved_interface",
+      "input_modality": "single_cell_expression",
+      "runner": "reserved",
+      "outputs": [
+        "pseudobulk_matrix.tsv",
+        "pseudobulk_metadata.tsv",
+        "qc_summary.json"
+      ],
+      "notes": "Reserved MVP interface. Requires donor-aware aggregation before DEG; cells must not be treated as biological replicates."
+    },
+    {
+      "module_id": "genetic_coloc_mr_v0",
+      "status": "reserved_interface",
+      "input_modality": "gwas_qtl_summary",
+      "runner": "reserved",
+      "outputs": [
+        "genetic_evidence.tsv",
+        "sensitivity_summary.tsv"
+      ],
+      "notes": "Reserved post-MVP interface for GWAS/QTL/colocalization/MR evidence."
+    }
+  ],
+  "datasets": [
+    {
+      "dataset_id": "ds_fixture_vascular_aging",
+      "grade": "A",
+      "modality": "bulk_expression",
+      "source": "local_fixture",
+      "accession": "FIXTURE001",
+      "organism": "human",
+      "tissue": "vascular endothelium",
+      "recommended_use": [
+        "bulk_deg"
+      ],
+      "sample_summary": {
+        "case_n": 4,
+        "control_n": 4,
+        "donor_n": 8
+      },
+      "limitations": [
+        "synthetic fixture",
+        "small sample size"
+      ],
+      "screening_reasons": "bulk expression dataset is analyzable"
+    },
+    {
+      "dataset_id": "GSE312006",
+      "grade": "A",
+      "modality": "bulk_expression",
+      "source": "GEO",
+      "accession": "GSE312006",
+      "organism": "human",
+      "tissue": "HUVEC",
+      "recommended_use": [
+        "bulk_deg"
+      ],
+      "sample_summary": {
+        "case_n": 3,
+        "control_n": 3,
+        "donor_n": 6
+      },
+      "limitations": [
+        "cell culture HUVEC model",
+        "raw counts handled by MVP lightweight DEG",
+        "donor metadata unavailable",
+        "premature senescence samples excluded from first contrast"
+      ],
+      "screening_reasons": "bulk expression dataset is analyzable"
+    },
+    {
+      "dataset_id": "GSE43292",
+      "grade": "A",
+      "modality": "bulk_expression",
+      "source": "GEO",
+      "accession": "GSE43292",
+      "organism": "human",
+      "tissue": "carotid artery",
+      "recommended_use": [
+        "bulk_deg"
+      ],
+      "sample_summary": {
+        "case_n": 32,
+        "control_n": 32,
+        "donor_n": 64
+      },
+      "limitations": [
+        "auto-imported from GEO series matrix",
+        "case/control assignment inferred from metadata column source_name_ch1 with confidence 80",
+        "MVP lightweight DEG; inspect metadata_profile.json and group_inference.json before interpreting"
+      ],
+      "screening_reasons": "bulk expression dataset is analyzable"
+    }
+  ],
+  "modules": [
+    {
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "module": "bulk_deg",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "objective": "Estimate differential expression for the declared case/control contrast.",
+      "status": "planned",
+      "runner": "targetcompass_lite.deg.run_deg",
+      "runner_type": "python_fallback",
+      "formal_runner": "scripts/r/bulk_limma_deg.R",
+      "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset ds_fixture_vascular_aging",
+      "inputs": {
+        "dataset_card": "dataset_cards/ds_fixture_vascular_aging.yaml",
+        "expression_matrix": "data/ds_fixture_vascular_aging/expression_matrix.tsv",
+        "metadata": "data/ds_fixture_vascular_aging/metadata.tsv"
+      },
+      "parameters": {
+        "case": "aged",
+        "control": "young",
+        "method": "python_demo_welch_like_effect_screen",
+        "p_adjustment": "benjamini_hochberg",
+        "batch_covariates": [],
+        "formal_method_available": "limma via scripts/r/bulk_limma_deg.R when local R dependencies are installed"
+      },
+      "expected_outputs": [
+        "results/bulk_deg_ds_fixture_vascular_aging/deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "qc_checks": [
+        "expression sample columns match metadata sample_id values",
+        "case and control labels are present in metadata.group",
+        "case_n >= 3 and control_n >= 3 preferred for MVP analysis",
+        "run_manifest records input hashes"
+      ],
+      "assumptions": [
+        "Rows are gene-level expression values keyed by gene_symbol.",
+        "The MVP Python DEG is association-only and not a clinical/causal test."
+      ],
+      "limitations": [
+        "synthetic fixture",
+        "small sample size"
+      ],
+      "downstream": [
+        "annotation",
+        "evidence_import",
+        "scoring",
+        "report"
+      ],
+      "allowed_files": [
+        "targetcompass_lite/deg.py",
+        "projects/vascular_aging_demo/results/**"
+      ]
+    },
+    {
+      "module_id": "P4_bulk_deg_GSE312006",
+      "module": "bulk_deg",
+      "dataset_id": "GSE312006",
+      "objective": "Estimate differential expression for the declared case/control contrast.",
+      "status": "planned",
+      "runner": "targetcompass_lite.deg.run_deg",
+      "runner_type": "python_fallback",
+      "formal_runner": "scripts/r/bulk_limma_deg.R",
+      "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset GSE312006",
+      "inputs": {
+        "dataset_card": "dataset_cards/GSE312006.yaml",
+        "expression_matrix": "data/GSE312006/expression_matrix.tsv",
+        "metadata": "data/GSE312006/metadata.tsv"
+      },
+      "parameters": {
+        "case": "replicative_senescence",
+        "control": "young",
+        "method": "python_demo_welch_like_effect_screen",
+        "p_adjustment": "benjamini_hochberg",
+        "batch_covariates": [],
+        "formal_method_available": "limma via scripts/r/bulk_limma_deg.R when local R dependencies are installed"
+      },
+      "expected_outputs": [
+        "results/bulk_deg_GSE312006/deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.tsv",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "qc_checks": [
+        "expression sample columns match metadata sample_id values",
+        "case and control labels are present in metadata.group",
+        "case_n >= 3 and control_n >= 3 preferred for MVP analysis",
+        "run_manifest records input hashes"
+      ],
+      "assumptions": [
+        "Rows are gene-level expression values keyed by gene_symbol.",
+        "The MVP Python DEG is association-only and not a clinical/causal test."
+      ],
+      "limitations": [
+        "cell culture HUVEC model",
+        "raw counts handled by MVP lightweight DEG",
+        "donor metadata unavailable",
+        "premature senescence samples excluded from first contrast"
+      ],
+      "downstream": [
+        "annotation",
+        "evidence_import",
+        "scoring",
+        "report"
+      ],
+      "allowed_files": [
+        "targetcompass_lite/deg.py",
+        "projects/vascular_aging_demo/results/**"
+      ]
+    },
+    {
+      "module_id": "P4_bulk_deg_GSE43292",
+      "module": "bulk_deg",
+      "dataset_id": "GSE43292",
+      "objective": "Estimate differential expression for the declared case/control contrast.",
+      "status": "planned",
+      "runner": "targetcompass_lite.deg.run_deg",
+      "runner_type": "python_fallback",
+      "formal_runner": "scripts/r/bulk_limma_deg.R",
+      "command": "python tc_lite.py run-deg --project vascular_aging_demo --dataset GSE43292",
+      "inputs": {
+        "dataset_card": "dataset_cards/GSE43292.yaml",
+        "expression_matrix": "data/GSE43292/expression_matrix.tsv",
+        "metadata": "data/GSE43292/metadata.tsv"
+      },
+      "parameters": {
+        "case": "atheroma_plaque",
+        "control": "intact_carotid",
+        "method": "python_demo_welch_like_effect_screen",
+        "p_adjustment": "benjamini_hochberg",
+        "batch_covariates": [],
+        "formal_method_available": "limma via scripts/r/bulk_limma_deg.R when local R dependencies are installed"
+      },
+      "expected_outputs": [
+        "results/bulk_deg_GSE43292/deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.tsv",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "qc_checks": [
+        "expression sample columns match metadata sample_id values",
+        "case and control labels are present in metadata.group",
+        "case_n >= 3 and control_n >= 3 preferred for MVP analysis",
+        "run_manifest records input hashes"
+      ],
+      "assumptions": [
+        "Rows are gene-level expression values keyed by gene_symbol.",
+        "The MVP Python DEG is association-only and not a clinical/causal test."
+      ],
+      "limitations": [
+        "auto-imported from GEO series matrix",
+        "case/control assignment inferred from metadata column source_name_ch1 with confidence 80",
+        "MVP lightweight DEG; inspect metadata_profile.json and group_inference.json before interpreting"
+      ],
+      "downstream": [
+        "annotation",
+        "evidence_import",
+        "scoring",
+        "report"
+      ],
+      "allowed_files": [
+        "targetcompass_lite/deg.py",
+        "projects/vascular_aging_demo/results/**"
+      ]
+    }
+  ],
+  "execution_order": [
+    "P4_bulk_deg_ds_fixture_vascular_aging",
+    "P4_bulk_deg_GSE312006",
+    "P4_bulk_deg_GSE43292"
+  ],
+  "expected_outputs": [
+    "results/*/deg_results.tsv",
+    "results/annotation/accessibility_annotation.tsv",
+    "evidence.sqlite",
+    "candidate_scores.csv",
+    "reports/target_report.html",
+    "reports/target_report.docx"
+  ],
+  "blocking_conditions": [
+    "no eligible datasets",
+    "missing matrix",
+    "sample metadata mismatch",
+    "unsupported or low-confidence research direction",
+    "dataset/spec low match requiring review"
+  ]
+}

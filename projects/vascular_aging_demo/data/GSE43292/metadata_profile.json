@@ -1,0 +1,581 @@
+{
+  "sample_count": 64,
+  "columns": [
+    {
+      "name": "channel_count",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "1": 64
+      }
+    },
+    {
+      "name": "characteristics_ch1",
+      "non_empty": 64,
+      "unique_count": 32,
+      "value_counts": {
+        "patient: 1": 2,
+        "patient: 10": 2,
+        "patient: 11": 2,
+        "patient: 12": 2,
+        "patient: 13": 2,
+        "patient: 14": 2,
+        "patient: 15": 2,
+        "patient: 16": 2,
+        "patient: 17": 2,
+        "patient: 18": 2,
+        "patient: 19": 2,
+        "patient: 2": 2,
+        "patient: 20": 2,
+        "patient: 21": 2,
+        "patient: 22": 2,
+        "patient: 23": 2,
+        "patient: 24": 2,
+        "patient: 25": 2,
+        "patient: 26": 2,
+        "patient: 27": 2,
+        "patient: 28": 2,
+        "patient: 29": 2,
+        "patient: 3": 2,
+        "patient: 30": 2,
+        "patient: 31": 2,
+        "patient: 32": 2,
+        "patient: 4": 2,
+        "patient: 5": 2,
+        "patient: 6": 2,
+        "patient: 7": 2
+      }
+    },
+    {
+      "name": "characteristics_ch1_2",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "disease state: hypertension": 64
+      }
+    },
+    {
+      "name": "characteristics_ch1_3",
+      "non_empty": 64,
+      "unique_count": 2,
+      "value_counts": {
+        "tissue: Atheroma plaque": 32,
+        "tissue: Macroscopically intact tissue": 32
+      }
+    },
+    {
+      "name": "condition",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "hypertension": 64
+      }
+    },
+    {
+      "name": "contact_address",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "8 avenue Rockefeller": 64
+      }
+    },
+    {
+      "name": "contact_city",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Lyon": 64
+      }
+    },
+    {
+      "name": "contact_country",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "France": 64
+      }
+    },
+    {
+      "name": "contact_email",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "cerutti@univ-lyon1.fr": 64
+      }
+    },
+    {
+      "name": "contact_institute",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Université Lyon 1 & Hôpital Nord-Ouest": 64
+      }
+    },
+    {
+      "name": "contact_laboratory",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "EA4173 Génomique Fonctionnelle de l'Hypertension Artérielle": 64
+      }
+    },
+    {
+      "name": "contact_name",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Catherine,,Cerutti": 64
+      }
+    },
+    {
+      "name": "contact_zip/postal_code",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "69373": 64
+      }
+    },
+    {
+      "name": "data_processing",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "The data were analyzed with Expression Console v1.1 software using the default RMA summarization method.": 64
+      }
+    },
+    {
+      "name": "data_row_count",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "33297": 64
+      }
+    },
+    {
+      "name": "description",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Gene expression data from paired samples of carotid atheroma plaque and macroscopically intact tissue": 64
+      }
+    },
+    {
+      "name": "description_2",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "JLI_1": 1,
+        "JLI_11": 1,
+        "JLI_12": 1,
+        "JLI_13": 1,
+        "JLI_14": 1,
+        "JLI_2": 1,
+        "JLI_21": 1,
+        "JLI_22": 1,
+        "JLI_23": 1,
+        "JLI_24": 1,
+        "JLI_29": 1,
+        "JLI_3": 1,
+        "JLI_30": 1,
+        "JLI_35": 1,
+        "JLI_36": 1,
+        "JLI_37": 1,
+        "JLI_38": 1,
+        "JLI_39": 1,
+        "JLI_4": 1,
+        "JLI_40": 1,
+        "JLI_41": 1,
+        "JLI_42": 1,
+        "JLI_43": 1,
+        "JLI_44": 1,
+        "JLI_45": 1,
+        "JLI_46": 1,
+        "JLI_47": 1,
+        "JLI_48": 1,
+        "JLI_49": 1,
+        "JLI_50": 1
+      }
+    },
+    {
+      "name": "extract_protocol_ch1",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Trizol extraction of total RNA was performed according to the manufacturer's instructions.": 64
+      }
+    },
+    {
+      "name": "geo_accession",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "GSM1060117": 1,
+        "GSM1060118": 1,
+        "GSM1060119": 1,
+        "GSM1060120": 1,
+        "GSM1060121": 1,
+        "GSM1060122": 1,
+        "GSM1060123": 1,
+        "GSM1060124": 1,
+        "GSM1060125": 1,
+        "GSM1060126": 1,
+        "GSM1060127": 1,
+        "GSM1060128": 1,
+        "GSM1060129": 1,
+        "GSM1060130": 1,
+        "GSM1060131": 1,
+        "GSM1060132": 1,
+        "GSM1060133": 1,
+        "GSM1060134": 1,
+        "GSM1060135": 1,
+        "GSM1060136": 1,
+        "GSM1060137": 1,
+        "GSM1060138": 1,
+        "GSM1060139": 1,
+        "GSM1060140": 1,
+        "GSM1060141": 1,
+        "GSM1060142": 1,
+        "GSM1060143": 1,
+        "GSM1060144": 1,
+        "GSM1060145": 1,
+        "GSM1060146": 1
+      }
+    },
+    {
+      "name": "geo_blob",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "Patient 1, Atheroma plaque GSM1060118 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 1 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized fo": 1,
+        "Patient 1, Macroscopically intact tissue GSM1060117 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 1 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from": 1,
+        "Patient 10, Atheroma plaque GSM1060136 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 10 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 10, Macroscopically intact tissue GSM1060135 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 10 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 11, Atheroma plaque GSM1060138 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 11 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 11, Macroscopically intact tissue GSM1060137 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 11 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 12, Atheroma plaque GSM1060140 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 12 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 12, Macroscopically intact tissue GSM1060139 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 12 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 13, Atheroma plaque GSM1060142 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 13 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 13, Macroscopically intact tissue GSM1060141 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 13 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 14, Atheroma plaque GSM1060144 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 14 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 14, Macroscopically intact tissue GSM1060143 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 14 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 15, Atheroma plaque GSM1060146 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 15 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 15, Macroscopically intact tissue GSM1060145 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 15 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 16, Atheroma plaque GSM1060148 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 16 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 16, Macroscopically intact tissue GSM1060147 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 16 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 17, Atheroma plaque GSM1060150 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 17 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 17, Macroscopically intact tissue GSM1060149 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 17 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 18, Atheroma plaque GSM1060152 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 18 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 18, Macroscopically intact tissue GSM1060151 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 18 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 19, Atheroma plaque GSM1060154 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 19 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 19, Macroscopically intact tissue GSM1060153 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 19 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 2, Atheroma plaque GSM1060120 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 2 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized fo": 1,
+        "Patient 2, Macroscopically intact tissue GSM1060119 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 2 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from": 1,
+        "Patient 20, Atheroma plaque GSM1060156 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 20 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 20, Macroscopically intact tissue GSM1060155 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 20 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 21, Atheroma plaque GSM1060158 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 21 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 21, Macroscopically intact tissue GSM1060157 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 21 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1,
+        "Patient 22, Atheroma plaque GSM1060160 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Carotid atheroma plaque obtained from endarterectomy Homo sapiens patient: 22 disease state: hypertension tissue: Atheroma plaque total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA. 9606 cRNAs were hybridized": 1,
+        "Patient 22, Macroscopically intact tissue GSM1060159 Public on Apr 01 2013 Jan 04 2013 Apr 01 2013 RNA 1 Macroscopically intact carotid tissue adjacent to the atheroma plaque Homo sapiens patient: 22 disease state: hypertension tissue: Macroscopically intact tissue total RNA Trizol extraction of total RNA was performed according to the manufacturer's instructions. biotin Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol fro": 1
+      }
+    },
+    {
+      "name": "hyb_protocol",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "cRNAs were hybridized for 16 hours at 45oC on GeneChip® Human Gene 1.0 ST arrays using the GeneChip® Hybridization Oven 640 (Affymetrix).": 64
+      }
+    },
+    {
+      "name": "label_ch1",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "biotin": 64
+      }
+    },
+    {
+      "name": "label_protocol_ch1",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Biotinylated cRNAs were prepared by IGBMC Microarray and Sequencing Platform according to the standard Affymetrix protocol from 1 ug total RNA.": 64
+      }
+    },
+    {
+      "name": "last_update_date",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Apr 01 2013": 64
+      }
+    },
+    {
+      "name": "molecule_ch1",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "total RNA": 64
+      }
+    },
+    {
+      "name": "organism_ch1",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Homo sapiens": 64
+      }
+    },
+    {
+      "name": "patient",
+      "non_empty": 64,
+      "unique_count": 32,
+      "value_counts": {
+        "1": 2,
+        "10": 2,
+        "11": 2,
+        "12": 2,
+        "13": 2,
+        "14": 2,
+        "15": 2,
+        "16": 2,
+        "17": 2,
+        "18": 2,
+        "19": 2,
+        "2": 2,
+        "20": 2,
+        "21": 2,
+        "22": 2,
+        "23": 2,
+        "24": 2,
+        "25": 2,
+        "26": 2,
+        "27": 2,
+        "28": 2,
+        "29": 2,
+        "3": 2,
+        "30": 2,
+        "31": 2,
+        "32": 2,
+        "4": 2,
+        "5": 2,
+        "6": 2,
+        "7": 2
+      }
+    },
+    {
+      "name": "platform_id",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "GPL6244": 64
+      }
+    },
+    {
+      "name": "sample_id",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "GSM1060117": 1,
+        "GSM1060118": 1,
+        "GSM1060119": 1,
+        "GSM1060120": 1,
+        "GSM1060121": 1,
+        "GSM1060122": 1,
+        "GSM1060123": 1,
+        "GSM1060124": 1,
+        "GSM1060125": 1,
+        "GSM1060126": 1,
+        "GSM1060127": 1,
+        "GSM1060128": 1,
+        "GSM1060129": 1,
+        "GSM1060130": 1,
+        "GSM1060131": 1,
+        "GSM1060132": 1,
+        "GSM1060133": 1,
+        "GSM1060134": 1,
+        "GSM1060135": 1,
+        "GSM1060136": 1,
+        "GSM1060137": 1,
+        "GSM1060138": 1,
+        "GSM1060139": 1,
+        "GSM1060140": 1,
+        "GSM1060141": 1,
+        "GSM1060142": 1,
+        "GSM1060143": 1,
+        "GSM1060144": 1,
+        "GSM1060145": 1,
+        "GSM1060146": 1
+      }
+    },
+    {
+      "name": "scan_protocol",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "The GeneChips were washed and stained in the GeneChip® Fluidics Station 450 (Affymetrix) and scanned using the GeneChip® Scanner 3000 7G System (Affymetrix).": 64
+      }
+    },
+    {
+      "name": "source_name_ch1",
+      "non_empty": 64,
+      "unique_count": 2,
+      "value_counts": {
+        "Carotid atheroma plaque obtained from endarterectomy": 32,
+        "Macroscopically intact carotid tissue adjacent to the atheroma plaque": 32
+      }
+    },
+    {
+      "name": "status",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Public on Apr 01 2013": 64
+      }
+    },
+    {
+      "name": "submission_date",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "Jan 04 2013": 64
+      }
+    },
+    {
+      "name": "supplementary_file",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060117/suppl/GSM1060117_JLI_1_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060118/suppl/GSM1060118_JLI_2_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060119/suppl/GSM1060119_JLI_3_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060120/suppl/GSM1060120_JLI_4_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060121/suppl/GSM1060121_JLI_7_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060122/suppl/GSM1060122_JLI_8_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060123/suppl/GSM1060123_JLI_11_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060124/suppl/GSM1060124_JLI_12_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060125/suppl/GSM1060125_JLI_13_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060126/suppl/GSM1060126_JLI_14_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060127/suppl/GSM1060127_JLI_21_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060128/suppl/GSM1060128_JLI_22_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060129/suppl/GSM1060129_JLI_23_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060130/suppl/GSM1060130_JLI_24_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060131/suppl/GSM1060131_JLI_29_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060132/suppl/GSM1060132_JLI_30_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060133/suppl/GSM1060133_JLI_35_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060134/suppl/GSM1060134_JLI_36_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060135/suppl/GSM1060135_JLI_37_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060136/suppl/GSM1060136_JLI_38_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060137/suppl/GSM1060137_JLI_39_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060138/suppl/GSM1060138_JLI_40_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060139/suppl/GSM1060139_JLI_41_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060140/suppl/GSM1060140_JLI_42_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060141/suppl/GSM1060141_JLI_43_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060142/suppl/GSM1060142_JLI_44_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060143/suppl/GSM1060143_JLI_45_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060144/suppl/GSM1060144_JLI_46_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060145/suppl/GSM1060145_JLI_47_HuGene.CEL.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060146/suppl/GSM1060146_JLI_48_HuGene.CEL.gz": 1
+      }
+    },
+    {
+      "name": "supplementary_file_2",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060117/suppl/GSM1060117_JLI_1_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060118/suppl/GSM1060118_JLI_2_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060119/suppl/GSM1060119_JLI_3_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060120/suppl/GSM1060120_JLI_4_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060121/suppl/GSM1060121_JLI_7_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060122/suppl/GSM1060122_JLI_8_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060123/suppl/GSM1060123_JLI_11_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060124/suppl/GSM1060124_JLI_12_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060125/suppl/GSM1060125_JLI_13_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060126/suppl/GSM1060126_JLI_14_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060127/suppl/GSM1060127_JLI_21_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060128/suppl/GSM1060128_JLI_22_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060129/suppl/GSM1060129_JLI_23_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060130/suppl/GSM1060130_JLI_24_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060131/suppl/GSM1060131_JLI_29_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060132/suppl/GSM1060132_JLI_30_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060133/suppl/GSM1060133_JLI_35_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060134/suppl/GSM1060134_JLI_36_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060135/suppl/GSM1060135_JLI_37_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060136/suppl/GSM1060136_JLI_38_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060137/suppl/GSM1060137_JLI_39_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060138/suppl/GSM1060138_JLI_40_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060139/suppl/GSM1060139_JLI_41_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060140/suppl/GSM1060140_JLI_42_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060141/suppl/GSM1060141_JLI_43_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060142/suppl/GSM1060142_JLI_44_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060143/suppl/GSM1060143_JLI_45_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060144/suppl/GSM1060144_JLI_46_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060145/suppl/GSM1060145_JLI_47_HuGene.rma-gene-default.chp.gz": 1,
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1060nnn/GSM1060146/suppl/GSM1060146_JLI_48_HuGene.rma-gene-default.chp.gz": 1
+      }
+    },
+    {
+      "name": "taxid_ch1",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "9606": 64
+      }
+    },
+    {
+      "name": "tissue",
+      "non_empty": 64,
+      "unique_count": 2,
+      "value_counts": {
+        "Atheroma plaque": 32,
+        "Macroscopically intact tissue": 32
+      }
+    },
+    {
+      "name": "title",
+      "non_empty": 64,
+      "unique_count": 64,
+      "value_counts": {
+        "Patient 1, Atheroma plaque": 1,
+        "Patient 1, Macroscopically intact tissue": 1,
+        "Patient 10, Atheroma plaque": 1,
+        "Patient 10, Macroscopically intact tissue": 1,
+        "Patient 11, Atheroma plaque": 1,
+        "Patient 11, Macroscopically intact tissue": 1,
+        "Patient 12, Atheroma plaque": 1,
+        "Patient 12, Macroscopically intact tissue": 1,
+        "Patient 13, Atheroma plaque": 1,
+        "Patient 13, Macroscopically intact tissue": 1,
+        "Patient 14, Atheroma plaque": 1,
+        "Patient 14, Macroscopically intact tissue": 1,
+        "Patient 15, Atheroma plaque": 1,
+        "Patient 15, Macroscopically intact tissue": 1,
+        "Patient 16, Atheroma plaque": 1,
+        "Patient 16, Macroscopically intact tissue": 1,
+        "Patient 17, Atheroma plaque": 1,
+        "Patient 17, Macroscopically intact tissue": 1,
+        "Patient 18, Atheroma plaque": 1,
+        "Patient 18, Macroscopically intact tissue": 1,
+        "Patient 19, Atheroma plaque": 1,
+        "Patient 19, Macroscopically intact tissue": 1,
+        "Patient 2, Atheroma plaque": 1,
+        "Patient 2, Macroscopically intact tissue": 1,
+        "Patient 20, Atheroma plaque": 1,
+        "Patient 20, Macroscopically intact tissue": 1,
+        "Patient 21, Atheroma plaque": 1,
+        "Patient 21, Macroscopically intact tissue": 1,
+        "Patient 22, Atheroma plaque": 1,
+        "Patient 22, Macroscopically intact tissue": 1
+      }
+    },
+    {
+      "name": "type",
+      "non_empty": 64,
+      "unique_count": 1,
+      "value_counts": {
+        "RNA": 64
+      }
+    }
+  ]
+}

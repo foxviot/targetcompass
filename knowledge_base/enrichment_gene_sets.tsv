@@ -1,0 +1,7 @@
+term_id	term_name	genes	source
+GO_INFLAMMATORY_RESPONSE	Inflammatory response	IL6,CXCL8,CXCL1,CXCL2,CCL2,TNF,ICAM1,VCAM1,SELE	curated_local_v0
+GO_ENDOTHELIAL_ACTIVATION	Endothelial activation	VCAM1,ICAM1,SELE,IL6,CXCL8,CCL2,VWF,THBD,ENG	curated_local_v0
+GO_CYTOKINE_CHEMOKINE	Cytokine and chemokine signaling	IL6,CXCL8,CXCL1,CXCL2,CCL2,TNF,TGFB1	curated_local_v0
+GO_EXTRACELLULAR_MATRIX	Extracellular matrix remodeling	MMP9,SERPINE1,TGFB1,VWF,ENG	curated_local_v0
+GO_VASCULAR_HOMEOSTASIS	Vascular homeostasis	NOS3,KDR,FLT1,TEK,CDH5,THBD,VWF,ENG	curated_local_v0
+GO_IMMUNE_CELL_MARKERS	Immune cell markers	PTPRC,CD14,ITGAM,CD3D,CD4,CD8A	curated_local_v0

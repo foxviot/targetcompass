@@ -1,0 +1,30 @@
+gene_symbol	safety_gate	critical_tissue_flag	note
+VCAM1	REVIEW_REQUIRED	vascular_and_immune_expression	manual review required for normal endothelial expression
+ICAM1	REVIEW_REQUIRED	immune_expression	manual review required for inflammatory baseline expression
+CXCL8	PASS	no_critical_high_risk_in_fixture	fixture safety table only
+IL6	REVIEW_REQUIRED	systemic_inflammatory_cytokine	pleiotropic cytokine; manual safety review required
+MMP9	REVIEW_REQUIRED	matrix_remodeling	possible tissue remodeling risk
+PECAM1	REVIEW_REQUIRED	endothelial_marker	normal endothelial marker; review specificity
+ACTB	EXCLUDED	housekeeping	housekeeping gene
+GAPDH	EXCLUDED	housekeeping	housekeeping gene
+SELE	REVIEW_REQUIRED	inflammatory_endothelium	adhesion molecule with inflammatory baseline expression
+CDH5	REVIEW_REQUIRED	normal_endothelium	core endothelial junction marker; specificity review required
+KDR	REVIEW_REQUIRED	vascular_development	VEGF receptor; vascular biology safety review required
+FLT1	REVIEW_REQUIRED	vascular_development	VEGF receptor family; safety review required
+TEK	REVIEW_REQUIRED	vascular_development	Tie2 endothelial receptor; normal vascular expression
+VWF	REVIEW_REQUIRED	coagulation_endothelium	coagulation and endothelial marker; safety review required
+THBD	REVIEW_REQUIRED	coagulation_endothelium	thrombomodulin pathway; safety review required
+ENG	REVIEW_REQUIRED	vascular_remodeling	endoglin vascular remodeling pathway; safety review required
+NOS3	REVIEW_REQUIRED	vascular_homeostasis	endothelial nitric oxide synthase; not a preferred accessible target
+CCL2	REVIEW_REQUIRED	inflammatory_chemokine	pleiotropic inflammatory chemokine
+CXCL1	REVIEW_REQUIRED	inflammatory_chemokine	pleiotropic inflammatory chemokine
+CXCL2	REVIEW_REQUIRED	inflammatory_chemokine	pleiotropic inflammatory chemokine
+SERPINE1	REVIEW_REQUIRED	fibrinolysis_matrix	PAI-1 pathway; thrombosis/fibrosis review required
+TGFB1	REVIEW_REQUIRED	pleiotropic_growth_factor	broad tissue effects; safety review required
+TNF	REVIEW_REQUIRED	systemic_inflammatory_cytokine	pleiotropic cytokine; high safety review burden
+CD14	REVIEW_REQUIRED	myeloid_marker	normal immune cell expression
+ITGAM	REVIEW_REQUIRED	myeloid_marker	normal immune cell expression
+PTPRC	REVIEW_REQUIRED	pan_immune_marker	pan-leukocyte marker; specificity concern
+CD3D	REVIEW_REQUIRED	t_cell_marker	normal T cell expression
+CD4	REVIEW_REQUIRED	t_cell_marker	normal T cell expression
+CD8A	REVIEW_REQUIRED	t_cell_marker	normal T cell expression

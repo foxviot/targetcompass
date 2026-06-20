@@ -1,0 +1,40 @@
+{
+  "script": "targetcompass_lite/deg.py",
+  "runner_type": "r_limma",
+  "runner_reason": "Rscript and limma available",
+  "formal_runner": "scripts/r/bulk_limma_deg.R",
+  "dataset_id": "ds_fixture_vascular_aging",
+  "input_hash": {
+    "expression_matrix": "68901d3bcf1074a9fb7f24453ccfb35261563e9422524e0066de8d5b552c034d",
+    "metadata": "f69676a3db9dfba8565f3987b4eb33c72401345a6a4b5b16e1f6df1ad5585ed5"
+  },
+  "parameters": {
+    "case": "aged",
+    "control": "young",
+    "batch_covariates": [
+      "batch"
+    ],
+    "dropped_batch_covariates": []
+  },
+  "design": {
+    "columns": [
+      "intercept",
+      "group:aged_vs_young",
+      "batch:B"
+    ],
+    "rank": 3,
+    "full_rank": true,
+    "batch_covariates": [
+      "batch"
+    ],
+    "dropped_batch_covariates": [],
+    "warnings": []
+  },
+  "limitations": [],
+  "output_files": [
+    "deg_results.tsv",
+    "qc_summary.tsv"
+  ],
+  "status": "success",
+  "timestamp": "2026-06-20T08:41:04.987077+00:00"
+}

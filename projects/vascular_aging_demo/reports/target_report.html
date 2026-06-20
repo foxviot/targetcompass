@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TargetCompass Lite Candidate Target Report</title>
+  <style>
+    body { font-family: Arial, "Microsoft YaHei", sans-serif; margin: 0; color: #202124; background: #f7f8fa; }
+    main { max-width: 1180px; margin: 0 auto; padding: 32px 24px 64px; }
+    header { border-bottom: 1px solid #d0d7de; margin-bottom: 24px; padding-bottom: 18px; }
+    h1 { font-size: 30px; margin: 0 0 10px; }
+    h2 { margin-top: 32px; border-bottom: 1px solid #d8dee4; padding-bottom: 8px; }
+    h3 { margin-top: 24px; }
+    section { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 18px 20px; margin: 18px 0; }
+    table { border-collapse: collapse; width: 100%; margin-top: 14px; }
+    th, td { border: 1px solid #d0d7de; padding: 8px; text-align: left; font-size: 13px; vertical-align: top; }
+    th { background: #f6f8fa; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .card { border: 1px solid #d8dee4; border-radius: 8px; padding: 12px 14px; background: #fff; }
+    .note { color: #5f6368; }
+    .warning { background: #fff8c5; border: 1px solid #d4a72c; padding: 10px 12px; border-radius: 6px; }
+    .decision { font-size: 18px; font-weight: 700; padding: 12px 14px; border-radius: 6px; background: #ddf4ff; border: 1px solid #54aeef; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>TargetCompass Lite Candidate Target Report</h1>
+    <p><strong>Project:</strong> vascular_aging_demo | <strong>Evidence rows:</strong> 60317</p>
+    <p class="note">科研探索用途。本报告输出候选分子、证据链、QC、限制和实验建议，不提供医学判断、临床决策或用药指引，也不主张因果结论。</p>
+  </header>
+
+  <section id="executive-summary"><h2>执行摘要</h2>
+    <div class="decision">REVIEW_REQUIRED</div>
+    <table><thead><tr><th>Check</th><th>Status</th><th>Note</th></tr></thead><tbody><tr><td>ResearchSpec schema</td><td>PASS</td><td>research_spec.json exists and has passed validation before execution</td></tr>
+<tr><td>Dataset match</td><td>REVIEW</td><td>4 dataset match warning(s)</td></tr>
+<tr><td>DEG QC</td><td>PASS</td><td>bulk_deg results include qc_summary and run_manifest when the module is executed</td></tr>
+<tr><td>Candidate hard gates</td><td>PASS</td><td>0 top candidate hard-gate issue(s)</td></tr>
+<tr><td>Safety annotation</td><td>REVIEW</td><td>Top20 UNKNOWN safety=0; unknown rows=23375</td></tr>
+<tr><td>Traceability</td><td>PASS</td><td>Evidence rows preserve source_dataset and artifact_path</td></tr></tbody></table>
+  </section>
+
+  <section id="research-question"><h2>研究问题与边界</h2>
+    <div class="grid">
+      <div class="card"><strong>Research theme</strong><br>Find secreted targets for human endothelial senescence in vascular aging</div>
+      <div class="card"><strong>Disease scope</strong><br>vascular aging</div>
+      <div class="card"><strong>Priority tissues</strong><br>vascular endothelium</div>
+      <div class="card"><strong>Target routes</strong><br>secreted</div>
+    </div>
+  </section>
+
+  <section id="methods"><h2>方法与模块</h2>
+    <table><thead><tr><th>Module</th><th>Status</th><th>Input</th><th>Runner</th><th>Outputs</th><th>Notes</th></tr></thead><tbody><tr><td>bulk_deg_v1</td><td>implemented</td><td>bulk_expression</td><td>targetcompass_lite.deg.run_deg</td><td>deg_results.tsv; qc_summary.tsv; qc_summary.json; run_manifest.json</td><td>Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization.</td></tr>
+<tr><td>enrichment_v1</td><td>implemented</td><td>deg_results</td><td>targetcompass_lite.enrichment.run_enrichment</td><td>results/enrichment/enrichment_results.tsv</td><td>Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files.</td></tr>
+<tr><td>accessibility_annotation_v1</td><td>implemented</td><td>gene_symbols</td><td>targetcompass_lite.annotation.annotate_project</td><td>accessibility_annotation.tsv</td><td>Consumes local annotation plus UniProt/HPA/custom normalized accessibility tables.</td></tr>
+<tr><td>safety_annotation_v1</td><td>implemented</td><td>gene_symbols</td><td>targetcompass_lite.annotation.annotate_project</td><td>safety_flags.tsv; unknown_review.tsv</td><td>Preserves UNKNOWN values for manual review rather than silently passing candidates.</td></tr>
+<tr><td>scrna_pseudobulk_v0</td><td>reserved_interface</td><td>single_cell_expression</td><td>reserved</td><td>pseudobulk_matrix.tsv; pseudobulk_metadata.tsv; qc_summary.json</td><td>Reserved MVP interface. Requires donor-aware aggregation before DEG; cells must not be treated as biological replicates.</td></tr>
+<tr><td>genetic_coloc_mr_v0</td><td>reserved_interface</td><td>gwas_qtl_summary</td><td>reserved</td><td>genetic_evidence.tsv; sensitivity_summary.tsv</td><td>Reserved post-MVP interface for GWAS/QTL/colocalization/MR evidence.</td></tr></tbody></table>
+  </section>
+
+  <section id="data-qc"><h2>数据来源与QC</h2>
+    <table><thead><tr><th>Dataset</th><th>Source class</th><th>Grade</th><th>Modality</th><th>Metadata quality</th><th>Use</th><th>Match</th><th>Notes</th></tr></thead><tbody><tr><td>ds_fixture_vascular_aging</td><td>fixture</td><td>A</td><td>bulk_expression</td><td>high 100</td><td>bulk_deg</td><td>MATCH</td><td>bulk expression dataset is analyzable</td></tr>
+<tr><td>GSE312006</td><td>real_public</td><td>A</td><td>bulk_expression</td><td>high 100</td><td>bulk_deg</td><td>MATCH</td><td>bulk expression dataset is analyzable</td></tr>
+<tr><td>GSE43292</td><td>real_public</td><td>A</td><td>bulk_expression</td><td>high 80</td><td>bulk_deg</td><td>REVIEW</td><td>tissue not matched: carotid artery; contrast may not represent vascular aging: atheroma_plaque vs intact_carotid</td></tr></tbody></table>
+    <h3>Bulk RNA / microarray QC</h3>
+    <table><thead><tr><th>Dataset</th><th>Matrix type</th><th>Runner</th><th>Case n</th><th>Control n</th><th>Genes</th><th>Full rank</th><th>Batch covariates</th><th>QC</th></tr></thead><tbody><tr><td>ds_fixture_vascular_aging</td><td>microarray_or_log_expression_like</td><td>r_limma</td><td>4</td><td>4</td><td>8</td><td>True</td><td>batch</td><td>PASS</td></tr>
+<tr><td>GSE312006</td><td>rna_seq_count_like</td><td>r_limma</td><td>3</td><td>3</td><td>17874</td><td>True</td><td></td><td>PASS</td></tr>
+<tr><td>GSE43292</td><td>microarray_or_log_expression_like</td><td>r_limma</td><td>32</td><td>32</td><td>19033</td><td>True</td><td>batch</td><td>PASS</td></tr></tbody></table>
+    <h3>Enrichment overview</h3>
+    <table><thead><tr><th>Dataset</th><th>Term ID</th><th>Term</th><th>Overlap</th><th>Adj.P</th><th>Genes</th><th>Source</th></tr></thead><tbody><tr><td>GSE312006</td><td>GO_INFLAMMATORY_RESPONSE</td><td>Inflammatory response</td><td>5</td><td>0.000285658</td><td>CCL2,CXCL1,CXCL2,CXCL8,ICAM1</td><td>curated_local_v0</td></tr>
+<tr><td>GSE43292</td><td>GO_CYTOKINE_CHEMOKINE</td><td>Cytokine and chemokine signaling</td><td>6</td><td>0.000603216</td><td>CXCL1,CXCL2,CXCL8,IL6,TGFB1,TNF</td><td>curated_local_v0</td></tr>
+<tr><td>GSE43292</td><td>GO_IMMUNE_CELL_MARKERS</td><td>Immune cell markers</td><td>6</td><td>0.000402144</td><td>CD14,CD3D,CD4,CD8A,ITGAM,PTPRC</td><td>curated_local_v0</td></tr>
+<tr><td>GSE312006</td><td>GO_CYTOKINE_CHEMOKINE</td><td>Cytokine and chemokine signaling</td><td>4</td><td>0.000399023</td><td>CCL2,CXCL1,CXCL2,CXCL8</td><td>curated_local_v0</td></tr>
+<tr><td>GSE43292</td><td>GO_INFLAMMATORY_RESPONSE</td><td>Inflammatory response</td><td>7</td><td>0.000320263</td><td>CXCL1,CXCL2,CXCL8,ICAM1,IL6,SELE,TNF</td><td>curated_local_v0</td></tr>
+<tr><td>GSE312006</td><td>GO_ENDOTHELIAL_ACTIVATION</td><td>Endothelial activation</td><td>4</td><td>0.00197727</td><td>CCL2,CXCL8,ICAM1,THBD</td><td>curated_local_v0</td></tr>
+<tr><td>GSE43292</td><td>GO_ENDOTHELIAL_ACTIVATION</td><td>Endothelial activation</td><td>6</td><td>0.00330639</td><td>CXCL8,ICAM1,IL6,SELE,THBD,VWF</td><td>curated_local_v0</td></tr>
+<tr><td>GSE43292</td><td>GO_VASCULAR_HOMEOSTASIS</td><td>Vascular homeostasis</td><td>6</td><td>0.0028931</td><td>CDH5,FLT1,KDR,NOS3,THBD,VWF</td><td>curated_local_v0</td></tr>
+<tr><td>GSE312006</td><td>GO_VASCULAR_HOMEOSTASIS</td><td>Vascular homeostasis</td><td>2</td><td>0.1161</td><td>NOS3,THBD</td><td>curated_local_v0</td></tr>
+<tr><td>GSE43292</td><td>GO_EXTRACELLULAR_MATRIX</td><td>Extracellular matrix remodeling</td><td>3</td><td>0.106507</td><td>MMP9,TGFB1,VWF</td><td>curated_local_v0</td></tr>
+<tr><td>ds_fixture_vascular_aging</td><td>GO_ENDOTHELIAL_ACTIVATION</td><td>Endothelial activation</td><td>4</td><td>0.116883</td><td>CXCL8,ICAM1,IL6,VCAM1</td><td>curated_local_v0</td></tr>
+<tr><td>ds_fixture_vascular_aging</td><td>GO_INFLAMMATORY_RESPONSE</td><td>Inflammatory response</td><td>4</td><td>0.107143</td><td>CXCL8,ICAM1,IL6,VCAM1</td><td>curated_local_v0</td></tr>
+<tr><td>GSE312006</td><td>GO_EXTRACELLULAR_MATRIX</td><td>Extracellular matrix remodeling</td><td>1</td><td>0.258796</td><td>SERPINE1</td><td>curated_local_v0</td></tr>
+<tr><td>ds_fixture_vascular_aging</td><td>GO_CYTOKINE_CHEMOKINE</td><td>Cytokine and chemokine signaling</td><td>2</td><td>0.459184</td><td>CXCL8,IL6</td><td>curated_local_v0</td></tr>
+<tr><td>ds_fixture_vascular_aging</td><td>GO_EXTRACELLULAR_MATRIX</td><td>Extracellular matrix remodeling</td><td>1</td><td>0.75</td><td>MMP9</td><td>curated_local_v0</td></tr>
+<tr><td>GSE312006</td><td>GO_IMMUNE_CELL_MARKERS</td><td>Immune cell markers</td><td>0</td><td>1</td><td></td><td>curated_local_v0</td></tr>
+<tr><td>ds_fixture_vascular_aging</td><td>GO_IMMUNE_CELL_MARKERS</td><td>Immune cell markers</td><td>0</td><td>1</td><td></td><td>curated_local_v0</td></tr>
+<tr><td>ds_fixture_vascular_aging</td><td>GO_VASCULAR_HOMEOSTASIS</td><td>Vascular homeostasis</td><td>0</td><td>1</td><td></td><td>curated_local_v0</td></tr></tbody></table>
+  </section>
+
+  <section id="candidate-ranking"><h2>候选排序</h2>
+    <table><thead><tr><th>Gene</th><th>Route</th><th>Score</th><th>Tier</th><th>Hard gate</th><th>Safety</th><th>Next experiments</th></tr></thead><tbody><tr><td>CXCL8</td><td>secreted</td><td>85.00</td><td>A</td><td>PASS</td><td>PASS</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>ICAM1</td><td>surface</td><td>73.00</td><td>A</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>IL6</td><td>secreted</td><td>73.00</td><td>A</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>VCAM1</td><td>surface</td><td>73.00</td><td>A</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>PECAM1</td><td>surface</td><td>68.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>CD14</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>CD4</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>CDH5</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>CXCL1</td><td>secreted</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>CXCL2</td><td>secreted</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>ENG</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>FLT1</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>KDR</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>MMP9</td><td>secreted</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>PTPRC</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>SELE</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>SERPINE1</td><td>secreted</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>TEK</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>TGFB1</td><td>secreted</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr>
+<tr><td>THBD</td><td>surface</td><td>63.00</td><td>B</td><td>PASS</td><td>REVIEW_REQUIRED</td><td>qPCR/WB; flow/IF localization; perturbation or neutralization assay</td></tr></tbody></table>
+  </section>
+
+  <section id="evidence-chain"><h2>证据链</h2>
+    <h3 id="evidence-CXCL8">CXCL8 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>2306</td><td>0.01454</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.9345</td><td>0.0007158</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>ds_fixture_vascular_aging</td><td>up</td><td>3.4</td><td>1.369e-23</td><td>results\bulk_deg_ds_fixture_vascular_aging\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-ICAM1">ICAM1 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>424</td><td>0.007575</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.7541</td><td>8.44e-06</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>ds_fixture_vascular_aging</td><td>up</td><td>2.7</td><td>2.053e-21</td><td>results\bulk_deg_ds_fixture_vascular_aging\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-IL6">IL6 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>100.7</td><td>0.1438</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.5161</td><td>0.0474</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>ds_fixture_vascular_aging</td><td>up</td><td>2.9</td><td>4.698e-22</td><td>results\bulk_deg_ds_fixture_vascular_aging\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-VCAM1">VCAM1 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>16.67</td><td>0.207</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.2019</td><td>0.09437</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>ds_fixture_vascular_aging</td><td>up</td><td>3.4</td><td>1.369e-23</td><td>results\bulk_deg_ds_fixture_vascular_aging\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-PECAM1">PECAM1 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>down</td><td>-2700</td><td>0.02162</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.6494</td><td>4.692e-05</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>ds_fixture_vascular_aging</td><td>down</td><td>-0.6</td><td>4.899e-08</td><td>results\bulk_deg_ds_fixture_vascular_aging\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-CD14">CD14 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>21.33</td><td>0.2519</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.8363</td><td>1.281e-05</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-CD4">CD4 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>6.667</td><td>0.2592</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.9349</td><td>7.46e-06</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table><h3 id="evidence-CDH5">CDH5 evidence chain</h3><table><thead><tr><th>Evidence</th><th>Dataset</th><th>Direction</th><th>Effect</th><th>P/adj.P</th><th>Artifact</th><th>Limitation</th></tr></thead><tbody><tr><td>accessibility</td><td></td><td></td><td></td><td></td><td>results\annotation\accessibility_annotation.tsv</td><td>SUPPORTED</td></tr>
+<tr><td>bulk_deg</td><td>GSE312006</td><td>up</td><td>4301</td><td>0.6103</td><td>results\bulk_deg_GSE312006\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr>
+<tr><td>bulk_deg</td><td>GSE43292</td><td>up</td><td>0.6412</td><td>6.108e-06</td><td>results\bulk_deg_GSE43292\deg_results.tsv</td><td>fixture demo evidence; association only</td></tr></tbody></table>
+  </section>
+
+  <section id="limitations"><h2>限制与风险</h2>
+    <div class="warning">表达证据属于 association-level evidence，不等同于因果证据。Dataset/spec warning、UNKNOWN safety、外部 adapter 证据和 Python fallback 结果都需要人工复核。</div>
+    <table><thead><tr><th>Gene</th><th>Missing fields</th><th>Route</th><th>Safety</th><th>Recommended action</th></tr></thead><tbody><tr><td>A1BG</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A1BG-AS1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A1CF</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A2M</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A2M-AS1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A2ML1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A3GALT2</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A4GALT</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>A4GNT</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAAS</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AACS</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AADAC</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AADACL2</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AADACL3</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AADACL4</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AADACP1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AADAT</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAED1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAGAB</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAK1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAMDC</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAMP</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AANAT</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AAR2</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AARD</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AARS</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AARS1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AARS2</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AARSD1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AASDH</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AASDHPPT</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AASS</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AATBC</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AATF</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AATK</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>AATK-AS1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABAT</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA1</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA10</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA11P</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA12</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA13</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA15P</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA2</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA3</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA4</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA5</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA6</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA7</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>ABCA8</td><td>accessibility,safety</td><td>unknown</td><td>UNKNOWN</td><td>manual curation before interpreting candidate rank</td></tr>
+<tr><td>DATASET_SCOPE</td><td>dataset/spec mismatch or review warning</td><td></td><td>REVIEW</td><td>Review dataset cards and matching notes before interpreting candidates.</td></tr></tbody></table>
+  </section>
+
+  <section id="experiment-suggestions"><h2>实验建议</h2>
+    <table><thead><tr><th>Candidate</th><th>Title</th><th>Objective</th><th>Readouts</th><th>Risks</th></tr></thead><tbody><tr><td></td><td>Secreted senescence signal target</td><td>Validate feasibility of Secreted senescence signal target for Find secreted targets for human endothelial senescence in vascular aging</td><td></td><td>Requires expert review before experimental spend.</td></tr>
+<tr><td></td><td>Surface accessibility target</td><td>Validate feasibility of Surface accessibility target for Find secreted targets for human endothelial senescence in vascular aging</td><td></td><td>Requires expert review before experimental spend.</td></tr>
+<tr><td></td><td>ECD shedding target</td><td>Validate feasibility of ECD shedding target for Find secreted targets for human endothelial senescence in vascular aging</td><td></td><td>Requires expert review before experimental spend.</td></tr></tbody></table>
+  </section>
+
+  <section id="approval-audit"><h2>审批与审计</h2>
+    <h3>Approval state</h3>
+    <table><thead><tr><th>Status</th><th>Queue</th><th>Reviews</th><th>Approved</th><th>Rejected</th><th>Signer</th><th>Reason</th></tr></thead><tbody><tr><td>draft</td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>
+    <h3>Review queue</h3>
+    <table><thead><tr><th>Type</th><th>ID</th><th>Title</th><th>Status</th><th>Reason</th><th>Report ref</th></tr></thead><tbody></tbody></table>
+    <h3>Agent trace</h3>
+    <table><thead><tr><th>Stage</th><th>Status</th><th>Message</th><th>Label</th></tr></thead><tbody><tr><td>generation</td><td>running</td><td>Generate ResearchSpec and candidate ideas from the user research request.</td><td>生成</td></tr>
+<tr><td>generation</td><td>pass</td><td>ResearchSpec and candidate idea batch generated.</td><td>生成</td></tr>
+<tr><td>initial_review</td><td>running</td><td>Run ResearchSpec readiness gates and feasibility audit.</td><td>初审</td></tr>
+<tr><td>initial_review</td><td>review</td><td>4 idea(s) audited; 3 passed feasibility thresholds.</td><td>初审</td></tr>
+<tr><td>verification</td><td>running</td><td>Validate datasets, screen eligibility, match ResearchSpec, and compile plan.</td><td>查证</td></tr>
+<tr><td>verification</td><td>review</td><td>1 dataset(s) checked; 1 eligible; 1 module(s) planned.</td><td>查证</td></tr>
+<tr><td>execution</td><td>running</td><td>Run deterministic analysis modules and evidence integration.</td><td>执行</td></tr>
+<tr><td>execution</td><td>pass</td><td>Analysis modules, enrichment, annotation, evidence import, and scoring completed.</td><td>执行</td></tr>
+<tr><td>final_review</td><td>running</td><td>Draft experiments and summarize remaining review gates.</td><td>复审</td></tr>
+<tr><td>final_review</td><td>pass</td><td>3 experiment design draft(s) prepared by the local method.</td><td>复审</td></tr>
+<tr><td>report</td><td>running</td><td>Generate final report artifacts.</td><td>报告</td></tr>
+<tr><td>report</td><td>pass</td><td>Report and audit artifacts are ready for user review.</td><td>报告</td></tr></tbody></table>
+    <h3>Manual review actions</h3>
+    <table><thead><tr><th>Timestamp</th><th>Review ID</th><th>Type</th><th>ID</th><th>Action</th><th>Reason</th><th>Report ref</th></tr></thead><tbody></tbody></table>
+    <h3>Adapter audit</h3>
+    <table><thead><tr><th>Resource</th><th>Type</th><th>Adapter</th><th>Input rows</th><th>Normalized rows</th><th>Dropped rows</th><th>Field mapping</th></tr></thead><tbody></tbody></table>
+  </section>
+</main>
+</body>
+</html>

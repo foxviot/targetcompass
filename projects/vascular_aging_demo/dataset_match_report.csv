@@ -1,0 +1,7 @@
+dataset_id,match_status,match_score,reasons,warnings
+ds_fixture_vascular_aging,MATCH,100,organism matches: human; tissue matches: vascular endothelium -> vascular endothelium; contrast is compatible with vascular aging; required modality available: bulk_expression,
+GSE113957,REVIEW,55,organism matches: human; contrast is compatible with vascular aging,tissue not matched: immune cells; modality not required by spec: transcriptomic_reference
+GSE312006,MATCH,100,organism matches: human; tissue matches: HUVEC -> vascular endothelium; contrast is compatible with vascular aging; required modality available: bulk_expression,
+GSE40279,REVIEW,55,organism matches: human; contrast is compatible with vascular aging,tissue not matched: blood; modality not required by spec: methylation_array
+GSE43292,REVIEW,50,organism matches: human; required modality available: bulk_expression,tissue not matched: carotid artery; contrast may not represent vascular aging: atheroma_plaque vs intact_carotid
+GSE87571,REVIEW,55,organism matches: human; contrast is compatible with vascular aging,tissue not matched: blood; modality not required by spec: methylation_array

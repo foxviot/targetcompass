@@ -1,0 +1,23 @@
+{
+  "dataset_id": "GSE312006",
+  "sample_count": 6,
+  "metadata_rows": 6,
+  "case_samples": 3,
+  "control_samples": 3,
+  "genes": 17874,
+  "duplicated_gene_rows": 0,
+  "matrix_type": "rna_seq_count_like",
+  "min_value": "0",
+  "max_value": "716392",
+  "mean_value": "2017.16",
+  "negative_values": 0,
+  "design_rank": 2,
+  "design_columns": 2,
+  "design_full_rank": true,
+  "batch_covariates": [],
+  "dropped_batch_covariates": [],
+  "design_warnings": [],
+  "runner_type": "r_limma",
+  "runner_reason": "Rscript and limma available",
+  "qc_status": "PASS"
+}

@@ -1,0 +1,4 @@
+dataset_id,grade,modality,source_class,metadata_quality_score,metadata_quality_label,recommended_use,path,reasons
+ds_fixture_vascular_aging,A,bulk_expression,fixture,100,high,bulk_deg,C:\Users\ASUS\Documents\target\projects\vascular_aging_demo\dataset_cards\ds_fixture_vascular_aging.yaml,bulk expression dataset is analyzable
+GSE312006,A,bulk_expression,real_public,100,high,bulk_deg,C:\Users\ASUS\Documents\target\projects\vascular_aging_demo\dataset_cards\GSE312006.yaml,bulk expression dataset is analyzable
+GSE43292,A,bulk_expression,real_public,80,high,bulk_deg,C:\Users\ASUS\Documents\target\projects\vascular_aging_demo\dataset_cards\GSE43292.yaml,bulk expression dataset is analyzable

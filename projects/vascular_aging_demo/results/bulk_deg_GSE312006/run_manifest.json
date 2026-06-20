@@ -1,0 +1,35 @@
+{
+  "script": "targetcompass_lite/deg.py",
+  "runner_type": "r_limma",
+  "runner_reason": "Rscript and limma available",
+  "formal_runner": "scripts/r/bulk_limma_deg.R",
+  "dataset_id": "GSE312006",
+  "input_hash": {
+    "expression_matrix": "a644756823c2ce3d21d461982a55c719dff5ac862bdb058cc86b79a47aca1d5b",
+    "metadata": "8cde5d41df879a52c0fc3f6159798c46ae597a1aed2613c9bb9fbd2cda1adb85"
+  },
+  "parameters": {
+    "case": "replicative_senescence",
+    "control": "young",
+    "batch_covariates": [],
+    "dropped_batch_covariates": []
+  },
+  "design": {
+    "columns": [
+      "intercept",
+      "group:replicative_senescence_vs_young"
+    ],
+    "rank": 2,
+    "full_rank": true,
+    "batch_covariates": [],
+    "dropped_batch_covariates": [],
+    "warnings": []
+  },
+  "limitations": [],
+  "output_files": [
+    "deg_results.tsv",
+    "qc_summary.tsv"
+  ],
+  "status": "success",
+  "timestamp": "2026-06-20T08:41:06.537576+00:00"
+}

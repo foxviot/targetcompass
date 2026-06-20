@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "required": [
+    "dataset_id",
+    "source",
+    "accession",
+    "modality",
+    "organism",
+    "tissue",
+    "contrast",
+    "sample_summary",
+    "metadata_fields",
+    "matrix_available",
+    "license_status",
+    "file_paths"
+  ],
+  "properties": {
+    "dataset_id": {"type": "string", "minLength": 1},
+    "source": {"type": "string", "minLength": 1},
+    "accession": {"type": "string", "minLength": 1},
+    "modality": {"type": "string", "minLength": 1},
+    "organism": {"type": "string", "minLength": 1},
+    "tissue": {"type": "string", "minLength": 1},
+    "contrast": {
+      "type": "object",
+      "required": ["case", "control"],
+      "properties": {
+        "case": {"type": "string", "minLength": 1},
+        "control": {"type": "string", "minLength": 1}
+      }
+    },
+    "sample_summary": {
+      "type": "object",
+      "required": ["case_n", "control_n"],
+      "properties": {
+        "case_n": {"type": "integer", "minimum": 0},
+        "control_n": {"type": "integer", "minimum": 0},
+        "donor_n": {"type": "integer", "minimum": 0}
+      }
+    },
+    "metadata_fields": {"type": "array", "items": {"type": "string"}},
+    "matrix_available": {"type": "boolean"},
+    "license_status": {"type": "string", "enum": ["public", "authorized", "unknown", "restricted"]},
+    "file_paths": {"type": "object"},
+    "known_limitations": {"type": "array", "items": {"type": "string"}},
+    "recommended_use": {"type": "array", "items": {"type": "string"}},
+    "blocked_use": {"type": "array", "items": {"type": "string"}}
+  }
+}

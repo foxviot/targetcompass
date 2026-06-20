@@ -1,0 +1,24 @@
+{
+  "accession": "GSE43292",
+  "status": "success",
+  "timestamp": "2026-06-20T05:15:42.341958+00:00",
+  "stage": "complete",
+  "mode": "auto_grouping",
+  "result": {
+    "accession": "GSE43292",
+    "data_dir": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292",
+    "series_matrix": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\GSE43292_series_matrix.txt.gz",
+    "expression_matrix": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\expression_matrix.tsv",
+    "metadata": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\metadata.tsv",
+    "dataset_card": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\dataset_cards\\GSE43292.yaml",
+    "readme": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\README.md",
+    "samples": 64,
+    "genes": 19033,
+    "case_n": 32,
+    "control_n": 32,
+    "warnings": []
+  },
+  "metadata_profile": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\metadata_profile.json",
+  "group_inference": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\group_inference.json",
+  "handoff_manifest": "C:\\Users\\ASUS\\Documents\\target\\projects\\vascular_aging_demo\\data\\GSE43292\\handoff_manifest.json"
+}

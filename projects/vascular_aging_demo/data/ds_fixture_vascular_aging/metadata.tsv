@@ -1,0 +1,9 @@
+sample_id	group	batch	sex	age
+Y1	young	A	F	31
+Y2	young	A	M	34
+Y3	young	B	F	37
+Y4	young	B	M	39
+A1	aged	A	F	69
+A2	aged	A	M	72
+A3	aged	B	F	76
+A4	aged	B	M	78

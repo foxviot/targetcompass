@@ -1,0 +1,55 @@
+{
+  "project_id": "vascular_aging_demo",
+  "goal": "vaccine_candidate_target_prioritization",
+  "research_theme": "Find secreted targets for human endothelial senescence in vascular aging",
+  "disease_scope": {
+    "canonical": "vascular aging",
+    "related_phenotypes": [
+      "endothelial senescence"
+    ]
+  },
+  "organisms": [
+    "human"
+  ],
+  "priority_tissues": [
+    "vascular endothelium"
+  ],
+  "priority_cells": [
+    "endothelial cell",
+    "monocyte",
+    "macrophage",
+    "T cell"
+  ],
+  "target_routes": [
+    "secreted"
+  ],
+  "modalities_mvp": {
+    "required": [
+      "bulk_expression",
+      "accessibility_annotation",
+      "safety_annotation"
+    ],
+    "optional": [
+      "enrichment",
+      "manual_genetic_evidence"
+    ]
+  },
+  "constraints": {
+    "causal_requirement": "preferred_not_mandatory",
+    "critical_normal_tissues": [
+      "brain",
+      "heart",
+      "liver",
+      "kidney",
+      "hematopoietic_stem_cell"
+    ],
+    "claim_policy": "association_only_without_genetic_or_experimental_validation"
+  },
+  "parser_metadata": {
+    "parser_version": "rule_based_v0",
+    "confidence": "high",
+    "unmatched_terms": [],
+    "confirmation_required": false,
+    "confirmed": true
+  }
+}

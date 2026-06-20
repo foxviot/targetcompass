@@ -1,0 +1,19 @@
+dataset_id: GSE87571
+source: GEO
+accession: GSE87571
+modality: methylation_array
+organism: human
+tissue: blood
+contrast:
+  case: older_adult
+  control: younger_adult
+sample_summary:
+  case_n: 0
+  control_n: 0
+metadata_fields: [sample_id, age, sex, tissue]
+matrix_available: false
+license_status: public
+file_paths:
+known_limitations: [reference card only, matrix not bundled, methylation modality is not used by MVP DEG]
+recommended_use: [descriptive_reference, external_context]
+blocked_use: [bulk_deg]

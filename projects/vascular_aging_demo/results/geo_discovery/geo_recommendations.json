@@ -1,0 +1,108 @@
+{
+  "created_at": "2026-06-20T04:50:58.264175+00:00",
+  "mode": "online",
+  "query": "(\"vascular aging\" OR \"vascular endothelium\" OR \"endothelial cell\" OR monocyte OR macrophage) AND (human) AND (\"expression profiling by array\" OR \"high throughput sequencing\" OR \"RNA-seq\" OR transcriptome)",
+  "recommendations": [
+    {
+      "accession": "GSE312006",
+      "title": "Transcriptomic profiling of young, replicative senescent, and premature senescent HUVECs",
+      "summary": "This study compares global gene expression profiles of human umbilical vein endothelial cells (HUVECs) under three conditions: young, replicative senescent, and premature senescent states. RNA sequencing was performed to identify transcriptional changes associated with endothelial aging. The dataset provides gene-level counts and processed expression matrices for downstream analysis.",
+      "organism": "Homo sapiens",
+      "sample_count": 9,
+      "platform": "24676",
+      "score": 75,
+      "reasons": [
+        "cell match: endothelial cell",
+        "organism match",
+        "bulk expression compatible",
+        "aging/senescence context",
+        "sample count appears usable: 9"
+      ],
+      "warnings": [],
+      "source": "ncbi_geo",
+      "import_status": "candidate",
+      "suggested_next_step": "Review GEO metadata, define case/control patterns, then run geo-import."
+    },
+    {
+      "accession": "GSE287738",
+      "title": "Exploring the role of macrophage marker CD68 in pediatric acute myeloid leukemia",
+      "summary": "Pediatric acute myeloid leukemia (pedAML) is a childhood malignancy with relapse rates of approximately 30%. CD68, a macrophage marker involved in phagocytosis and macrophage recruitment, may contribute to AML biology. We analyzed CD68 expression using the TARGET database and performed survival analyses, mRNA/protein profiling, and functional assays in AML cell lines, pedAML samples, and cord blood samples. High CD68 transcript levels correlated with KMT2A-rearrangements and inversion 16. Survival analysis showed that high CD68 predicted worse event-free survival, though not independently in a multivariate analysis. Flow cytometry confirmed higher CD68 expression in 7/8 pedAML samples compared to cord blood samples. Functionally, CD68 knockdown reduced proliferation and increased drug sens",
+      "organism": "Homo sapiens",
+      "sample_count": 11,
+      "platform": "24676",
+      "score": 63,
+      "reasons": [
+        "cell match: macrophage",
+        "organism match",
+        "bulk expression compatible",
+        "sample count appears usable: 11"
+      ],
+      "warnings": [],
+      "source": "ncbi_geo",
+      "import_status": "candidate",
+      "suggested_next_step": "Review GEO metadata, define case/control patterns, then run geo-import."
+    },
+    {
+      "accession": "GSE285125",
+      "title": "SUV39H1/2-mediated H3K9me3 restricts TE-induced immune response in Acute Myeloid Leukemia [RNA-Seq]",
+      "summary": "Histone 3 Lysine 9 tri-methylation (H3K9me3) is a heterochromatin-associated histone mark deposited broadly across the genome and its regulation is required in normal hematopoiesis. Furthermore, H3K9me3 has been linked with 3D genome organization. However, in the context of acute myeloid leukemia (AML), the regulation of H3K9me3 and its function in 3D genome architecture remained understudied. In this study, through systematic Knockdowns and Knockouts, we identified SUV39H1 and by part its paralogue SUV39H2 as the major H3K9me3 depositors in AML. We demonstrated the role of SUV39H1/2 in establishing global H3K9me3 levels in AML cells and showed H3K9me3 depletion upon SUV39H1/2 Knockout preferentially occurred at sub-megabase level broad peaks and in GC poor regions. Loss of SUV39H1/2-media",
+      "organism": "Homo sapiens",
+      "sample_count": 35,
+      "platform": "34284",
+      "score": 63,
+      "reasons": [
+        "cell match: monocyte",
+        "organism match",
+        "bulk expression compatible",
+        "sample count appears usable: 35"
+      ],
+      "warnings": [],
+      "source": "ncbi_geo",
+      "import_status": "candidate",
+      "suggested_next_step": "Review GEO metadata, define case/control patterns, then run geo-import."
+    },
+    {
+      "accession": "GSE313389",
+      "title": "Single-cell transcriptomic analysis reveals tumor-immune determinants of lymph node colonization and progression in thyroid cancer",
+      "summary": "Lymph node (LN) metastases are a major driver of mortality across solid cancers, including thyroid carcinomas, which are known for high rates of nodal colonization. To elucidate the determinants of nodal spread, we isolated tumor-infiltrating leukocytes from primary thyroid tumors and matched metastatic LNs for single-cell RNA sequencing with validation by multiplex immunohistochemistry. Comparing the microenvironmental alterations between primary tumors and their LNs, we found that thyrocytes and tumor-associated macrophages downregulate the expression of multiple inflammatory cytokine receptors, including TNFRSF12A and CX3CR1, upon LN colonization. LNs were associated with the induction of regulatory T cells to suppress T cell-mediated cytotoxicity compared to matched primary tumors. Not",
+      "organism": "Homo sapiens",
+      "sample_count": 10,
+      "platform": "24676",
+      "score": 55,
+      "reasons": [
+        "cell match: macrophage",
+        "organism match",
+        "bulk expression compatible",
+        "sample count appears usable: 10"
+      ],
+      "warnings": [
+        "non-bulk or multi-omic signal detected; route to reserved scRNA/accessibility interface before DEG"
+      ],
+      "source": "ncbi_geo",
+      "import_status": "candidate",
+      "suggested_next_step": "Review GEO metadata, define case/control patterns, then run geo-import."
+    },
+    {
+      "accession": "GSE295174",
+      "title": "Multi-modal single-cell sequencing reveals network transition in circulating monocytes that aligns with faster recovery in trauma patients and favors a response to M-CSF",
+      "summary": "Previous transcriptomic studies to characterize the changes in circulating immune cells after major trauma in humans have demonstrated a dramatic early upregulation of inflammatory features and simultaneous downregulation of MHCII and IFN signaling pathways in monocytes; changes that gradually return to baseline. The magnitude and duration of these changes is associated with post-injury complications. To determine if unique immune cell subsets or features emerging in the subacute time frame associated with patient outcomes after severe injury, we applied DOGMA-seq (single-cell RNA + ATAC + ADT sequencing) on peripheral blood mononuclear cells isolated at day 3 after injury. Patients were segregated into slow or fast recovery from critical illness (8 patients/ group) and compared to age and",
+      "organism": "Homo sapiens",
+      "sample_count": 16,
+      "platform": "24676",
+      "score": 55,
+      "reasons": [
+        "cell match: monocyte",
+        "organism match",
+        "bulk expression compatible",
+        "sample count appears usable: 16"
+      ],
+      "warnings": [
+        "non-bulk or multi-omic signal detected; route to reserved scRNA/accessibility interface before DEG"
+      ],
+      "source": "ncbi_geo",
+      "import_status": "candidate",
+      "suggested_next_step": "Review GEO metadata, define case/control patterns, then run geo-import."
+    }
+  ],
+  "warnings": []
+}

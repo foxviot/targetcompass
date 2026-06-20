@@ -1,0 +1,68 @@
+[
+  {
+    "idea_id": "idea_001_d7548696",
+    "title": "Secreted senescence signal target",
+    "route": "secreted",
+    "research_prompt": "Find secreted targets for human endothelial senescence in vascular aging",
+    "rationale": "Prioritize soluble mediators elevated in senescent vascular cells.",
+    "review_status": "pending",
+    "feasibility_score": 83,
+    "data_fit_score": 24,
+    "novelty_score": 22,
+    "risk_score": 3,
+    "matched_dataset_count": 2,
+    "review_dataset_count": 4,
+    "execution_status": "candidate",
+    "blockers": []
+  },
+  {
+    "idea_id": "idea_002_80759d3b",
+    "title": "Surface accessibility target",
+    "route": "surface",
+    "research_prompt": "Find secreted targets for human endothelial senescence in vascular aging",
+    "rationale": "Prioritize membrane-accessible molecules with analyzable expression support.",
+    "review_status": "pending",
+    "feasibility_score": 71,
+    "data_fit_score": 24,
+    "novelty_score": 15,
+    "risk_score": 3,
+    "matched_dataset_count": 2,
+    "review_dataset_count": 4,
+    "execution_status": "candidate",
+    "blockers": []
+  },
+  {
+    "idea_id": "idea_003_1bc96f40",
+    "title": "ECD shedding target",
+    "route": "ECD",
+    "research_prompt": "Find secreted targets for human endothelial senescence in vascular aging",
+    "rationale": "Prioritize extracellular-domain candidates that can be bound or depleted.",
+    "review_status": "pending",
+    "feasibility_score": 71,
+    "data_fit_score": 24,
+    "novelty_score": 20,
+    "risk_score": 3,
+    "matched_dataset_count": 2,
+    "review_dataset_count": 4,
+    "execution_status": "candidate",
+    "blockers": []
+  },
+  {
+    "idea_id": "idea_004_cb241ae1",
+    "title": "T cell epitope candidate",
+    "route": "T_cell_peptide",
+    "research_prompt": "Find secreted targets for human endothelial senescence in vascular aging",
+    "rationale": "Prioritize antigens only when presentation evidence can be added later.",
+    "review_status": "pending",
+    "feasibility_score": 54,
+    "data_fit_score": 24,
+    "novelty_score": 13,
+    "risk_score": 8,
+    "matched_dataset_count": 2,
+    "review_dataset_count": 4,
+    "execution_status": "review",
+    "blockers": [
+      "MVP lacks antigen-presentation validation"
+    ]
+  }
+]

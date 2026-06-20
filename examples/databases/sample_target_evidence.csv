@@ -1,0 +1,4 @@
+target_symbol,type,score,pvalue,confidence,association,location,description
+VCAM1,database_prior,1.2,0.01,0.8,positive,cell surface,example external target evidence
+IL6,database_prior,0.9,0.04,0.7,positive,secreted,example cytokine evidence
+CXCL8,database_prior,0.7,0.05,0.6,positive,secreted,example chemokine evidence

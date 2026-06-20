@@ -1,0 +1,19 @@
+dataset_id	term_id	term_name	overlap_n	selected_n	term_n	universe_n	p_value	adj_p_value	overlap_genes	source
+GSE312006	GO_INFLAMMATORY_RESPONSE	Inflammatory response	5	901	8	17874	1.58699e-05	0.000285658	CCL2,CXCL1,CXCL2,CXCL8,ICAM1	curated_local_v0
+GSE43292	GO_CYTOKINE_CHEMOKINE	Cytokine and chemokine signaling	6	3838	6	19033	6.7024e-05	0.000603216	CXCL1,CXCL2,CXCL8,IL6,TGFB1,TNF	curated_local_v0
+GSE43292	GO_IMMUNE_CELL_MARKERS	Immune cell markers	6	3838	6	19033	6.7024e-05	0.000402144	CD14,CD3D,CD4,CD8A,ITGAM,PTPRC	curated_local_v0
+GSE312006	GO_CYTOKINE_CHEMOKINE	Cytokine and chemokine signaling	4	901	6	17874	8.86717e-05	0.000399023	CCL2,CXCL1,CXCL2,CXCL8	curated_local_v0
+GSE43292	GO_INFLAMMATORY_RESPONSE	Inflammatory response	7	3838	8	19033	8.8962e-05	0.000320263	CXCL1,CXCL2,CXCL8,ICAM1,IL6,SELE,TNF	curated_local_v0
+GSE312006	GO_ENDOTHELIAL_ACTIVATION	Endothelial activation	4	901	9	17874	0.000659091	0.00197727	CCL2,CXCL8,ICAM1,THBD	curated_local_v0
+GSE43292	GO_ENDOTHELIAL_ACTIVATION	Endothelial activation	6	3838	8	19033	0.00128582	0.00330639	CXCL8,ICAM1,IL6,SELE,THBD,VWF	curated_local_v0
+GSE43292	GO_VASCULAR_HOMEOSTASIS	Vascular homeostasis	6	3838	8	19033	0.00128582	0.0028931	CDH5,FLT1,KDR,NOS3,THBD,VWF	curated_local_v0
+GSE312006	GO_VASCULAR_HOMEOSTASIS	Vascular homeostasis	2	901	8	17874	0.0580501	0.1161	NOS3,THBD	curated_local_v0
+GSE43292	GO_EXTRACELLULAR_MATRIX	Extracellular matrix remodeling	3	3838	5	19033	0.0591705	0.106507	MMP9,TGFB1,VWF	curated_local_v0
+ds_fixture_vascular_aging	GO_ENDOTHELIAL_ACTIVATION	Endothelial activation	4	5	4	8	0.0714286	0.116883	CXCL8,ICAM1,IL6,VCAM1	curated_local_v0
+ds_fixture_vascular_aging	GO_INFLAMMATORY_RESPONSE	Inflammatory response	4	5	4	8	0.0714286	0.107143	CXCL8,ICAM1,IL6,VCAM1	curated_local_v0
+GSE312006	GO_EXTRACELLULAR_MATRIX	Extracellular matrix remodeling	1	901	4	17874	0.186908	0.258796	SERPINE1	curated_local_v0
+ds_fixture_vascular_aging	GO_CYTOKINE_CHEMOKINE	Cytokine and chemokine signaling	2	5	2	8	0.357143	0.459184	CXCL8,IL6	curated_local_v0
+ds_fixture_vascular_aging	GO_EXTRACELLULAR_MATRIX	Extracellular matrix remodeling	1	5	1	8	0.625	0.75	MMP9	curated_local_v0
+GSE312006	GO_IMMUNE_CELL_MARKERS	Immune cell markers	0	901	5	17874	1	1		curated_local_v0
+ds_fixture_vascular_aging	GO_IMMUNE_CELL_MARKERS	Immune cell markers	0	5	0	8	1	1		curated_local_v0
+ds_fixture_vascular_aging	GO_VASCULAR_HOMEOSTASIS	Vascular homeostasis	0	5	0	8	1	1		curated_local_v0

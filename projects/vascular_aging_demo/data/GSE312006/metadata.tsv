@@ -1,0 +1,7 @@
+sample_id	group	batch	sex	age	title
+GSM9336110	young	unknown	unknown	unknown	HUVEC young replicate 1
+GSM9336111	young	unknown	unknown	unknown	HUVEC young replicate 2
+GSM9336112	young	unknown	unknown	unknown	HUVEC young replicate 3
+GSM9336113	replicative_senescence	unknown	unknown	unknown	HUVEC replicative senescence replicate 1
+GSM9336114	replicative_senescence	unknown	unknown	unknown	HUVEC replicative senescence replicate 2
+GSM9336115	replicative_senescence	unknown	unknown	unknown	HUVEC replicative senescence replicate 3

@@ -1,0 +1,16 @@
+{
+  "schema_version": "evidence_item_v1",
+  "project_id": "vascular_aging_demo",
+  "inserted_rows": 60317,
+  "rejected_rows": 0,
+  "by_evidence_type": {
+    "bulk_deg": 36915,
+    "accessibility": 23402
+  },
+  "sources": [
+    "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+    "results\\bulk_deg_GSE312006\\deg_results.tsv",
+    "results\\bulk_deg_GSE43292\\deg_results.tsv",
+    "results\\annotation\\accessibility_annotation.tsv"
+  ]
+}

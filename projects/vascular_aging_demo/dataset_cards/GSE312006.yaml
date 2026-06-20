@@ -1,0 +1,22 @@
+dataset_id: GSE312006
+source: GEO
+accession: GSE312006
+modality: bulk_expression
+organism: human
+tissue: HUVEC
+contrast:
+  case: replicative_senescence
+  control: young
+sample_summary:
+  case_n: 3
+  control_n: 3
+  donor_n: 6
+metadata_fields: [sample_id, group, batch, sex, age, title]
+matrix_available: true
+license_status: public
+file_paths:
+  expression_matrix: data/GSE312006/expression_matrix.tsv
+  metadata: data/GSE312006/metadata.tsv
+known_limitations: [cell culture HUVEC model, raw counts handled by MVP lightweight DEG, donor metadata unavailable, premature senescence samples excluded from first contrast]
+recommended_use: [bulk_deg]
+blocked_use: []

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "targetcompass-lite"
+version = "0.1.0"
+description = "Local-first candidate target prioritization MVP with traceable evidence reports."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "python-docx>=1.1.0"
+]
+
+[project.scripts]
+targetcompass-lite = "targetcompass_lite.cli:main"
+tc-lite = "targetcompass_lite.cli:main"
+
+[tool.setuptools]
+packages = ["targetcompass_lite"]
+
+[tool.setuptools.package-data]
+targetcompass_lite = []

@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "required": [
+    "evidence_id",
+    "project_id",
+    "entity_symbol",
+    "evidence_type",
+    "created_at"
+  ],
+  "properties": {
+    "evidence_id": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "entity_symbol": {"type": "string", "minLength": 1},
+    "entity_type": {"type": "string"},
+    "disease_context": {"type": "string"},
+    "organism": {"type": "string"},
+    "tissue": {"type": "string"},
+    "route": {"type": "string"},
+    "evidence_type": {"type": "string", "minLength": 1},
+    "direction": {"type": "string"},
+    "effect_size": {"type": "number"},
+    "p_value": {"type": "number"},
+    "quality_score": {"type": "number"},
+    "review_status": {"type": "string"},
+    "source_dataset": {"type": "string"},
+    "artifact_path": {"type": "string"},
+    "limitation": {"type": "string"},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

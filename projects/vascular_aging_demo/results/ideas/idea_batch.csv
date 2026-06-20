@@ -1,0 +1,5 @@
+idea_id,title,route,feasibility_score,data_fit_score,novelty_score,risk_score,execution_status,blockers
+idea_001_d7548696,Secreted senescence signal target,secreted,83,24,22,3,candidate,
+idea_002_80759d3b,Surface accessibility target,surface,71,24,15,3,candidate,
+idea_003_1bc96f40,ECD shedding target,ECD,71,24,20,3,candidate,
+idea_004_cb241ae1,T cell epitope candidate,T_cell_peptide,54,24,13,8,review,MVP lacks antigen-presentation validation

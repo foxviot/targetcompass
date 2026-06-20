@@ -1,0 +1,22 @@
+metric	value
+dataset_id	GSE43292
+sample_count	64
+metadata_rows	64
+case_samples	32
+control_samples	32
+genes	19033
+duplicated_gene_rows	0
+matrix_type	microarray_or_log_expression_like
+min_value	2.43802
+max_value	13.4516
+mean_value	6.6346
+negative_values	0
+design_rank	33
+design_columns	33
+design_full_rank	True
+batch_covariates	batch
+dropped_batch_covariates	
+design_warnings	
+runner_type	r_limma
+runner_reason	Rscript and limma available
+qc_status	PASS
