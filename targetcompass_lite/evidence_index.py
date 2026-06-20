@@ -78,6 +78,30 @@ def query_evidence_trace(project_dir: Path, gene: str = "", evidence_id: str = "
     }
 
 
+def evidence_trace_detail(project_dir: Path, gene: str = "", evidence_id: str = "") -> dict[str, Any]:
+    query = query_evidence_trace(project_dir, gene=gene, evidence_id=evidence_id)
+    work_order_nodes = _work_order_nodes(project_dir)
+    artifacts = {row.get("artifact_path", "") for row in query.get("items", []) if row.get("artifact_path")}
+    evidence_ids = {row.get("evidence_id", "") for row in query.get("items", []) if row.get("evidence_id")}
+    related_nodes = []
+    for node in work_order_nodes:
+        node_evidence = node.get("evidence_writes", [])
+        node_outputs = node.get("outputs", [])
+        if any(row.get("evidence_id") in evidence_ids for row in node_evidence) or any(row.get("path") in artifacts for row in node_outputs):
+            related_nodes.append(node)
+    return {
+        "schema_version": "v4.evidence_trace_detail/0.1",
+        "project_id": project_dir.name,
+        "query": query.get("query", {}),
+        "match_count": query.get("match_count", 0),
+        "evidence_items": query.get("items", []),
+        "review_items": _unique_nested(query.get("items", []), "review_items", ["item_type", "item_id", "source"]),
+        "report_refs": _unique_nested(query.get("items", []), "report_refs", ["gene", "score_id", "report_ref"]),
+        "work_order_nodes": related_nodes,
+        "artifacts": sorted(artifacts),
+    }
+
+
 def _evidence_rows(project_dir: Path) -> list[dict[str, Any]]:
     db = project_dir / "evidence.sqlite"
     if not db.exists():
@@ -188,3 +212,22 @@ def _read_tsv(path: Path) -> list[dict[str, str]]:
 
 def _posix(value: str) -> str:
     return str(value or "").replace("\\", "/")
+
+
+def _work_order_nodes(project_dir: Path) -> list[dict[str, Any]]:
+    path = project_dir / "v4" / "work_order_dag.json"
+    dag = _read_json(path, {})
+    return dag.get("nodes", []) if isinstance(dag, dict) else []
+
+
+def _unique_nested(items: list[dict[str, Any]], field: str, keys: list[str]) -> list[dict[str, Any]]:
+    seen = set()
+    out = []
+    for item in items:
+        for row in item.get(field, []):
+            marker = tuple(row.get(key, "") for key in keys)
+            if marker in seen:
+                continue
+            seen.add(marker)
+            out.append(row)
+    return out

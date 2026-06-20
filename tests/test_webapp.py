@@ -6,7 +6,7 @@ from pathlib import Path
 
 from targetcompass_lite.screening import screen_project
 from targetcompass_lite.v4 import compile_v4_work_orders
-from targetcompass_lite.webapp import _dataset_controls, _find_available_port, _run_status, _v4_work_order_panel, _write_status
+from targetcompass_lite.webapp import _dataset_controls, _evidence_trace_detail_page, _find_available_port, _run_status, _v4_work_order_panel, _write_status
 
 
 CARD = """dataset_id: ds_web
@@ -119,6 +119,35 @@ class WebAppTest(unittest.TestCase):
             self.assertIn("Codex task packet", html)
             self.assertIn('name="item_type" value="work_order"', html)
             self.assertIn('name="item_type" value="codex_task"', html)
+
+    def test_evidence_trace_detail_page_shows_trace_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "v4").mkdir()
+            (project / "v4" / "evidence_review_report_index.json").write_text(
+                json.dumps(
+                    {
+                        "items": [
+                            {
+                                "evidence_id": "ev1",
+                                "entity_symbol": "CXCL8",
+                                "evidence_type": "qtl_colocalization",
+                                "source_dataset": "genetic_demo",
+                                "artifact_path": "results/genetic_coloc_mr/genetic_evidence.tsv",
+                                "review_status": "PENDING",
+                                "review_items": [{"source": "queue", "item_type": "causal_grade", "item_id": "CXCL8", "review_status": "pending", "reason": "review", "report_ref": "reports/target_report.html#causal-grade-cxcl8"}],
+                                "report_refs": [{"gene": "CXCL8", "score_id": "score_1", "evidence_snapshot_id": "es_1", "evidence_refs": ["ev1"], "report_ref": "reports/target_report.html#evidence-cxcl8"}],
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (project / "v4" / "work_order_dag.json").write_text(json.dumps({"nodes": [{"work_order_id": "wo1", "module_id": "P4", "module": "bulk_deg", "status": "success", "outputs": [{"path": "results/genetic_coloc_mr/genetic_evidence.tsv"}], "evidence_writes": [{"evidence_id": "ev1"}]}]}), encoding="utf-8")
+            html = _evidence_trace_detail_page(project, evidence_id="ev1").decode("utf-8")
+            for text in ["EvidenceItem", "ReviewItem", "ReportRef", "WorkOrder / DAG node", "Artifact"]:
+                self.assertIn(text, html)
 
 
 if __name__ == "__main__":

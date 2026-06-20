@@ -36,7 +36,7 @@ from .methods import (
 from .package import export_run_package
 from .reporting import build_report
 from .review import build_review_queue, final_signoff, load_approval_state, load_reviews, record_review
-from .evidence_index import query_evidence_trace
+from .evidence_index import evidence_trace_detail, query_evidence_trace
 from .reset_demo import reset_demo_outputs
 from .run_state import new_run_id, read_status, request_cancel, write_status
 from .scoring import score_project
@@ -862,11 +862,12 @@ def _evidence_trace_index_panel(project_dir: Path) -> str:
         f"<td>{html.escape(row.get('evidence_type', ''))}</td>"
         f"<td>{html.escape(str(len(row.get('review_items', []))))}</td>"
         f"<td>{html.escape(str(len(row.get('report_refs', []))))}</td>"
+        f'<td><a class="button ghost small-button" href="/evidence-trace?evidence_id={urllib.parse.quote(row.get("evidence_id", ""))}">Open</a></td>'
         "</tr>"
         for row in query_result.get("items", [])[:20]
     )
     result_table = (
-        "<table><thead><tr><th>Evidence</th><th>Gene</th><th>Type</th><th>Reviews</th><th>Reports</th></tr></thead>"
+        "<table><thead><tr><th>Evidence</th><th>Gene</th><th>Type</th><th>Reviews</th><th>Reports</th><th>Detail</th></tr></thead>"
         f"<tbody>{result_rows}</tbody></table>"
         if query_gene
         else ""
@@ -881,6 +882,7 @@ def _evidence_trace_index_panel(project_dir: Path) -> str:
         f"<td>{html.escape(str(len(row.get('review_items', []))))}</td>"
         f"<td>{html.escape(str(len(row.get('report_refs', []))))}</td>"
         f"<td>{html.escape(str(row.get('review_status') or ''))}</td>"
+        f'<td><a class="button ghost small-button" href="/evidence-trace?evidence_id={urllib.parse.quote(row.get("evidence_id", ""))}">Open</a></td>'
         "</tr>"
         for row in items[:20]
     )
@@ -889,9 +891,88 @@ def _evidence_trace_index_panel(project_dir: Path) -> str:
         f'<p class="muted">evidence: {html.escape(str(index.get("evidence_count", 0)))} · review items: {html.escape(str(index.get("review_item_count", 0)))} · report refs: {html.escape(str(index.get("report_ref_count", 0)))} · index: <code>{html.escape(index.get("index_id", ""))}</code></p>'
         + search
         + result_table
-        + "<table><thead><tr><th>Evidence</th><th>Type</th><th>Artifact</th><th>Reviews</th><th>Report refs</th><th>Status</th></tr></thead>"
+        + "<table><thead><tr><th>Evidence</th><th>Type</th><th>Artifact</th><th>Reviews</th><th>Report refs</th><th>Status</th><th>Detail</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></details>"
     )
+
+
+def _evidence_trace_detail_page(project_dir: Path, gene: str = "", evidence_id: str = "") -> bytes:
+    detail = evidence_trace_detail(project_dir, gene=gene, evidence_id=evidence_id)
+    evidence_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('evidence_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('entity_symbol', ''))}</td>"
+        f"<td>{html.escape(row.get('evidence_type', ''))}</td>"
+        f"<td>{html.escape(row.get('source_dataset', ''))}</td>"
+        f"<td><code>{html.escape(row.get('artifact_path', ''))}</code></td>"
+        f"<td>{html.escape(str(row.get('review_status') or ''))}</td>"
+        "</tr>"
+        for row in detail.get("evidence_items", [])
+    )
+    review_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('source', ''))}</td>"
+        f"<td>{html.escape(row.get('item_type', ''))}</td>"
+        f"<td><code>{html.escape(row.get('item_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('review_status', ''))}</td>"
+        f"<td>{html.escape(row.get('reason', ''))}</td>"
+        f"<td><code>{html.escape(row.get('report_ref', ''))}</code></td>"
+        "</tr>"
+        for row in detail.get("review_items", [])
+    )
+    report_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('gene', ''))}</td>"
+        f"<td><code>{html.escape(row.get('score_id', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('evidence_snapshot_id', ''))}</code></td>"
+        f"<td>{html.escape('; '.join(row.get('evidence_refs', [])))}</td>"
+        f"<td><code>{html.escape(row.get('report_ref', ''))}</code></td>"
+        "</tr>"
+        for row in detail.get("report_refs", [])
+    )
+    node_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('work_order_id', ''))}</code><small>{html.escape(row.get('module_id', ''))}</small></td>"
+        f"<td>{html.escape(row.get('module', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(str(len(row.get('outputs', []))))}</td>"
+        f"<td>{html.escape(str(len(row.get('evidence_writes', []))))}</td>"
+        "</tr>"
+        for row in detail.get("work_order_nodes", [])
+    )
+    artifact_rows = "".join(f"<tr><td><code>{html.escape(path)}</code></td></tr>" for path in detail.get("artifacts", []))
+    html_text = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evidence trace detail</title>
+  <style>
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f5f7; color: #1d1d1f; }}
+    main {{ max-width: 1180px; margin: 0 auto; padding: 30px 22px 64px; }}
+    section {{ background: rgba(255,255,255,.86); border: 1px solid rgba(60,60,67,.16); border-radius: 20px; padding: 18px; margin: 16px 0; box-shadow: 0 18px 60px rgba(0,0,0,.08); }}
+    table {{ width: 100%; border-collapse: collapse; }}
+    th, td {{ border-bottom: 1px solid rgba(60,60,67,.16); padding: 9px; text-align: left; vertical-align: top; font-size: 13px; }}
+    th {{ color: #6e6e73; }}
+    code {{ font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }}
+    a.button {{ display:inline-block; border-radius:999px; padding:10px 14px; border:1px solid rgba(60,60,67,.16); text-decoration:none; color:#007aff; background:white; }}
+    small {{ display:block; color:#6e6e73; }}
+  </style>
+</head>
+<body>
+<main>
+  <a class="button" href="/">Back</a>
+  <h1>Evidence trace detail</h1>
+  <p>Matches: {html.escape(str(detail.get("match_count", 0)))} | gene: {html.escape(gene)} | evidence_id: {html.escape(evidence_id)}</p>
+  <section><h2>EvidenceItem</h2><table><thead><tr><th>ID</th><th>Gene</th><th>Type</th><th>Dataset</th><th>Artifact</th><th>Status</th></tr></thead><tbody>{evidence_rows}</tbody></table></section>
+  <section><h2>ReviewItem</h2><table><thead><tr><th>Source</th><th>Type</th><th>ID</th><th>Status</th><th>Reason</th><th>Report ref</th></tr></thead><tbody>{review_rows}</tbody></table></section>
+  <section><h2>ReportRef</h2><table><thead><tr><th>Gene</th><th>Score</th><th>Snapshot</th><th>Evidence refs</th><th>Report ref</th></tr></thead><tbody>{report_rows}</tbody></table></section>
+  <section><h2>WorkOrder / DAG node</h2><table><thead><tr><th>WorkOrder</th><th>Module</th><th>Status</th><th>Outputs</th><th>Evidence writes</th></tr></thead><tbody>{node_rows}</tbody></table></section>
+  <section><h2>Artifact</h2><table><tbody>{artifact_rows}</tbody></table></section>
+</main>
+</body>
+</html>"""
+    return html_text.encode("utf-8")
 
 
 def _work_order_dag_panel(project_dir: Path) -> str:
@@ -1896,6 +1977,17 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                 self._send(200, _page(project_dir))
             elif self.path == "/report":
                 self._send(200, _report(project_dir))
+            elif self.path.startswith("/evidence-trace"):
+                parsed = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(parsed.query)
+                self._send(
+                    200,
+                    _evidence_trace_detail_page(
+                        project_dir,
+                        gene=query.get("gene", [""])[0],
+                        evidence_id=query.get("evidence_id", [""])[0],
+                    ),
+                )
             else:
                 self._send(404, b"Not found", "text/plain; charset=utf-8")
 
