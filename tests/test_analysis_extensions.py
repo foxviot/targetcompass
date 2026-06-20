@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from targetcompass_lite.causal_evidence import grade_causal_evidence
+from targetcompass_lite.causal_evidence import DEFAULT_CAUSAL_RUBRIC, grade_causal_evidence
 from targetcompass_lite.enrichment import run_enrichment
 from targetcompass_lite.evidence_db import import_evidence
 from targetcompass_lite.genetic import run_genetic_coloc_mr
@@ -101,6 +101,10 @@ class AnalysisExtensionsTest(unittest.TestCase):
             con.close()
             causal = grade_causal_evidence(project)
             self.assertIn("CXCL8\tB", causal.read_text(encoding="utf-8"))
+            manifest = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["rubric_id"], "causal_review")
+            self.assertEqual(manifest["rubric_version"], "0.1.0")
+            self.assertTrue(manifest["rubric_hash"])
             import_evidence(project)
             con = sqlite3.connect(project / "evidence.sqlite")
             try:
@@ -155,6 +159,48 @@ class AnalysisExtensionsTest(unittest.TestCase):
                 con.close()
             self.assertIn("qtl_colocalization", types)
             self.assertIn("mendelian_randomization", types)
+
+    def test_project_causal_rubric_overrides_support_and_review_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            _write_spec(project)
+            (project / "configs").mkdir(parents=True)
+            rubric = json.loads(DEFAULT_CAUSAL_RUBRIC.read_text(encoding="utf-8"))
+            rubric["version"] = "0.1.1-test"
+            rubric["support_levels"]["B"] = "custom_moderate"
+            rubric["review_flags"]["method_flags"]["association"].append("custom_association_review")
+            (project / "configs" / "causal_review_rubric.json").write_text(
+                json.dumps(rubric, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            con = sqlite3.connect(project / "evidence.sqlite")
+            con.executescript(
+                """
+                CREATE TABLE evidence_item (
+                  evidence_id TEXT PRIMARY KEY, project_id TEXT, entity_symbol TEXT, entity_type TEXT,
+                  disease_context TEXT, organism TEXT, tissue TEXT, route TEXT, evidence_type TEXT,
+                  direction TEXT, effect_size REAL, p_value REAL, quality_score REAL, review_status TEXT,
+                  source_dataset TEXT, artifact_path TEXT, run_id TEXT, artifact_id TEXT, module_version TEXT,
+                  limitation TEXT, created_at TEXT
+                );
+                INSERT INTO evidence_item
+                (evidence_id, project_id, entity_symbol, evidence_type, p_value, quality_score, limitation, created_at)
+                VALUES ('ev1', 'demo', 'CXCL8', 'gwas_association', 1e-9, 0.8, 'single variant proxy', 'now');
+                """
+            )
+            con.commit()
+            con.close()
+
+            causal = grade_causal_evidence(project)
+            causal_text = causal.read_text(encoding="utf-8")
+            self.assertIn("CXCL8\tB\tcustom_moderate", causal_text)
+            self.assertIn("custom_association_review", causal_text)
+            self.assertIn("single_variant_mr_proxy", causal_text)
+            manifest = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["rubric_version"], "0.1.1-test")
+            self.assertIn("configs\\causal_review_rubric.json", manifest["rubric_path"])
+            self.assertTrue(manifest["rubric_hash"])
 
 
 if __name__ == "__main__":

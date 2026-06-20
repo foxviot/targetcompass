@@ -1,0 +1,75 @@
+{
+  "schema_version": "v4.causal_review_rubric/0.1",
+  "rubric_id": "causal_review",
+  "version": "0.1.0",
+  "description": "Configurable triage rubric for automated causal evidence review. All grades require human/statistical review before scientific claims.",
+  "recognized_evidence_types": {
+    "gwas_association": "association",
+    "qtl_colocalization": "coloc",
+    "eqtl_colocalization": "coloc",
+    "pqtl_colocalization": "coloc",
+    "mendelian_randomization": "mr",
+    "opentargets_association": "association"
+  },
+  "grade_rules": [
+    {
+      "grade": "A",
+      "requires_methods": ["mr", "coloc"],
+      "rationale": "MR and colocalization evidence are both present."
+    },
+    {
+      "grade": "B",
+      "requires_methods": ["coloc"],
+      "rationale": "Colocalization evidence is present; review locus and QTL context."
+    },
+    {
+      "grade": "B",
+      "requires_methods": ["association"],
+      "max_best_p_value": 5e-8,
+      "rationale": "Genome-wide significant association-level evidence is present."
+    },
+    {
+      "grade": "C",
+      "requires_any_recognized_evidence": true,
+      "rationale": "Only association-level or database genetic evidence is available."
+    },
+    {
+      "grade": "D",
+      "default": true,
+      "rationale": "No recognized genetic causal evidence."
+    }
+  ],
+  "support_levels": {
+    "A": "triage_high",
+    "B": "triage_moderate",
+    "C": "triage_low",
+    "D": "insufficient"
+  },
+  "review_flags": {
+    "base": ["human_review_required"],
+    "method_flags": {
+      "mr": ["pleiotropy_review_required", "instrument_strength_review_required"],
+      "coloc": ["ld_locus_review_required", "qtl_context_review_required"],
+      "association": ["locus_to_gene_mapping_review_required"]
+    },
+    "method_without_method": [
+      {
+        "method": "mr",
+        "without": "coloc",
+        "flag": "mr_without_coloc"
+      }
+    ],
+    "limitation_keywords": [
+      {
+        "keywords": ["single-variant", "single variant"],
+        "flag": "single_variant_mr_proxy"
+      },
+      {
+        "keywords": ["ld-aware", "ld"],
+        "flag": "ld_aware_method_required"
+      }
+    ]
+  },
+  "review_policy": "All automated causal grades require human/statistical review before scientific claims.",
+  "limitation": "Automated causal grade is a triage label; locus mapping, LD, pleiotropy, and ancestry matching require human/statistical review."
+}

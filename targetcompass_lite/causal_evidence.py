@@ -1,39 +1,86 @@
 import csv
+import hashlib
 import json
 import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .paths import KB
+from .v4 import content_hash, file_hash
 
-GENETIC_EVIDENCE_TYPES = {
-    "gwas_association": "association",
-    "qtl_colocalization": "coloc",
-    "eqtl_colocalization": "coloc",
-    "pqtl_colocalization": "coloc",
-    "mendelian_randomization": "mr",
-    "opentargets_association": "association",
+
+DEFAULT_CAUSAL_RUBRIC = KB / "rubrics" / "causal_review_v0.json"
+PROJECT_CAUSAL_RUBRIC = Path("configs") / "causal_review_rubric.json"
+
+
+FALLBACK_CAUSAL_RUBRIC = {
+    "schema_version": "v4.causal_review_rubric/0.1",
+    "rubric_id": "causal_review",
+    "version": "0.1.0",
+    "recognized_evidence_types": {
+        "gwas_association": "association",
+        "qtl_colocalization": "coloc",
+        "eqtl_colocalization": "coloc",
+        "pqtl_colocalization": "coloc",
+        "mendelian_randomization": "mr",
+        "opentargets_association": "association",
+    },
+    "grade_rules": [
+        {"grade": "A", "requires_methods": ["mr", "coloc"], "rationale": "MR and colocalization evidence are both present."},
+        {"grade": "B", "requires_methods": ["coloc"], "rationale": "Colocalization evidence is present; review locus and QTL context."},
+        {
+            "grade": "B",
+            "requires_methods": ["association"],
+            "max_best_p_value": 5e-8,
+            "rationale": "Genome-wide significant association-level evidence is present.",
+        },
+        {
+            "grade": "C",
+            "requires_any_recognized_evidence": True,
+            "rationale": "Only association-level or database genetic evidence is available.",
+        },
+        {"grade": "D", "default": True, "rationale": "No recognized genetic causal evidence."},
+    ],
+    "support_levels": {"A": "triage_high", "B": "triage_moderate", "C": "triage_low", "D": "insufficient"},
+    "review_flags": {
+        "base": ["human_review_required"],
+        "method_flags": {
+            "mr": ["pleiotropy_review_required", "instrument_strength_review_required"],
+            "coloc": ["ld_locus_review_required", "qtl_context_review_required"],
+            "association": ["locus_to_gene_mapping_review_required"],
+        },
+        "method_without_method": [{"method": "mr", "without": "coloc", "flag": "mr_without_coloc"}],
+        "limitation_keywords": [
+            {"keywords": ["single-variant", "single variant"], "flag": "single_variant_mr_proxy"},
+            {"keywords": ["ld-aware", "ld"], "flag": "ld_aware_method_required"},
+        ],
+    },
+    "review_policy": "All automated causal grades require human/statistical review before scientific claims.",
+    "limitation": "Automated causal grade is a triage label; locus mapping, LD, pleiotropy, and ancestry matching require human/statistical review.",
 }
 
 
 def grade_causal_evidence(project_dir: Path) -> Path:
+    rubric, rubric_meta = load_causal_review_rubric(project_dir)
+    evidence_type_map = rubric["recognized_evidence_types"]
     db = project_dir / "evidence.sqlite"
     if not db.exists():
         raise ValueError("evidence.sqlite is required before causal grading")
     con = sqlite3.connect(db, timeout=30)
     con.row_factory = sqlite3.Row
-    placeholders = ",".join("?" for _ in GENETIC_EVIDENCE_TYPES)
+    placeholders = ",".join("?" for _ in evidence_type_map)
     rows = [
         dict(row)
         for row in con.execute(
             f"SELECT * FROM evidence_item WHERE evidence_type IN ({placeholders}) ORDER BY entity_symbol, evidence_type",
-            tuple(GENETIC_EVIDENCE_TYPES),
+            tuple(evidence_type_map),
         ).fetchall()
     ]
     con.close()
     grouped: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
-        if row.get("evidence_type") in GENETIC_EVIDENCE_TYPES:
+        if row.get("evidence_type") in evidence_type_map:
             grouped[row["entity_symbol"]].append(row)
     out_dir = project_dir / "results" / "causal_evidence"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -41,15 +88,15 @@ def grade_causal_evidence(project_dir: Path) -> Path:
     grades = []
     for gene, evidences in grouped.items():
         evidence_types = {row["evidence_type"] for row in evidences}
-        methods = {GENETIC_EVIDENCE_TYPES[row["evidence_type"]] for row in evidences}
+        methods = {evidence_type_map[row["evidence_type"]] for row in evidences}
         best_p = _best_p_value(evidences)
-        grade, rationale = _grade(methods, evidence_types, best_p)
-        review_flags = _review_flags(evidences, methods, evidence_types)
+        grade, rationale = _grade(methods, evidence_types, best_p, rubric)
+        review_flags = _review_flags(evidences, methods, rubric)
         grades.append(
             {
                 "gene_symbol": gene,
                 "causal_grade": grade,
-                "support_level": _support_level(grade),
+                "support_level": _support_level(grade, rubric),
                 "methods": ";".join(sorted(methods)),
                 "evidence_types": ";".join(sorted(evidence_types)),
                 "evidence_count": len(evidences),
@@ -59,7 +106,10 @@ def grade_causal_evidence(project_dir: Path) -> Path:
                 "artifact_refs": ";".join(sorted({_artifact_ref(row) for row in evidences if row.get("artifact_path")})),
                 "review_flags": ";".join(review_flags) or "none",
                 "review_status": "HUMAN_REVIEW_REQUIRED",
-                "limitation": "Automated causal grade is a triage label; locus mapping, LD, pleiotropy, and ancestry matching require human/statistical review.",
+                "limitation": rubric.get(
+                    "limitation",
+                    "Automated causal grade is a triage label; locus mapping, LD, pleiotropy, and ancestry matching require human/statistical review.",
+                ),
             }
         )
     grades.sort(key=lambda row: (row["causal_grade"], row["gene_symbol"]))
@@ -88,28 +138,85 @@ def grade_causal_evidence(project_dir: Path) -> Path:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "graded_genes": len(grades),
         "output": str(out.relative_to(project_dir)),
-        "grade_policy": {
-            "A": "MR plus coloc evidence",
-            "B": "coloc evidence or strong GWAS/database genetic association",
-            "C": "association only",
-            "D": "insufficient genetic evidence",
-        },
-        "review_policy": "All automated causal grades require human/statistical review before scientific claims.",
+        "rubric_id": rubric.get("rubric_id", ""),
+        "rubric_version": rubric.get("version", ""),
+        "rubric_path": rubric_meta["path"],
+        "rubric_hash": rubric_meta["hash"],
+        "rubric_file_hash": rubric_meta["file_hash"],
+        "grade_policy": _grade_policy_summary(rubric),
+        "review_policy": rubric.get("review_policy", "All automated causal grades require human/statistical review before scientific claims."),
     }
     (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     return out
 
 
-def _grade(methods: set[str], evidence_types: set[str], best_p: float | None) -> tuple[str, str]:
-    if "mr" in methods and "coloc" in methods:
-        return "A", "MR and colocalization evidence are both present."
-    if "coloc" in methods:
-        return "B", "Colocalization evidence is present; review locus and QTL context."
-    if "association" in methods and (best_p is not None and best_p < 5e-8):
-        return "B", "Genome-wide significant association-level evidence is present."
-    if evidence_types:
-        return "C", "Only association-level or database genetic evidence is available."
+def load_causal_review_rubric(project_dir: Path) -> tuple[dict, dict]:
+    project_path = project_dir / PROJECT_CAUSAL_RUBRIC
+    if project_path.exists():
+        path = project_path
+        rubric = json.loads(path.read_text(encoding="utf-8"))
+        file_digest = file_hash(path)
+    elif DEFAULT_CAUSAL_RUBRIC.exists():
+        path = DEFAULT_CAUSAL_RUBRIC
+        rubric = json.loads(path.read_text(encoding="utf-8"))
+        file_digest = file_hash(path)
+    else:
+        path = DEFAULT_CAUSAL_RUBRIC
+        rubric = dict(FALLBACK_CAUSAL_RUBRIC)
+        file_digest = hashlib.sha256(json.dumps(rubric, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    _validate_rubric(rubric)
+    meta = {
+        "path": str(path),
+        "hash": content_hash(rubric),
+        "file_hash": file_digest,
+    }
+    return rubric, meta
+
+
+def _validate_rubric(rubric: dict) -> None:
+    required = ["recognized_evidence_types", "grade_rules", "support_levels", "review_flags"]
+    missing = [key for key in required if key not in rubric]
+    if missing:
+        raise ValueError(f"causal review rubric missing sections: {', '.join(missing)}")
+    if not isinstance(rubric["recognized_evidence_types"], dict) or not rubric["recognized_evidence_types"]:
+        raise ValueError("causal review rubric requires recognized_evidence_types")
+    if not isinstance(rubric["grade_rules"], list) or not rubric["grade_rules"]:
+        raise ValueError("causal review rubric requires grade_rules")
+
+
+def _grade(methods: set[str], evidence_types: set[str], best_p: float | None, rubric: dict) -> tuple[str, str]:
+    default_rule = None
+    for rule in rubric["grade_rules"]:
+        if rule.get("default"):
+            default_rule = rule
+            continue
+        if not _rule_matches(rule, methods, evidence_types, best_p):
+            continue
+        return rule.get("grade", "D"), rule.get("rationale", "")
+    if default_rule:
+        return default_rule.get("grade", "D"), default_rule.get("rationale", "")
     return "D", "No recognized genetic causal evidence."
+
+
+def _rule_matches(rule: dict, methods: set[str], evidence_types: set[str], best_p: float | None) -> bool:
+    required_methods = set(rule.get("requires_methods", []))
+    if required_methods and not required_methods.issubset(methods):
+        return False
+    any_methods = set(rule.get("requires_any_method", []))
+    if any_methods and not (any_methods & methods):
+        return False
+    required_evidence_types = set(rule.get("requires_evidence_types", []))
+    if required_evidence_types and not required_evidence_types.issubset(evidence_types):
+        return False
+    if rule.get("requires_any_recognized_evidence") and not evidence_types:
+        return False
+    if "max_best_p_value" in rule:
+        if best_p is None or best_p >= float(rule["max_best_p_value"]):
+            return False
+    if "min_best_p_value" in rule:
+        if best_p is None or best_p <= float(rule["min_best_p_value"]):
+            return False
+    return True
 
 
 def _best_p_value(evidences: list[dict]) -> float | None:
@@ -125,32 +232,35 @@ def _best_p_value(evidences: list[dict]) -> float | None:
     return min(values) if values else None
 
 
-def _support_level(grade: str) -> str:
-    return {
-        "A": "triage_high",
-        "B": "triage_moderate",
-        "C": "triage_low",
-        "D": "insufficient",
-    }.get(grade, "insufficient")
+def _support_level(grade: str, rubric: dict) -> str:
+    return rubric.get("support_levels", {}).get(grade, "insufficient")
 
 
-def _review_flags(evidences: list[dict], methods: set[str], evidence_types: set[str]) -> list[str]:
-    flags = {"human_review_required"}
-    if "mr" in methods:
-        flags.update({"pleiotropy_review_required", "instrument_strength_review_required"})
-    if "coloc" in methods:
-        flags.update({"ld_locus_review_required", "qtl_context_review_required"})
-    if "association" in methods:
-        flags.add("locus_to_gene_mapping_review_required")
-    if "mendelian_randomization" in evidence_types and not any("coloc" == GENETIC_EVIDENCE_TYPES.get(row.get("evidence_type", "")) for row in evidences):
-        flags.add("mr_without_coloc")
+def _review_flags(evidences: list[dict], methods: set[str], rubric: dict) -> list[str]:
+    flag_rules = rubric.get("review_flags", {})
+    flags = set(flag_rules.get("base", []))
+    for method in methods:
+        flags.update(flag_rules.get("method_flags", {}).get(method, []))
+    for rule in flag_rules.get("method_without_method", []):
+        if rule.get("method") in methods and rule.get("without") not in methods:
+            flags.add(rule.get("flag", ""))
     for row in evidences:
         limitation = (row.get("limitation") or "").lower()
-        if "single-variant" in limitation or "single variant" in limitation:
-            flags.add("single_variant_mr_proxy")
-        if "ld-aware" in limitation or "ld" in limitation:
-            flags.add("ld_aware_method_required")
-    return sorted(flags)
+        for rule in flag_rules.get("limitation_keywords", []):
+            keywords = [str(keyword).lower() for keyword in rule.get("keywords", [])]
+            if any(keyword in limitation for keyword in keywords):
+                flags.add(rule.get("flag", ""))
+    return sorted(flag for flag in flags if flag)
+
+
+def _grade_policy_summary(rubric: dict) -> dict:
+    summary = {}
+    for rule in rubric.get("grade_rules", []):
+        grade = rule.get("grade", "")
+        rationale = rule.get("rationale", "")
+        if grade and rationale:
+            summary.setdefault(grade, rationale)
+    return summary
 
 
 def _artifact_ref(row: dict) -> str:
