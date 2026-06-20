@@ -251,6 +251,7 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
 
 
 def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
+    from .evidence_index import build_evidence_review_report_index, evidence_review_report_index_path
     from .registry_snapshots import build_registry_snapshots
     from .work_order_dag import build_work_order_dag, work_order_dag_path
 
@@ -263,6 +264,7 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     work_orders = compile_v4_work_orders(project_dir, plan)
     work_order_dag = build_work_order_dag(project_dir)
     evidence_snapshot = build_evidence_snapshot(project_dir)
+    evidence_index = build_evidence_review_report_index(project_dir)
     mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
     registry_snapshots = build_registry_snapshots(project_dir)
     manifest = {
@@ -297,6 +299,13 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "hash": file_hash(work_order_dag_path(project_dir)),
             },
             "evidence_snapshot": evidence_snapshot,
+            "evidence_review_report_index": {
+                "path": str(evidence_review_report_index_path(project_dir).relative_to(project_dir)),
+                "index_id": evidence_index.get("index_id", ""),
+                "evidence_count": evidence_index.get("evidence_count", 0),
+                "review_item_count": evidence_index.get("review_item_count", 0),
+                "report_ref_count": evidence_index.get("report_ref_count", 0),
+            },
             "mcp_resources": {
                 "path": "v4/mcp_resources.json",
                 "count": len(mcp_manifest["resources"]),
