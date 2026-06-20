@@ -3,11 +3,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from .mcp_policy import Principal, authorize_resource, authorize_tool, parse_token, policy_path, write_default_policy
+from .service_boundaries import build_service_boundaries, service_boundaries_path
 from .v4 import content_hash, file_hash, read_json, v4_dir
 
 
-RESOURCE_SCHEMA = "v4.mcp_resource_manifest/0.2"
-TOOL_SCHEMA = "v4.mcp_tool_manifest/0.1"
+RESOURCE_SCHEMA = "v4.mcp_resource_manifest/0.3"
+TOOL_SCHEMA = "v4.mcp_tool_manifest/0.2"
 AUDIT_SCHEMA = "v4.mcp_call_audit/0.1"
 
 
@@ -123,24 +125,30 @@ TOOL_CONTRACTS = [
 ]
 
 
-def build_mcp_gateway(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
-    tools = build_tool_manifest(project_dir)
+def build_mcp_gateway(project_dir: Path, plan: dict[str, Any] | None = None, principal: Principal | None = None) -> dict[str, Any]:
+    write_default_policy(project_dir)
+    build_service_boundaries(project_dir)
+    tools = build_tool_manifest(project_dir, principal=principal)
     audit = summarize_call_audit(project_dir)
-    resources = build_resource_manifest(project_dir, plan)
+    resources = build_resource_manifest(project_dir, plan, principal=principal)
     return {"resources": resources, "tools": tools, "audit": audit}
 
 
-def build_resource_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_resource_manifest(project_dir: Path, plan: dict[str, Any] | None = None, principal: Principal | None = None) -> dict[str, Any]:
     resources = _discover_core_resources(project_dir)
+    if principal is not None and "resource:read" not in principal.scopes:
+        resources = []
     payload = {
         "schema_version": RESOURCE_SCHEMA,
         "project_id": project_dir.name,
         "generated_at": _now(),
+        "principal": _principal_record(principal),
         "policy": {
             "mcp_is_gateway_not_state_store": True,
             "write_tools_must_call_orchestrator": True,
             "large_objects_are_referenced_by_artifact_path": True,
             "resource_reads_are_audited": True,
+            "resources_are_filtered_by_scope": principal is not None,
         },
         "resources": resources,
     }
@@ -149,20 +157,26 @@ def build_resource_manifest(project_dir: Path, plan: dict[str, Any] | None = Non
     return payload
 
 
-def build_tool_manifest(project_dir: Path) -> dict[str, Any]:
+def build_tool_manifest(project_dir: Path, principal: Principal | None = None) -> dict[str, Any]:
     tools = []
     for contract in TOOL_CONTRACTS:
+        required_scope = _required_scope(contract["tool_id"])
+        if principal is not None and required_scope not in principal.scopes:
+            continue
         public = {key: value for key, value in contract.items() if key != "handler"}
         public["contract_hash"] = content_hash(public)
+        public["required_scope"] = required_scope
         tools.append(public)
     payload = {
         "schema_version": TOOL_SCHEMA,
         "project_id": project_dir.name,
         "generated_at": _now(),
+        "principal": _principal_record(principal),
         "policy": {
             "tool_calls_are_audited": True,
             "write_tools_require_contract": True,
             "review_required_tools_cannot_self_approve": True,
+            "tools_are_filtered_by_scope": principal is not None,
         },
         "tools": tools,
     }
@@ -171,14 +185,17 @@ def build_tool_manifest(project_dir: Path) -> dict[str, Any]:
     return payload
 
 
-def call_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any] | None = None, actor: str = "local_gateway") -> Any:
+def call_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any] | None = None, actor: str = "local_gateway", token: str | None = None) -> Any:
     arguments = arguments or {}
     contract = _tool_contract(tool_id)
+    principal = parse_token(project_dir, token, actor=actor)
+    policy_decision = None
     started_at = _now()
     status = "success"
     failure_reason = ""
     result: Any = None
     try:
+        policy_decision = authorize_tool(project_dir, principal, tool_id, arguments)
         result = _dispatch_tool(project_dir, tool_id, arguments)
         return result
     except Exception as exc:
@@ -193,6 +210,9 @@ def call_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any] | None 
                 "call_id": "mcp_call_" + content_hash({"tool": tool_id, "args": arguments, "started_at": started_at})[:16],
                 "tool_id": tool_id,
                 "actor": actor,
+                "principal": principal.principal_id,
+                "role": principal.role,
+                "policy_decision_id": policy_decision.get("decision_id", "") if policy_decision else "",
                 "risk": contract.get("risk", ""),
                 "requires_review": contract.get("requires_review", False),
                 "arguments_hash": content_hash(arguments),
@@ -205,7 +225,9 @@ def call_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any] | None 
         )
 
 
-def read_resource(project_dir: Path, uri: str, actor: str = "local_gateway") -> dict[str, Any]:
+def read_resource(project_dir: Path, uri: str, actor: str = "local_gateway", token: str | None = None) -> dict[str, Any]:
+    principal = parse_token(project_dir, token, actor=actor)
+    policy_decision = authorize_resource(project_dir, principal, uri)
     result = _read_resource(project_dir, uri)
     record_call(
         project_dir,
@@ -214,6 +236,9 @@ def read_resource(project_dir: Path, uri: str, actor: str = "local_gateway") -> 
             "call_id": "mcp_call_" + content_hash({"resource": uri, "hash": result["content_hash"], "time": _now()})[:16],
             "tool_id": "resource.read",
             "actor": actor,
+            "principal": principal.principal_id,
+            "role": principal.role,
+            "policy_decision_id": policy_decision.get("decision_id", ""),
             "risk": "read_only",
             "requires_review": False,
             "arguments_hash": content_hash({"uri": uri}),
@@ -339,6 +364,8 @@ def _discover_core_resources(project_dir: Path) -> list[dict[str, Any]]:
         (f"evidence://{project_dir.name}/review-report-index/latest", v4_dir(project_dir) / "evidence_review_report_index.json", "read"),
         (f"mcp-tool://{project_dir.name}/index", v4_dir(project_dir) / "mcp_tools.json", "read"),
         (f"mcp-audit://{project_dir.name}/summary", audit_summary_path(project_dir), "read"),
+        (f"mcp-policy://{project_dir.name}/latest", policy_path(project_dir), "read"),
+        (f"service-boundary://{project_dir.name}/latest", service_boundaries_path(project_dir), "read"),
         (f"registry-snapshot://{project_dir.name}/latest", v4_dir(project_dir) / "registry_snapshots.json", "read"),
     ]
     resources = []
@@ -425,6 +452,25 @@ def _tool_contract(tool_id: str) -> dict[str, Any]:
         if contract["tool_id"] == tool_id:
             return contract
     raise ValueError(f"unknown tool contract: {tool_id}")
+
+
+def _required_scope(tool_id: str) -> str:
+    from .mcp_policy import TOOL_SCOPES
+
+    return TOOL_SCOPES.get(tool_id, "tool:read")
+
+
+def _principal_record(principal: Principal | None) -> dict[str, Any]:
+    if principal is None:
+        return {"mode": "unfiltered_local_manifest"}
+    return {
+        "principal": principal.principal_id,
+        "role": principal.role,
+        "project": principal.project,
+        "scopes": sorted(principal.scopes),
+        "authenticated": principal.authenticated,
+        "token_id": principal.token_id,
+    }
 
 
 def _resource_type(uri: str) -> str:

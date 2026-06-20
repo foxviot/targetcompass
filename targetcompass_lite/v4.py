@@ -252,7 +252,9 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
 
 def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
     from .evidence_index import evidence_review_report_index_path
+    from .mcp_policy import policy_decisions_path, policy_path
     from .registry_snapshots import build_registry_snapshots
+    from .service_boundaries import service_boundaries_path
     from .trace_orchestrator import refresh_traceability
     from .work_order_dag import work_order_dag_path
 
@@ -319,6 +321,18 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
             "mcp_call_audit": {
                 "path": "v4/mcp_call_audit_summary.json",
                 "exists": (project_dir / "v4" / "mcp_call_audit_summary.json").exists(),
+            },
+            "mcp_policy": {
+                "path": str(policy_path(project_dir).relative_to(project_dir)),
+                "exists": policy_path(project_dir).exists(),
+            },
+            "mcp_policy_decisions": {
+                "path": str(policy_decisions_path(project_dir).relative_to(project_dir)),
+                "exists": policy_decisions_path(project_dir).exists(),
+            },
+            "service_boundaries": {
+                "path": str(service_boundaries_path(project_dir).relative_to(project_dir)),
+                "exists": service_boundaries_path(project_dir).exists(),
             },
             "registry_snapshots": {
                 "path": "v4/registry_snapshots.json",

@@ -57,6 +57,39 @@ class McpServerTest(unittest.TestCase):
             self.assertIn("index_id", indexed["result"]["structuredContent"])
             self.assertTrue((project / "v4" / "mcp_call_audit.jsonl").exists())
 
+    def test_mcp_server_filters_external_reader_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "research_interest.md").write_text("vascular aging\n", encoding="utf-8")
+            token = json.dumps(
+                {
+                    "principal": "reader-agent",
+                    "role": "agent_reader",
+                    "project": "demo",
+                    "scopes": ["resource:read", "tool:read"],
+                    "token_id": "tok_reader",
+                }
+            )
+
+            tools = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, token=token)
+            tool_names = {row["name"] for row in tools["result"]["tools"]}
+            self.assertIn("method.config.read", tool_names)
+            self.assertNotIn("method.config.update", tool_names)
+
+            denied = handle_jsonrpc(
+                project,
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {"name": "method.config.update", "arguments": {"config": {"dataset_scout": "x"}}},
+                },
+                token=token,
+            )
+            self.assertTrue(denied["result"]["isError"])
+            self.assertIn("missing required scope", denied["result"]["structuredContent"]["error"])
+
     def test_content_length_framing_roundtrip(self):
         stream = io.BytesIO()
         message = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}

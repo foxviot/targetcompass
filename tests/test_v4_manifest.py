@@ -50,9 +50,15 @@ class V4ManifestTest(unittest.TestCase):
             self.assertEqual(manifest["schema_version"], "v4.object_manifest/0.1")
             self.assertTrue((project / "v4" / "state_machine.json").exists())
             self.assertTrue((project / "v4" / "mcp_resources.json").exists())
+            self.assertTrue((project / "v4" / "mcp_policy.json").exists())
+            self.assertTrue((project / "v4" / "service_boundaries.json").exists())
             self.assertTrue((project / "v4" / "evidence_snapshot.json").exists())
+            self.assertTrue(manifest["objects"]["mcp_policy"]["exists"])
+            self.assertTrue(manifest["objects"]["service_boundaries"]["exists"])
             resources = json.loads((project / "v4" / "mcp_resources.json").read_text(encoding="utf-8"))["resources"]
             self.assertIn("plan://demo/latest", {row["uri"] for row in resources})
+            self.assertIn("mcp-policy://demo/latest", {row["uri"] for row in resources})
+            self.assertIn("service-boundary://demo/latest", {row["uri"] for row in resources})
 
     def test_missing_registered_module_generates_codex_task_packet(self):
         with tempfile.TemporaryDirectory() as tmp:
