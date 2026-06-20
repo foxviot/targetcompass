@@ -40,6 +40,15 @@ TOOL_CONTRACTS = [
         "handler": "targetcompass_lite.review.build_review_queue",
     },
     {
+        "tool_id": "evidence.index.build",
+        "purpose": "Build the EvidenceItem -> ReviewItem -> ReportRef traceability index.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "EvidenceReviewReportIndex",
+        "handler": "targetcompass_lite.evidence_index.build_evidence_review_report_index",
+    },
+    {
         "tool_id": "knowledge.adapt_resources",
         "purpose": "Normalize registered knowledge/database resources through configured adapters.",
         "risk": "project_data_write",
@@ -252,6 +261,7 @@ def _discover_core_resources(project_dir: Path) -> list[dict[str, Any]]:
         (f"work-order-dag://{project_dir.name}/latest", v4_dir(project_dir) / "work_order_dag.json", "read"),
         (f"role-run://{project_dir.name}/index", v4_dir(project_dir) / "role_runs.json", "read"),
         (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
+        (f"evidence://{project_dir.name}/review-report-index/latest", v4_dir(project_dir) / "evidence_review_report_index.json", "read"),
         (f"mcp-tool://{project_dir.name}/index", v4_dir(project_dir) / "mcp_tools.json", "read"),
         (f"mcp-audit://{project_dir.name}/summary", audit_summary_path(project_dir), "read"),
         (f"registry-snapshot://{project_dir.name}/latest", v4_dir(project_dir) / "registry_snapshots.json", "read"),
@@ -283,6 +293,10 @@ def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any]) -
         from .review import build_review_queue
 
         return build_review_queue(project_dir)
+    if tool_id == "evidence.index.build":
+        from .evidence_index import build_evidence_review_report_index
+
+        return build_evidence_review_report_index(project_dir)
     if tool_id == "knowledge.adapt_resources":
         from .knowledge import adapt_resources
 

@@ -22,6 +22,8 @@ class McpGatewayTest(unittest.TestCase):
             gateway = build_mcp_gateway(project)
             self.assertEqual(gateway["tools"]["schema_version"], "v4.mcp_tool_manifest/0.1")
             self.assertIn("resource.read", {row["tool_id"] for row in gateway["tools"]["tools"]})
+            self.assertIn("evidence.index.build", {row["tool_id"] for row in gateway["tools"]["tools"]})
+            self.assertIn("evidence://demo/review-report-index/latest", {row["uri"] for row in gateway["resources"]["resources"]})
 
             uri = "project://demo"
             result = read_resource(project, uri, actor="unit_test")
@@ -34,6 +36,7 @@ class McpGatewayTest(unittest.TestCase):
             html = _v4_work_order_panel(project)
             self.assertIn("Local MCP Gateway", html)
             self.assertIn("resource.read", html)
+            self.assertIn("Evidence -> Review -> Report index", html)
 
     def test_call_tool_records_success_and_failure(self):
         with tempfile.TemporaryDirectory() as tmp:

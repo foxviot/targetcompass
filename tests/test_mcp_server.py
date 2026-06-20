@@ -38,6 +38,7 @@ class McpServerTest(unittest.TestCase):
             resources = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 2, "method": "resources/list"})
             uris = {row["uri"] for row in resources["result"]["resources"]}
             self.assertIn("project://demo", uris)
+            self.assertIn("evidence://demo/review-report-index/latest", uris)
 
             read = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 3, "method": "resources/read", "params": {"uri": "project://demo"}})
             self.assertIn("vascular aging", read["result"]["contents"][0]["text"])
@@ -45,10 +46,14 @@ class McpServerTest(unittest.TestCase):
             tools = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 4, "method": "tools/list"})
             tool_names = {row["name"] for row in tools["result"]["tools"]}
             self.assertIn("review.queue.build", tool_names)
+            self.assertIn("evidence.index.build", tool_names)
 
             called = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "review.queue.build", "arguments": {}}})
             self.assertFalse(called["result"]["isError"])
             self.assertEqual(called["result"]["structuredContent"]["queue_count"], 0)
+            indexed = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "evidence.index.build", "arguments": {}}})
+            self.assertFalse(indexed["result"]["isError"])
+            self.assertIn("index_id", indexed["result"]["structuredContent"])
             self.assertTrue((project / "v4" / "mcp_call_audit.jsonl").exists())
 
     def test_content_length_framing_roundtrip(self):

@@ -754,6 +754,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
     if not orders:
         return (
             '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
+            + _evidence_trace_index_panel(project_dir)
             + _role_runs_panel(project_dir)
             + _mcp_gateway_panel(project_dir)
             + _registry_snapshot_panel(project_dir)
@@ -831,6 +832,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         "".join(cards)
         + attempt_table
         + _work_order_dag_panel(project_dir)
+        + _evidence_trace_index_panel(project_dir)
         + _codex_engineering_panel(project_dir)
         + _role_runs_panel(project_dir)
         + _mcp_gateway_panel(project_dir)
@@ -838,6 +840,30 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         + _executor_manifest_panel(project_dir)
         + _agent_roles_panel(project_dir)
         + resource_table
+    )
+
+
+def _evidence_trace_index_panel(project_dir: Path) -> str:
+    index = _read_json(project_dir / "v4" / "evidence_review_report_index.json", {})
+    items = index.get("items", [])
+    if not items:
+        return '<p class="muted">No Evidence -> Review -> Report index recorded yet.</p>'
+    rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('evidence_id', ''))}</code><small>{html.escape(row.get('entity_symbol', ''))}</small></td>"
+        f"<td>{html.escape(row.get('evidence_type', ''))}</td>"
+        f"<td><code>{html.escape(row.get('artifact_path', ''))}</code></td>"
+        f"<td>{html.escape(str(len(row.get('review_items', []))))}</td>"
+        f"<td>{html.escape(str(len(row.get('report_refs', []))))}</td>"
+        f"<td>{html.escape(row.get('review_status', ''))}</td>"
+        "</tr>"
+        for row in items[:20]
+    )
+    return (
+        "<details open><summary>Evidence -> Review -> Report index</summary>"
+        f'<p class="muted">evidence: {html.escape(str(index.get("evidence_count", 0)))} · review items: {html.escape(str(index.get("review_item_count", 0)))} · report refs: {html.escape(str(index.get("report_ref_count", 0)))} · index: <code>{html.escape(index.get("index_id", ""))}</code></p>'
+        "<table><thead><tr><th>Evidence</th><th>Type</th><th>Artifact</th><th>Reviews</th><th>Report refs</th><th>Status</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></details>"
     )
 
 
