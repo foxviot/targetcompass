@@ -253,6 +253,7 @@ def _discover_core_resources(project_dir: Path) -> list[dict[str, Any]]:
         (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
         (f"mcp-tool://{project_dir.name}/index", v4_dir(project_dir) / "mcp_tools.json", "read"),
         (f"mcp-audit://{project_dir.name}/summary", audit_summary_path(project_dir), "read"),
+        (f"registry-snapshot://{project_dir.name}/latest", v4_dir(project_dir) / "registry_snapshots.json", "read"),
     ]
     resources = []
     for uri, path, access in entries:

@@ -1,0 +1,59 @@
+{
+  "schema_version": "v4.role_output_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "disease_normalizer",
+  "run_id": "role_run_e2dac96be09a13f0",
+  "status": "success",
+  "failure_reason": "",
+  "output_summary": {
+    "project_id": "vascular_aging_demo",
+    "goal": "vaccine_candidate_target_prioritization",
+    "research_theme": "Find secreted targets for human endothelial senescence in vascular aging",
+    "disease_scope": {
+      "keys": [
+        "canonical",
+        "related_phenotypes"
+      ]
+    },
+    "organisms": {
+      "count": 1
+    },
+    "priority_tissues": {
+      "count": 1
+    },
+    "priority_cells": {
+      "count": 4
+    },
+    "target_routes": {
+      "count": 1
+    },
+    "modalities_mvp": {
+      "keys": [
+        "optional",
+        "required"
+      ]
+    },
+    "constraints": {
+      "keys": [
+        "causal_requirement",
+        "claim_policy",
+        "critical_normal_tissues"
+      ]
+    },
+    "parser_metadata": {
+      "keys": [
+        "confidence",
+        "confirmation_required",
+        "confirmed",
+        "parser_version",
+        "unmatched_terms"
+      ]
+    }
+  },
+  "schema": "ResearchSpec",
+  "output_refs": [
+    "research_spec.json",
+    "v4/disease_spec.json"
+  ],
+  "finished_at": "2026-06-20T13:05:43.728788+00:00"
+}

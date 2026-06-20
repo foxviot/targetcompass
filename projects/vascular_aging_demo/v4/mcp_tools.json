@@ -1,7 +1,7 @@
 {
   "schema_version": "v4.mcp_tool_manifest/0.1",
   "project_id": "vascular_aging_demo",
-  "generated_at": "2026-06-20T12:22:15.379877+00:00",
+  "generated_at": "2026-06-20T13:07:16.444011+00:00",
   "policy": {
     "tool_calls_are_audited": true,
     "write_tools_require_contract": true,

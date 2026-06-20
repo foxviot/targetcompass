@@ -21,13 +21,13 @@
       ],
       "schema": "ResearchSpec",
       "status": "complete",
-      "decision_id": "decision_6c7813b4b06c1b7a",
+      "decision_id": "decision_8cdca5f16a4dfdb7",
       "observations": {
-        "latest_role_run_id": "role_run_234936365f903a19",
+        "latest_role_run_id": "role_run_e2dac96be09a13f0",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_234936365f903a19_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_e2dac96be09a13f0_output.json"
       },
-      "generated_at": "2026-06-20T12:22:14.927687+00:00"
+      "generated_at": "2026-06-20T13:07:15.511279+00:00"
     },
     {
       "role_id": "dataset_scout",
@@ -44,13 +44,13 @@
       ],
       "schema": "DatasetCandidate",
       "status": "complete",
-      "decision_id": "decision_f308c31f7224af68",
+      "decision_id": "decision_3289955202efef0e",
       "observations": {
-        "latest_role_run_id": "role_run_5f568eaa174ecdce",
+        "latest_role_run_id": "role_run_4cd1d40a8d996c86",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_5f568eaa174ecdce_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_4cd1d40a8d996c86_output.json"
       },
-      "generated_at": "2026-06-20T12:22:14.928028+00:00"
+      "generated_at": "2026-06-20T13:07:15.511556+00:00"
     },
     {
       "role_id": "planner",
@@ -67,13 +67,13 @@
       ],
       "schema": "AnalysisPlan",
       "status": "complete",
-      "decision_id": "decision_7806076663698dfe",
+      "decision_id": "decision_e25eac9de8eabf9c",
       "observations": {
-        "latest_role_run_id": "role_run_e485f532ed54bf83",
+        "latest_role_run_id": "role_run_e5c58792e2103f27",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_e485f532ed54bf83_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_e5c58792e2103f27_output.json"
       },
-      "generated_at": "2026-06-20T12:22:14.928392+00:00"
+      "generated_at": "2026-06-20T13:07:15.511695+00:00"
     },
     {
       "role_id": "method_reviewer",
@@ -93,7 +93,7 @@
       "status": "partial",
       "decision_id": "decision_dbc10c3bf96d39a3",
       "observations": {},
-      "generated_at": "2026-06-20T12:22:14.928567+00:00"
+      "generated_at": "2026-06-20T13:07:15.511994+00:00"
     },
     {
       "role_id": "result_reviewer",
@@ -110,13 +110,13 @@
       ],
       "schema": "ReviewDecision",
       "status": "complete",
-      "decision_id": "decision_29f9b0f39c20f435",
+      "decision_id": "decision_a8bc747df1d192db",
       "observations": {
-        "latest_role_run_id": "role_run_395073871ea034da",
+        "latest_role_run_id": "role_run_9f11b35ec2486052",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_395073871ea034da_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_9f11b35ec2486052_output.json"
       },
-      "generated_at": "2026-06-20T12:22:14.928675+00:00"
+      "generated_at": "2026-06-20T13:07:15.512307+00:00"
     },
     {
       "role_id": "causal_reviewer",
@@ -133,7 +133,7 @@
       "status": "pending",
       "decision_id": "decision_9057d8b907f803a9",
       "observations": {},
-      "generated_at": "2026-06-20T12:22:14.928744+00:00"
+      "generated_at": "2026-06-20T13:07:15.512487+00:00"
     },
     {
       "role_id": "report_writer",
@@ -151,13 +151,13 @@
       ],
       "schema": "Report",
       "status": "complete",
-      "decision_id": "decision_98046d5e46384b48",
+      "decision_id": "decision_ce198f327a5cbcec",
       "observations": {
-        "latest_role_run_id": "role_run_a9f8c65de2ccb0bd",
+        "latest_role_run_id": "role_run_afdd1f4fa9b05a69",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_a9f8c65de2ccb0bd_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_afdd1f4fa9b05a69_output.json"
       },
-      "generated_at": "2026-06-20T12:22:14.928881+00:00"
+      "generated_at": "2026-06-20T13:07:15.512848+00:00"
     }
   ]
 }

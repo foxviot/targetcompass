@@ -1,0 +1,15 @@
+{
+  "schema_version": "v4.role_output_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "report_writer",
+  "run_id": "role_run_afdd1f4fa9b05a69",
+  "status": "success",
+  "failure_reason": "",
+  "output_summary": "(WindowsPath('C:/Users/ASUS/Documents/target/projects/vascular_aging_demo/reports/target_report.html'), WindowsPath('C:/Users/ASUS/Documents/target/projects/vascular_aging_demo/reports/target_report.docx'))",
+  "schema": "Report",
+  "output_refs": [
+    "reports/target_report.html",
+    "reports/target_report_structured.json"
+  ],
+  "finished_at": "2026-06-20T13:07:15.500185+00:00"
+}

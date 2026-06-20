@@ -1,0 +1,18 @@
+{
+  "schema_version": "v4.role_output_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "dataset_scout",
+  "run_id": "role_run_4cd1d40a8d996c86",
+  "status": "success",
+  "failure_reason": "",
+  "output_summary": {
+    "screened": 6,
+    "matched": 6
+  },
+  "schema": "DatasetCandidate",
+  "output_refs": [
+    "dataset_match_report.csv",
+    "results/geo_discovery/geo_recommendations.json"
+  ],
+  "finished_at": "2026-06-20T13:05:43.762708+00:00"
+}

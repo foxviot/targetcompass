@@ -1,0 +1,22 @@
+{
+  "schema_version": "v4.role_input_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "planner",
+  "run_id": "role_run_e5c58792e2103f27",
+  "runner": "targetcompass_lite.planning.build_plan",
+  "stage": "verification",
+  "expected_schema": "AnalysisPlan",
+  "input_refs": {
+    "eligible_datasets": "eligible_datasets.csv",
+    "selected_datasets": "all"
+  },
+  "declared_input_refs": [
+    "eligible_datasets.csv",
+    "analysis_module_registry.json"
+  ],
+  "declared_output_refs": [
+    "analysis_plan.json",
+    "v4/work_orders.json"
+  ],
+  "created_at": "2026-06-20T13:05:43.767059+00:00"
+}

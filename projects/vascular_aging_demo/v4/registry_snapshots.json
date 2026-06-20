@@ -1,0 +1,101 @@
+{
+  "schema_version": "v4.registry_snapshots/0.1",
+  "project_id": "vascular_aging_demo",
+  "generated_at": "2026-06-20T13:07:16.461217+00:00",
+  "snapshots": {
+    "method_registry": {
+      "schema_version": "v4.method_registry_snapshot/0.1",
+      "selected": {
+        "query": "local_idea_query_v0",
+        "audit": "local_feasibility_audit_v0",
+        "experiment": "local_experiment_design_v0"
+      },
+      "method_count": 7,
+      "methods": [
+        {
+          "stage": "audit",
+          "method_id": "local_feasibility_audit_v0",
+          "label": "Local feasibility audit v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": true
+        },
+        {
+          "stage": "audit",
+          "method_id": "strict_feasibility_audit_v0",
+          "label": "Strict feasibility audit v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": false
+        },
+        {
+          "stage": "experiment",
+          "method_id": "local_experiment_design_v0",
+          "label": "Local experiment design v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": true
+        },
+        {
+          "stage": "experiment",
+          "method_id": "review_first_experiment_design_v0",
+          "label": "Review-first experiment design v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": false
+        },
+        {
+          "stage": "query",
+          "method_id": "gpt_idea_query_v0",
+          "label": "GPT idea query v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": false
+        },
+        {
+          "stage": "query",
+          "method_id": "gpt_review_ready_query_v0",
+          "label": "GPT review-ready query v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": false
+        },
+        {
+          "stage": "query",
+          "method_id": "local_idea_query_v0",
+          "label": "Local idea query v0",
+          "gpt_compatible": true,
+          "human_replaceable": true,
+          "selected": true
+        }
+      ],
+      "hash": "16615b2363a7b7d0342f1a08d600fc7b21fa47966e8281c028e7e8b3d2ff5675"
+    },
+    "source_registry": {
+      "schema_version": "v4.source_registry_snapshot/0.1",
+      "resource_count": 0,
+      "resources": [],
+      "hash": "6f59f29d3356ccb8396b9ee59f20906342a24fbb0525ad49e06dbc97f1cc4f1a"
+    },
+    "rubric": {
+      "schema_version": "v4.rubric_snapshot/0.1",
+      "path": "C:\\Users\\ASUS\\Documents\\target\\knowledge_base\\scoring_rules\\vaccine_target_v0.yaml",
+      "file_hash": "c8cb3a01f8c000c14c707b57b2806c251c46af82d867e05406e060eaa416a3a6",
+      "rules_hash": "8abd04d0a05b597dace9ce1c20298e2498f95eb184b57e1b5ac3c0cf644fd9b6",
+      "sections": [
+        "description",
+        "expression",
+        "genetic",
+        "next_experiments",
+        "reproducibility",
+        "route",
+        "rule_id",
+        "safety",
+        "specificity",
+        "tiers"
+      ],
+      "hash": "0c1475db67047bc83f842f2d8c372130b5a9384c018c967336f6c579a4cb8a60"
+    }
+  },
+  "snapshot_hash": "53a6886d6a0e4fd07ab694a069466d04878bde178f4b5e6f5c3fd2297e651ba6"
+}

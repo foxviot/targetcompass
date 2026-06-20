@@ -251,6 +251,8 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
 
 
 def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
+    from .registry_snapshots import build_registry_snapshots
+
     plan = plan or read_json(project_dir / "analysis_plan.json", {})
     research_spec = read_json(project_dir / "research_spec.json", {})
     disease_spec = derive_disease_spec(research_spec)
@@ -260,6 +262,7 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     work_orders = compile_v4_work_orders(project_dir, plan)
     evidence_snapshot = build_evidence_snapshot(project_dir)
     mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
+    registry_snapshots = build_registry_snapshots(project_dir)
     manifest = {
         "schema_version": "v4.object_manifest/0.1",
         "project_id": project_dir.name,
@@ -298,6 +301,10 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
             "mcp_call_audit": {
                 "path": "v4/mcp_call_audit_summary.json",
                 "exists": (project_dir / "v4" / "mcp_call_audit_summary.json").exists(),
+            },
+            "registry_snapshots": {
+                "path": "v4/registry_snapshots.json",
+                "hash": registry_snapshots.get("snapshot_hash", ""),
             },
             "agent_roles": {
                 "path": "v4/agent_roles.json",

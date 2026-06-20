@@ -144,7 +144,7 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
         writer.writeheader()
         writer.writerows(scored)
     _replace_with_retry(tmp, out)
-    _write_score_manifest(project_dir, evidence_snapshot_id, rubric_hash, scored)
+    _write_score_manifest(project_dir, evidence_snapshot_id, rubric_hash, scored, rules_path)
     return out
 
 
@@ -161,15 +161,24 @@ def _replace_with_retry(source: Path, target: Path, attempts: int = 8) -> None:
         raise last_error
 
 
-def _write_score_manifest(project_dir: Path, evidence_snapshot_id: str, rubric_hash: str, scored: list[dict]) -> None:
+def _write_score_manifest(project_dir: Path, evidence_snapshot_id: str, rubric_hash: str, scored: list[dict], rules_path: Path = DEFAULT_RULES) -> None:
+    from .registry_snapshots import build_registry_snapshots
+
     out_dir = project_dir / "results" / "scoring"
     out_dir.mkdir(parents=True, exist_ok=True)
+    registry_snapshot = build_registry_snapshots(project_dir, rules_path)
+    rubric_snapshot = registry_snapshot.get("snapshots", {}).get("rubric", {})
     payload = {
         "schema_version": "target_score_manifest_v1",
         "project_id": project_dir.name,
         "evidence_snapshot_id": evidence_snapshot_id,
         "rubric_hash": rubric_hash,
+        "rubric_snapshot_hash": rubric_snapshot.get("hash", ""),
+        "registry_snapshot": "v4/registry_snapshots.json",
         "score_count": len(scored),
         "score_ids": [row["score_id"] for row in scored],
     }
-    (out_dir / "target_score_manifest.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    out = out_dir / "target_score_manifest.json"
+    tmp = out.with_name(out.name + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    _replace_with_retry(tmp, out)

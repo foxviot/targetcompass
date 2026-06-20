@@ -14,5 +14,5 @@
   ],
   "scoring_manifest": "results/scoring/target_score_manifest.json",
   "review_status_policy": "report_writer_may_reference_accepted_or_flagged_evidence_only",
-  "generated_at": "2026-06-20T12:22:15.377938+00:00"
+  "generated_at": "2026-06-20T13:07:16.441277+00:00"
 }

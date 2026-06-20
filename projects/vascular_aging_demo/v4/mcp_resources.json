@@ -1,7 +1,7 @@
 {
   "schema_version": "v4.mcp_resource_manifest/0.2",
   "project_id": "vascular_aging_demo",
-  "generated_at": "2026-06-20T12:22:15.699490+00:00",
+  "generated_at": "2026-06-20T13:07:16.711534+00:00",
   "policy": {
     "mcp_is_gateway_not_state_store": true,
     "write_tools_must_call_orchestrator": true,
@@ -53,7 +53,7 @@
       "uri": "role-run://vascular_aging_demo/index",
       "path": "v4\\role_runs.json",
       "access": "read",
-      "content_hash": "aea9536919d7bd6978e57b1ca60ef69d920bbcba828e5404273eb98345188fb4",
+      "content_hash": "5bfeaeb06ea159a24c46b67293e1082d65db4af0479a824a3f17b881c15ba1de",
       "version": "0.1",
       "resource_type": "role-run"
     },
@@ -61,7 +61,7 @@
       "uri": "evidence://vascular_aging_demo/snapshot/latest",
       "path": "v4\\evidence_snapshot.json",
       "access": "read",
-      "content_hash": "790eb567a2235f575c58d13b6b55c8b55cce59e42f2e2f2d014270d141eaac35",
+      "content_hash": "bf6bc1562f07af2b11aebc76797cc73b60b0e384ecb0881ba1c296e21bda1082",
       "version": "0.1",
       "resource_type": "evidence"
     },
@@ -69,7 +69,7 @@
       "uri": "mcp-tool://vascular_aging_demo/index",
       "path": "v4\\mcp_tools.json",
       "access": "read",
-      "content_hash": "73318e92c28cf1650a8233bcbd100a2e175e2c6bd49a2696fdf137a9a903847f",
+      "content_hash": "80fe593c182d7c15276dd706806655e64a5f6a1423fb729c11287d2f8fce77cf",
       "version": "0.1",
       "resource_type": "mcp-tool"
     },
@@ -77,9 +77,17 @@
       "uri": "mcp-audit://vascular_aging_demo/summary",
       "path": "v4\\mcp_call_audit_summary.json",
       "access": "read",
-      "content_hash": "ecb967fec46da37c62cb320298eeea4ef22238fc625219116da54618c5c8ace2",
+      "content_hash": "8620d48dd10b4c085023f033b888e4fdccee0d022cc60cc96078ab64928c081f",
       "version": "0.1",
       "resource_type": "mcp-audit"
+    },
+    {
+      "uri": "registry-snapshot://vascular_aging_demo/latest",
+      "path": "v4\\registry_snapshots.json",
+      "access": "read",
+      "content_hash": "64d8afd4e65e5d22108d05c9858dd06cc747e36ad2db067b0d2381e65c40fb70",
+      "version": "0.1",
+      "resource_type": "registry-snapshot"
     }
   ]
 }

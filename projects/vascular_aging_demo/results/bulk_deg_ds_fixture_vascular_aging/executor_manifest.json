@@ -4,8 +4,8 @@
   "backend": "local_python_r",
   "runner": "targetcompass_lite.deg.run_deg",
   "status": "success",
-  "started_at": "2026-06-20T12:20:38.221380+00:00",
-  "finished_at": "2026-06-20T12:20:38.907224+00:00",
+  "started_at": "2026-06-20T13:05:44.720595+00:00",
+  "finished_at": "2026-06-20T13:05:45.488348+00:00",
   "failure_reason": "",
   "resume_key": "resume_d9e25a872316f7fb",
   "contract": {
@@ -64,8 +64,8 @@
     },
     {
       "path": "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json",
-      "artifact_id": "artifact_4e2ec5b6faa7f293",
-      "sha256": "61f8592fd048254b20ecddbb2bca897a48f07eba143dfbd857b816789a49d062"
+      "artifact_id": "artifact_65e061d7fec1f5b9",
+      "sha256": "053e47e0c282e62f4442e201e687878f7a633800d487d83ce4f6e52c48a3121b"
     }
   ]
 }

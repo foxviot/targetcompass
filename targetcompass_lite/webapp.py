@@ -754,6 +754,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
             '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
             + _role_runs_panel(project_dir)
             + _mcp_gateway_panel(project_dir)
+            + _registry_snapshot_panel(project_dir)
             + _executor_manifest_panel(project_dir)
             + _agent_roles_panel(project_dir)
         )
@@ -829,6 +830,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         + attempt_table
         + _role_runs_panel(project_dir)
         + _mcp_gateway_panel(project_dir)
+        + _registry_snapshot_panel(project_dir)
         + _executor_manifest_panel(project_dir)
         + _agent_roles_panel(project_dir)
         + resource_table
@@ -938,6 +940,35 @@ def _mcp_gateway_panel(project_dir: Path) -> str:
         "<details><summary>MCP call audit</summary>"
         "<table><thead><tr><th>Tool</th><th>Status</th><th>Actor</th><th>Risk</th><th>Failure</th></tr></thead>"
         f"<tbody>{call_rows}</tbody></table></details></details>"
+    )
+
+
+def _registry_snapshot_panel(project_dir: Path) -> str:
+    snapshot = _read_json(project_dir / "v4" / "registry_snapshots.json", {})
+    snapshots = snapshot.get("snapshots", {})
+    if not snapshots:
+        return '<p class="muted">No registry snapshots recorded yet.</p>'
+    method = snapshots.get("method_registry", {})
+    source = snapshots.get("source_registry", {})
+    rubric = snapshots.get("rubric", {})
+    rows = [
+        ("Method Registry", method.get("method_count", 0), method.get("hash", "")),
+        ("Source Registry", source.get("resource_count", 0), source.get("hash", "")),
+        ("Rubric", len(rubric.get("sections", [])), rubric.get("hash", "")),
+    ]
+    body = "".join(
+        "<tr>"
+        f"<td>{html.escape(name)}</td>"
+        f"<td>{html.escape(str(count))}</td>"
+        f"<td><code>{html.escape(str(hash_value)[:16])}</code></td>"
+        "</tr>"
+        for name, count, hash_value in rows
+    )
+    return (
+        "<details><summary>Registry snapshots</summary>"
+        f"<p class=\"muted\">snapshot: <code>{html.escape(snapshot.get('snapshot_hash', '')[:16])}</code></p>"
+        "<table><thead><tr><th>Registry</th><th>Items</th><th>Hash</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></details>"
     )
 
 
