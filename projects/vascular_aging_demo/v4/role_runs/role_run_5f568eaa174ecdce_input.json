@@ -1,0 +1,22 @@
+{
+  "schema_version": "v4.role_input_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "dataset_scout",
+  "run_id": "role_run_5f568eaa174ecdce",
+  "runner": "tc_lite.demo:screen_and_match",
+  "stage": "verification",
+  "expected_schema": "DatasetCandidate",
+  "input_refs": {
+    "selected_datasets": "all",
+    "screening_report": "screening_report.md"
+  },
+  "declared_input_refs": [
+    "research_spec.json",
+    "dataset_cards/*.yaml"
+  ],
+  "declared_output_refs": [
+    "dataset_match_report.csv",
+    "results/geo_discovery/geo_recommendations.json"
+  ],
+  "created_at": "2026-06-20T12:20:37.339367+00:00"
+}

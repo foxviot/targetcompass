@@ -21,13 +21,13 @@
       ],
       "schema": "ResearchSpec",
       "status": "complete",
-      "decision_id": "decision_7f688be8f5d82f6b",
+      "decision_id": "decision_6c7813b4b06c1b7a",
       "observations": {
-        "latest_role_run_id": "role_run_88867df9813281f6",
+        "latest_role_run_id": "role_run_234936365f903a19",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_88867df9813281f6_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_234936365f903a19_output.json"
       },
-      "generated_at": "2026-06-20T12:01:07.945309+00:00"
+      "generated_at": "2026-06-20T12:22:14.927687+00:00"
     },
     {
       "role_id": "dataset_scout",
@@ -44,13 +44,13 @@
       ],
       "schema": "DatasetCandidate",
       "status": "complete",
-      "decision_id": "decision_70c7bf951005483b",
+      "decision_id": "decision_f308c31f7224af68",
       "observations": {
-        "latest_role_run_id": "role_run_f279e66cab90076c",
+        "latest_role_run_id": "role_run_5f568eaa174ecdce",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_f279e66cab90076c_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_5f568eaa174ecdce_output.json"
       },
-      "generated_at": "2026-06-20T12:01:07.945719+00:00"
+      "generated_at": "2026-06-20T12:22:14.928028+00:00"
     },
     {
       "role_id": "planner",
@@ -67,13 +67,13 @@
       ],
       "schema": "AnalysisPlan",
       "status": "complete",
-      "decision_id": "decision_3fe7a088cbe96cb9",
+      "decision_id": "decision_7806076663698dfe",
       "observations": {
-        "latest_role_run_id": "role_run_9ede1a77992026c0",
+        "latest_role_run_id": "role_run_e485f532ed54bf83",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_9ede1a77992026c0_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_e485f532ed54bf83_output.json"
       },
-      "generated_at": "2026-06-20T12:01:07.946086+00:00"
+      "generated_at": "2026-06-20T12:22:14.928392+00:00"
     },
     {
       "role_id": "method_reviewer",
@@ -90,10 +90,10 @@
         "results/review_actions.jsonl"
       ],
       "schema": "ReviewDecision",
-      "status": "pending",
+      "status": "partial",
       "decision_id": "decision_dbc10c3bf96d39a3",
       "observations": {},
-      "generated_at": "2026-06-20T12:01:07.946366+00:00"
+      "generated_at": "2026-06-20T12:22:14.928567+00:00"
     },
     {
       "role_id": "result_reviewer",
@@ -110,13 +110,13 @@
       ],
       "schema": "ReviewDecision",
       "status": "complete",
-      "decision_id": "decision_55da2d051ac1fbf0",
+      "decision_id": "decision_29f9b0f39c20f435",
       "observations": {
-        "latest_role_run_id": "role_run_a103a5cfdf9610c1",
+        "latest_role_run_id": "role_run_395073871ea034da",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_a103a5cfdf9610c1_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_395073871ea034da_output.json"
       },
-      "generated_at": "2026-06-20T12:01:07.946596+00:00"
+      "generated_at": "2026-06-20T12:22:14.928675+00:00"
     },
     {
       "role_id": "causal_reviewer",
@@ -133,7 +133,7 @@
       "status": "pending",
       "decision_id": "decision_9057d8b907f803a9",
       "observations": {},
-      "generated_at": "2026-06-20T12:01:07.946751+00:00"
+      "generated_at": "2026-06-20T12:22:14.928744+00:00"
     },
     {
       "role_id": "report_writer",
@@ -151,13 +151,13 @@
       ],
       "schema": "Report",
       "status": "complete",
-      "decision_id": "decision_0e0bb693699c5b0e",
+      "decision_id": "decision_98046d5e46384b48",
       "observations": {
-        "latest_role_run_id": "role_run_b21b4f9fa0725a09",
+        "latest_role_run_id": "role_run_a9f8c65de2ccb0bd",
         "latest_status": "success",
-        "latest_output_packet": "v4\\role_runs\\role_run_b21b4f9fa0725a09_output.json"
+        "latest_output_packet": "v4\\role_runs\\role_run_a9f8c65de2ccb0bd_output.json"
       },
-      "generated_at": "2026-06-20T12:01:07.947099+00:00"
+      "generated_at": "2026-06-20T12:22:14.928881+00:00"
     }
   ]
 }

@@ -286,6 +286,12 @@ def main() -> None:
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("v4-manifest")
     p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("mcp-gateway")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--list-tools", action="store_true")
+    p.add_argument("--read-resource", default="")
+    p.add_argument("--call-tool", default="")
+    p.add_argument("--args-json", default="{}")
     p = sub.add_parser("system-status")
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("reset-demo")
@@ -457,6 +463,17 @@ def main() -> None:
         from .v4 import build_v4_manifest
 
         print(json.dumps(build_v4_manifest(pdir), indent=2, ensure_ascii=False))
+    elif args.cmd == "mcp-gateway":
+        from .mcp_gateway import build_mcp_gateway, call_tool, read_resource
+
+        if args.list_tools:
+            print(json.dumps(build_mcp_gateway(pdir)["tools"], indent=2, ensure_ascii=False))
+        elif args.read_resource:
+            print(json.dumps(read_resource(pdir, args.read_resource, actor="cli"), indent=2, ensure_ascii=False))
+        elif args.call_tool:
+            print(json.dumps(call_tool(pdir, args.call_tool, json.loads(args.args_json), actor="cli"), indent=2, ensure_ascii=False))
+        else:
+            print(json.dumps(build_mcp_gateway(pdir), indent=2, ensure_ascii=False))
     elif args.cmd == "system-status":
         from .system_status import system_status
 

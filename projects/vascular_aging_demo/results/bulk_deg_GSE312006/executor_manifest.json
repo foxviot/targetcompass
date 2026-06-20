@@ -4,8 +4,8 @@
   "backend": "local_python_r",
   "runner": "targetcompass_lite.deg.run_deg",
   "status": "success",
-  "started_at": "2026-06-20T11:59:33.498551+00:00",
-  "finished_at": "2026-06-20T11:59:34.627685+00:00",
+  "started_at": "2026-06-20T12:20:39.612245+00:00",
+  "finished_at": "2026-06-20T12:20:40.758752+00:00",
   "failure_reason": "",
   "resume_key": "resume_fafa8a1eacab40a4",
   "contract": {
@@ -62,8 +62,8 @@
     },
     {
       "path": "results/bulk_deg_GSE312006/run_manifest.json",
-      "artifact_id": "artifact_c372b885883db1d2",
-      "sha256": "6f418cefe4730f7363ec972dfcf817847ff17d4e078c20aeb53bc0ecdd4b342d"
+      "artifact_id": "artifact_98afc852870a0f45",
+      "sha256": "541ad25128f481224ffadb570c21072950cfe4d38cab51ec7e419fdcd5a1988c"
     }
   ]
 }

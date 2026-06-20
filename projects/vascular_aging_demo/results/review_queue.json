@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-06-20T12:22:15.935717+00:00",
+  "queue_count": 4,
+  "approved_count": 0,
+  "rejected_count": 0,
+  "items": [
+    {
+      "item_type": "idea",
+      "item_id": "idea_001_d7548696",
+      "title": "Secreted senescence signal target",
+      "execution_status": "candidate",
+      "review_status": "pending",
+      "reason": "",
+      "report_ref": "reports/target_report.html#idea-idea-001-d7548696"
+    },
+    {
+      "item_type": "idea",
+      "item_id": "idea_002_80759d3b",
+      "title": "Surface accessibility target",
+      "execution_status": "candidate",
+      "review_status": "pending",
+      "reason": "",
+      "report_ref": "reports/target_report.html#idea-idea-002-80759d3b"
+    },
+    {
+      "item_type": "idea",
+      "item_id": "idea_003_1bc96f40",
+      "title": "ECD shedding target",
+      "execution_status": "candidate",
+      "review_status": "pending",
+      "reason": "",
+      "report_ref": "reports/target_report.html#idea-idea-003-1bc96f40"
+    },
+    {
+      "item_type": "idea",
+      "item_id": "idea_004_cb241ae1",
+      "title": "T cell epitope candidate",
+      "execution_status": "review",
+      "review_status": "pending",
+      "reason": "",
+      "report_ref": "reports/target_report.html#idea-idea-004-cb241ae1"
+    }
+  ]
+}

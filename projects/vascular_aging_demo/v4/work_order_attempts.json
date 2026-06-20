@@ -1567,7 +1567,385 @@
         "results/bulk_deg_GSE43292/run_manifest.json"
       ],
       "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_bd77f68e11dca16a",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:07:30.578585+00:00",
+      "finished_at": "2026-06-20T12:07:31.867804+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_deaaf35a4f4803d4",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:07:31.869684+00:00",
+      "finished_at": "2026-06-20T12:07:33.627802+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_079f4372c533aec5",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:07:33.630265+00:00",
+      "finished_at": "2026-06-20T12:07:39.038207+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_2ddda4dbe3aa94fa",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:09:34.140925+00:00",
+      "finished_at": "2026-06-20T12:09:36.130731+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_09453bfa840ffa9a",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:09:36.134567+00:00",
+      "finished_at": "2026-06-20T12:09:38.301119+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_9f4e57d3c4dcd592",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:09:38.303512+00:00",
+      "finished_at": "2026-06-20T12:09:44.828004+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_97df65b6456f7ae8",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:11:41.750595+00:00",
+      "finished_at": "2026-06-20T12:11:43.188007+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_21efc643504ab24c",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:11:43.189877+00:00",
+      "finished_at": "2026-06-20T12:11:45.105683+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_95fd163f1b254aab",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:11:45.107926+00:00",
+      "finished_at": "2026-06-20T12:11:50.763262+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_c78c43d7424e7081",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:14:23.084569+00:00",
+      "finished_at": "2026-06-20T12:14:24.594846+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_275d245f02d166cc",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:14:24.597727+00:00",
+      "finished_at": "2026-06-20T12:14:26.392707+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_9492cb00d5f8e58c",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:14:26.395166+00:00",
+      "finished_at": "2026-06-20T12:14:32.171585+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_5575aa655bdb36a1",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:16:52.200344+00:00",
+      "finished_at": "2026-06-20T12:16:53.680374+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_f40e7850242d5e9c",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:16:53.683093+00:00",
+      "finished_at": "2026-06-20T12:16:55.551775+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_0739a3dd78d407fc",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:16:55.553809+00:00",
+      "finished_at": "2026-06-20T12:17:01.467991+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_b1dcb3f118db7b9a",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:18:48.280110+00:00",
+      "finished_at": "2026-06-20T12:18:50.049358+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_b84e8516da352ef6",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:18:50.052936+00:00",
+      "finished_at": "2026-06-20T12:18:52.192939+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_7f2ec30b1cc73236",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:18:52.195897+00:00",
+      "finished_at": "2026-06-20T12:18:58.040715+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
+    },
+    {
+      "attempt_id": "attempt_1940b166be3e4faa",
+      "work_order_id": "wo_e0984ae1383221cf",
+      "module_id": "P4_bulk_deg_ds_fixture_vascular_aging",
+      "dataset_id": "ds_fixture_vascular_aging",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:20:37.577305+00:00",
+      "finished_at": "2026-06-20T12:20:38.909899+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_ds_fixture_vascular_aging\\deg_results.tsv",
+        "results/bulk_deg_ds_fixture_vascular_aging/qc_summary.json",
+        "results/bulk_deg_ds_fixture_vascular_aging/run_manifest.json"
+      ],
+      "resume_key": "idem_e0984ae1383221cf6f3db2e4"
+    },
+    {
+      "attempt_id": "attempt_19b6c83ee2c955fe",
+      "work_order_id": "wo_5eec40a91f001b66",
+      "module_id": "P4_bulk_deg_GSE312006",
+      "dataset_id": "GSE312006",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:20:38.913659+00:00",
+      "finished_at": "2026-06-20T12:20:40.764436+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE312006\\deg_results.tsv",
+        "results/bulk_deg_GSE312006/qc_summary.json",
+        "results/bulk_deg_GSE312006/run_manifest.json"
+      ],
+      "resume_key": "idem_5eec40a91f001b66b5a12d77"
+    },
+    {
+      "attempt_id": "attempt_3b8da9a465a34ae6",
+      "work_order_id": "wo_7a7cd07c97381236",
+      "module_id": "P4_bulk_deg_GSE43292",
+      "dataset_id": "GSE43292",
+      "work_order_type": "RUN_REGISTERED_MODULE",
+      "run_id": "demo_run",
+      "status": "success",
+      "started_at": "2026-06-20T12:20:40.767087+00:00",
+      "finished_at": "2026-06-20T12:20:46.475831+00:00",
+      "failure_reason": "",
+      "artifacts": [
+        "results\\bulk_deg_GSE43292\\deg_results.tsv",
+        "results/bulk_deg_GSE43292/qc_summary.json",
+        "results/bulk_deg_GSE43292/run_manifest.json"
+      ],
+      "resume_key": "idem_7a7cd07c973812365aec0dca"
     }
   ],
-  "updated_at": "2026-06-20T11:59:39.995655+00:00"
+  "updated_at": "2026-06-20T12:20:46.476436+00:00"
 }

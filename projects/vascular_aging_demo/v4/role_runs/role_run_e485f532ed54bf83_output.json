@@ -1,0 +1,37 @@
+{
+  "schema_version": "v4.role_output_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "planner",
+  "run_id": "role_run_e485f532ed54bf83",
+  "status": "success",
+  "failure_reason": "",
+  "output_summary": {
+    "plan_version": "0.3",
+    "project_id": "vascular_aging_demo",
+    "module_registry": "analysis_module_registry.json",
+    "available_modules": {
+      "count": 6
+    },
+    "datasets": {
+      "count": 3
+    },
+    "modules": {
+      "count": 3
+    },
+    "execution_order": {
+      "count": 3
+    },
+    "expected_outputs": {
+      "count": 6
+    },
+    "blocking_conditions": {
+      "count": 5
+    }
+  },
+  "schema": "AnalysisPlan",
+  "output_refs": [
+    "analysis_plan.json",
+    "v4/work_orders.json"
+  ],
+  "finished_at": "2026-06-20T12:20:37.571794+00:00"
+}

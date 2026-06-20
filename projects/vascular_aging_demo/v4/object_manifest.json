@@ -1,7 +1,7 @@
 {
   "schema_version": "v4.object_manifest/0.1",
   "project_id": "vascular_aging_demo",
-  "generated_at": "2026-06-20T11:59:31.481319+00:00",
+  "generated_at": "2026-06-20T12:22:15.390860+00:00",
   "objects": {
     "research_spec": {
       "path": "research_spec.json",
@@ -40,11 +40,19 @@
       ],
       "scoring_manifest": "results/scoring/target_score_manifest.json",
       "review_status_policy": "report_writer_may_reference_accepted_or_flagged_evidence_only",
-      "generated_at": "2026-06-20T11:59:31.471793+00:00"
+      "generated_at": "2026-06-20T12:22:15.377938+00:00"
     },
     "mcp_resources": {
       "path": "v4/mcp_resources.json",
-      "count": 7
+      "count": 9
+    },
+    "mcp_tools": {
+      "path": "v4/mcp_tools.json",
+      "exists": true
+    },
+    "mcp_call_audit": {
+      "path": "v4/mcp_call_audit_summary.json",
+      "exists": true
     },
     "agent_roles": {
       "path": "v4/agent_roles.json",

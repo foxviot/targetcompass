@@ -1,11 +1,12 @@
 {
-  "schema_version": "v4.mcp_resource_manifest/0.1",
+  "schema_version": "v4.mcp_resource_manifest/0.2",
   "project_id": "vascular_aging_demo",
-  "generated_at": "2026-06-20T11:59:31.480112+00:00",
+  "generated_at": "2026-06-20T12:22:15.699490+00:00",
   "policy": {
     "mcp_is_gateway_not_state_store": true,
     "write_tools_must_call_orchestrator": true,
-    "large_objects_are_referenced_by_artifact_path": true
+    "large_objects_are_referenced_by_artifact_path": true,
+    "resource_reads_are_audited": true
   },
   "resources": [
     {
@@ -13,49 +14,72 @@
       "path": "research_interest.md",
       "access": "read",
       "content_hash": "d0ecaec51337eca32dd2b9320248e7ee4dd32430dc9dc9e4c45210f4c26fc444",
-      "version": "0.1"
+      "version": "0.1",
+      "resource_type": "project"
     },
     {
       "uri": "spec://vascular_aging_demo/research/latest",
       "path": "research_spec.json",
       "access": "read",
       "content_hash": "9f84f31e8b1551ef6ef1bc5c169f6e299685cb175835ac496bb4a9b3dc818dc6",
-      "version": "0.1"
+      "version": "0.1",
+      "resource_type": "spec"
     },
     {
       "uri": "spec://vascular_aging_demo/disease/latest",
       "path": "v4\\disease_spec.json",
       "access": "read",
       "content_hash": "333a208a10572c140109946658727f400c199a5f4c76a05fd01f9ba66da05ee8",
-      "version": "0.1"
+      "version": "0.1",
+      "resource_type": "spec"
     },
     {
       "uri": "plan://vascular_aging_demo/latest",
       "path": "analysis_plan.json",
       "access": "read",
       "content_hash": "79424108d3c75e59d6682420498168389a41ba50cba313e3df390f595d3957b7",
-      "version": "0.1"
+      "version": "0.1",
+      "resource_type": "plan"
     },
     {
       "uri": "work-order://vascular_aging_demo/index",
       "path": "v4\\work_orders.json",
       "access": "read",
       "content_hash": "f52cb811867548c3fbe41f08d6c88c4449d677dc1fb3a31d2dfa2c4e46baa4bd",
-      "version": "0.1"
+      "version": "0.1",
+      "resource_type": "work-order"
     },
     {
       "uri": "role-run://vascular_aging_demo/index",
       "path": "v4\\role_runs.json",
       "access": "read",
-      "content_hash": "f947b316d1b4ebbcf145fdf69564af9d2e4d484661d9ffbc3c6e10458ed04b60",
-      "version": "0.1"
+      "content_hash": "aea9536919d7bd6978e57b1ca60ef69d920bbcba828e5404273eb98345188fb4",
+      "version": "0.1",
+      "resource_type": "role-run"
     },
     {
       "uri": "evidence://vascular_aging_demo/snapshot/latest",
       "path": "v4\\evidence_snapshot.json",
       "access": "read",
-      "content_hash": "d1f3e6fc7ec8de9ea0b839882df3475bc2622839d0c401d05714ef25d4a0b625",
-      "version": "0.1"
+      "content_hash": "790eb567a2235f575c58d13b6b55c8b55cce59e42f2e2f2d014270d141eaac35",
+      "version": "0.1",
+      "resource_type": "evidence"
+    },
+    {
+      "uri": "mcp-tool://vascular_aging_demo/index",
+      "path": "v4\\mcp_tools.json",
+      "access": "read",
+      "content_hash": "73318e92c28cf1650a8233bcbd100a2e175e2c6bd49a2696fdf137a9a903847f",
+      "version": "0.1",
+      "resource_type": "mcp-tool"
+    },
+    {
+      "uri": "mcp-audit://vascular_aging_demo/summary",
+      "path": "v4\\mcp_call_audit_summary.json",
+      "access": "read",
+      "content_hash": "ecb967fec46da37c62cb320298eeea4ef22238fc625219116da54618c5c8ace2",
+      "version": "0.1",
+      "resource_type": "mcp-audit"
     }
   ]
 }

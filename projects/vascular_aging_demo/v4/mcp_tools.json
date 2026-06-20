@@ -1,0 +1,61 @@
+{
+  "schema_version": "v4.mcp_tool_manifest/0.1",
+  "project_id": "vascular_aging_demo",
+  "generated_at": "2026-06-20T12:22:15.379877+00:00",
+  "policy": {
+    "tool_calls_are_audited": true,
+    "write_tools_require_contract": true,
+    "review_required_tools_cannot_self_approve": true
+  },
+  "tools": [
+    {
+      "tool_id": "resource.read",
+      "purpose": "Read a registered project resource through the local gateway.",
+      "risk": "read_only",
+      "requires_review": false,
+      "input_schema": {
+        "uri": "string"
+      },
+      "output_schema": "McpResourceReadResult",
+      "contract_hash": "ecef6adc85d5c3199e31f8a6937150ff61346861cd9ddf841300fccdd201f50b"
+    },
+    {
+      "tool_id": "v4.build_manifest",
+      "purpose": "Rebuild v4 object, resource, tool, and state manifests.",
+      "risk": "project_metadata_write",
+      "requires_review": false,
+      "input_schema": {},
+      "output_schema": "V4ObjectManifest",
+      "contract_hash": "bd9dbe293424552d813042bf64e1b18c5586aff872a9f7cb4090efee9bada46c"
+    },
+    {
+      "tool_id": "review.queue.build",
+      "purpose": "Build the human review queue for work orders, Codex packets, and final signoff.",
+      "risk": "review_metadata_write",
+      "requires_review": false,
+      "input_schema": {},
+      "output_schema": "ReviewQueue",
+      "contract_hash": "e0db73d44d2102bbf45b2486883b0f47c383751fdf5b3acd92a4928a86889da1"
+    },
+    {
+      "tool_id": "knowledge.adapt_resources",
+      "purpose": "Normalize registered knowledge/database resources through configured adapters.",
+      "risk": "project_data_write",
+      "requires_review": true,
+      "input_schema": {},
+      "output_schema": "KnowledgeAdaptationResult",
+      "contract_hash": "35982498d77c068ee46c2c20707166f4c444e749a8290d3380025aa15130cf6f"
+    },
+    {
+      "tool_id": "codex.task_packet.inspect",
+      "purpose": "Inspect generated Codex task packets without executing code.",
+      "risk": "read_only",
+      "requires_review": false,
+      "input_schema": {
+        "work_order_id": "string"
+      },
+      "output_schema": "CodexTaskPacket",
+      "contract_hash": "1b70dfd7f36fc4af582684793ee884fba04fea95571805cc1b0aeffd6258a7eb"
+    }
+  ]
+}

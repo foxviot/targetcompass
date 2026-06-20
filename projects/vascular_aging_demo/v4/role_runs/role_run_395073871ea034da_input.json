@@ -1,0 +1,22 @@
+{
+  "schema_version": "v4.role_input_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "result_reviewer",
+  "run_id": "role_run_395073871ea034da",
+  "runner": "tc_lite.demo:result_review_summary",
+  "stage": "final_review",
+  "expected_schema": "ReviewDecision",
+  "input_refs": {
+    "candidate_scores": "candidate_scores.csv",
+    "qc": "results/*/qc_summary.json"
+  },
+  "declared_input_refs": [
+    "results/*/qc_summary.json",
+    "results/evidence_import/import_summary.json",
+    "candidate_scores.csv"
+  ],
+  "declared_output_refs": [
+    "reports/target_report_structured.json"
+  ],
+  "created_at": "2026-06-20T12:22:13.630322+00:00"
+}

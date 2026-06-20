@@ -753,6 +753,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         return (
             '<p class="muted">No v4 WorkOrders yet. Run planning or Agent workflow first.</p>'
             + _role_runs_panel(project_dir)
+            + _mcp_gateway_panel(project_dir)
             + _executor_manifest_panel(project_dir)
             + _agent_roles_panel(project_dir)
         )
@@ -827,6 +828,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         "".join(cards)
         + attempt_table
         + _role_runs_panel(project_dir)
+        + _mcp_gateway_panel(project_dir)
         + _executor_manifest_panel(project_dir)
         + _agent_roles_panel(project_dir)
         + resource_table
@@ -899,6 +901,43 @@ def _role_runs_panel(project_dir: Path) -> str:
         "<details open><summary>v4 Role runs</summary>"
         "<table><thead><tr><th>Role</th><th>Status</th><th>Run</th><th>Input</th><th>Output</th><th>Log</th><th>Failure</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></details>"
+    )
+
+
+def _mcp_gateway_panel(project_dir: Path) -> str:
+    tools = _read_json(project_dir / "v4" / "mcp_tools.json", {}).get("tools", [])
+    audit = _read_json(project_dir / "v4" / "mcp_call_audit_summary.json", {})
+    if not tools and not audit:
+        return '<p class="muted">No local MCP gateway contract recorded yet.</p>'
+    tool_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('tool_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('risk', ''))}</td>"
+        f"<td>{html.escape(str(row.get('requires_review', False)))}</td>"
+        f"<td>{html.escape(row.get('output_schema', ''))}</td>"
+        f"<td><code>{html.escape(row.get('contract_hash', '')[:12])}</code></td>"
+        "</tr>"
+        for row in tools
+    )
+    calls = audit.get("latest_calls", [])
+    call_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('tool_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(row.get('actor', ''))}</td>"
+        f"<td>{html.escape(row.get('risk', ''))}</td>"
+        f"<td>{html.escape(row.get('failure_reason', ''))}</td>"
+        "</tr>"
+        for row in calls[-8:]
+    )
+    return (
+        "<details open><summary>Local MCP Gateway</summary>"
+        f"<p class=\"muted\">calls: {html.escape(str(audit.get('call_count', 0)))} · failures: {html.escape(str(audit.get('failure_count', 0)))}</p>"
+        "<table><thead><tr><th>Tool</th><th>Risk</th><th>Review</th><th>Output</th><th>Hash</th></tr></thead>"
+        f"<tbody>{tool_rows}</tbody></table>"
+        "<details><summary>MCP call audit</summary>"
+        "<table><thead><tr><th>Tool</th><th>Status</th><th>Actor</th><th>Risk</th><th>Failure</th></tr></thead>"
+        f"<tbody>{call_rows}</tbody></table></details></details>"
     )
 
 

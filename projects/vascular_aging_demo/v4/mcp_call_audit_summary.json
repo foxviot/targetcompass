@@ -1,0 +1,52 @@
+{
+  "schema_version": "v4.mcp_call_audit_summary/0.1",
+  "project_id": "vascular_aging_demo",
+  "call_count": 2,
+  "failure_count": 0,
+  "by_tool": {
+    "resource.read": 1,
+    "review.queue.build": 1
+  },
+  "latest_calls": [
+    {
+      "schema_version": "v4.mcp_call_audit/0.1",
+      "call_id": "mcp_call_527de31d5683cd35",
+      "tool_id": "resource.read",
+      "actor": "cli",
+      "risk": "read_only",
+      "requires_review": false,
+      "arguments_hash": "7dd3fc56a0a22a8f0b1ac6186c29f37c1ebc81be6dbd6812ffc2bb62ba90b536",
+      "status": "success",
+      "failure_reason": "",
+      "started_at": "2026-06-20T12:22:15.701718+00:00",
+      "finished_at": "2026-06-20T12:22:15.701722+00:00",
+      "result_summary": {
+        "path": "research_interest.md",
+        "bytes": 73
+      }
+    },
+    {
+      "schema_version": "v4.mcp_call_audit/0.1",
+      "call_id": "mcp_call_d960f1519b45ecab",
+      "tool_id": "review.queue.build",
+      "actor": "cli",
+      "risk": "review_metadata_write",
+      "requires_review": false,
+      "arguments_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "status": "success",
+      "failure_reason": "",
+      "started_at": "2026-06-20T12:22:15.928472+00:00",
+      "finished_at": "2026-06-20T12:22:15.937154+00:00",
+      "result_summary": {
+        "keys": [
+          "approved_count",
+          "generated_at",
+          "items",
+          "queue_count",
+          "rejected_count"
+        ]
+      }
+    }
+  ],
+  "updated_at": "2026-06-20T12:22:15.939368+00:00"
+}

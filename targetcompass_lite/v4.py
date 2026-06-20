@@ -189,44 +189,9 @@ def build_codex_task_packet(project_dir: Path, work_order: dict[str, Any]) -> di
 
 
 def build_mcp_resource_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
-    plan = plan or read_json(project_dir / "analysis_plan.json", {})
-    spec_path = project_dir / "research_spec.json"
-    disease_spec_path = v4_dir(project_dir) / "disease_spec.json"
-    work_order_index = v4_dir(project_dir) / "work_orders.json"
-    resources = []
-    for uri, path, access in [
-        (f"project://{project_dir.name}", project_dir / "research_interest.md", "read"),
-        (f"spec://{project_dir.name}/research/latest", spec_path, "read"),
-        (f"spec://{project_dir.name}/disease/latest", disease_spec_path, "read"),
-        (f"plan://{project_dir.name}/latest", project_dir / "analysis_plan.json", "read"),
-        (f"work-order://{project_dir.name}/index", work_order_index, "read"),
-        (f"role-run://{project_dir.name}/index", v4_dir(project_dir) / "role_runs.json", "read"),
-        (f"evidence://{project_dir.name}/snapshot/latest", v4_dir(project_dir) / "evidence_snapshot.json", "read"),
-    ]:
-        if path.exists():
-            resources.append(
-                {
-                    "uri": uri,
-                    "path": str(path.relative_to(project_dir)),
-                    "access": access,
-                    "content_hash": file_hash(path),
-                    "version": "0.1",
-                }
-            )
-    manifest = {
-        "schema_version": "v4.mcp_resource_manifest/0.1",
-        "project_id": project_dir.name,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "policy": {
-            "mcp_is_gateway_not_state_store": True,
-            "write_tools_must_call_orchestrator": True,
-            "large_objects_are_referenced_by_artifact_path": True,
-        },
-        "resources": resources,
-    }
-    path = v4_dir(project_dir) / "mcp_resources.json"
-    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    return manifest
+    from .mcp_gateway import build_mcp_gateway
+
+    return build_mcp_gateway(project_dir, plan)["resources"]
 
 
 def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
@@ -325,6 +290,14 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
             "mcp_resources": {
                 "path": "v4/mcp_resources.json",
                 "count": len(mcp_manifest["resources"]),
+            },
+            "mcp_tools": {
+                "path": "v4/mcp_tools.json",
+                "exists": (project_dir / "v4" / "mcp_tools.json").exists(),
+            },
+            "mcp_call_audit": {
+                "path": "v4/mcp_call_audit_summary.json",
+                "exists": (project_dir / "v4" / "mcp_call_audit_summary.json").exists(),
             },
             "agent_roles": {
                 "path": "v4/agent_roles.json",

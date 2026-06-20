@@ -1,0 +1,17 @@
+{
+  "schema_version": "v4.role_output_packet/0.1",
+  "project_id": "vascular_aging_demo",
+  "role_id": "result_reviewer",
+  "run_id": "role_run_395073871ea034da",
+  "status": "success",
+  "failure_reason": "",
+  "output_summary": {
+    "candidate_scores": "candidate_scores.csv",
+    "review_queue": "results/review_queue.json"
+  },
+  "schema": "ReviewDecision",
+  "output_refs": [
+    "reports/target_report_structured.json"
+  ],
+  "finished_at": "2026-06-20T12:22:13.632475+00:00"
+}

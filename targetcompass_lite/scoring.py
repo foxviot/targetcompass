@@ -2,6 +2,7 @@ import csv
 import hashlib
 import json
 import sqlite3
+import time
 from pathlib import Path
 
 from .paths import KB
@@ -142,9 +143,22 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         writer.writerows(scored)
-    tmp.replace(out)
+    _replace_with_retry(tmp, out)
     _write_score_manifest(project_dir, evidence_snapshot_id, rubric_hash, scored)
     return out
+
+
+def _replace_with_retry(source: Path, target: Path, attempts: int = 8) -> None:
+    last_error: Exception | None = None
+    for _ in range(attempts):
+        try:
+            source.replace(target)
+            return
+        except PermissionError as exc:
+            last_error = exc
+            time.sleep(0.25)
+    if last_error:
+        raise last_error
 
 
 def _write_score_manifest(project_dir: Path, evidence_snapshot_id: str, rubric_hash: str, scored: list[dict]) -> None:
