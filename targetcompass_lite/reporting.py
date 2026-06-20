@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .codex_engineering import load_codex_engineering
+from .evidence_index import build_evidence_review_report_index, evidence_review_report_index_path
 
 
 PROHIBITED_CLAIMS = ["clinical recommendation", "cure"]
@@ -500,6 +501,7 @@ def _structured_report(project_dir: Path, context: dict[str, Any]) -> dict[str, 
             }
             for row in evidence
         },
+        "evidence_review_report_index": {},
         "scoring_manifest": _read_json(project_dir / "results" / "scoring" / "target_score_manifest.json", {}),
         "limitations": _limitation_records(context),
         "experiment_suggestions": _experiment_records(project_dir),
@@ -627,6 +629,14 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
         ]
         for row in context.get("review_queue", {}).get("items", [])[:20]
     ])}
+    <h3>Evidence trace index</h3>
+    {_table(["Index", "Evidence", "Review items", "Report refs", "Path"], [[
+        structured.get("evidence_review_report_index", {}).get("index_id", ""),
+        structured.get("evidence_review_report_index", {}).get("evidence_count", ""),
+        structured.get("evidence_review_report_index", {}).get("review_item_count", ""),
+        structured.get("evidence_review_report_index", {}).get("report_ref_count", ""),
+        structured.get("evidence_review_report_index", {}).get("path", ""),
+    ]])}
     <h3>Agent trace</h3>
     {_table(["Stage", "Status", "Message", "Label"], stages)}
     <h3>Manual review actions</h3>
@@ -717,15 +727,24 @@ def _write_docx(docx_path: Path, project_dir: Path, context: dict[str, Any], str
 def build_report(project_dir: Path) -> tuple[Path, Path]:
     context = _build_context(project_dir)
     structured = _structured_report(project_dir, context)
-    html_text = _html_report(project_dir, context, structured)
-    for phrase in PROHIBITED_CLAIMS:
-        if phrase.lower() in html_text.lower():
-            raise ValueError(f"report contains prohibited claim phrase: {phrase}")
     reports = project_dir / "reports"
     reports.mkdir(exist_ok=True)
     html_path = reports / "target_report.html"
     docx_path = reports / "target_report.docx"
     structured_path = reports / "target_report_structured.json"
+    _write_json(structured_path, structured)
+    evidence_index = build_evidence_review_report_index(project_dir)
+    structured["evidence_review_report_index"] = {
+        "path": str(evidence_review_report_index_path(project_dir).relative_to(project_dir)).replace("\\", "/"),
+        "index_id": evidence_index.get("index_id", ""),
+        "evidence_count": evidence_index.get("evidence_count", 0),
+        "review_item_count": evidence_index.get("review_item_count", 0),
+        "report_ref_count": evidence_index.get("report_ref_count", 0),
+    }
+    html_text = _html_report(project_dir, context, structured)
+    for phrase in PROHIBITED_CLAIMS:
+        if phrase.lower() in html_text.lower():
+            raise ValueError(f"report contains prohibited claim phrase: {phrase}")
     html_path.write_text(html_text, encoding="utf-8")
     _write_json(structured_path, structured)
     try:
