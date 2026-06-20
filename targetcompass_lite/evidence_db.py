@@ -251,6 +251,64 @@ def import_evidence(project_dir: Path) -> Path:
                 if _insert_evidence(con, evidence, rejected, source, row_number):
                     summary["inserted_rows"] += 1
                     summary["by_evidence_type"][evidence_type] = summary["by_evidence_type"].get(evidence_type, 0) + 1
+    meta_path = project_dir / "results" / "meta_analysis" / "deg_meta_analysis.tsv"
+    if meta_path.exists():
+        with meta_path.open(encoding="utf-8") as f:
+            for row_number, row in enumerate(csv.DictReader(f, delimiter="\t"), 2):
+                source = str(meta_path.relative_to(project_dir))
+                summary["sources"].append(source) if source not in summary["sources"] else None
+                gene = row.get("gene_symbol", "")
+                evidence = {
+                    "evidence_id": _evidence_id(project_dir.name, gene, "deg_meta_analysis", row_number),
+                    "project_id": project_dir.name,
+                    "entity_symbol": gene,
+                    "disease_context": disease,
+                    "evidence_type": "deg_meta_analysis",
+                    "direction": row.get("dominant_direction", ""),
+                    "effect_size": row.get("mean_logFC", ""),
+                    "p_value": "",
+                    "quality_score": min(0.9, 0.35 + 0.15 * int(row.get("dataset_count", "0") or 0)),
+                    "review_status": "PENDING",
+                    "source_dataset": row.get("source_datasets", ""),
+                    "artifact_path": source,
+                    "run_id": _current_run_id(project_dir),
+                    "artifact_id": _artifact_id(project_dir, source, artifact_cache),
+                    "module_version": "deg_meta_analysis_v1",
+                    "limitation": row.get("limitation", "lightweight meta-analysis summary"),
+                    "created_at": created,
+                }
+                if _insert_evidence(con, evidence, rejected, source, row_number):
+                    summary["inserted_rows"] += 1
+                    summary["by_evidence_type"]["deg_meta_analysis"] = summary["by_evidence_type"].get("deg_meta_analysis", 0) + 1
+    causal_path = project_dir / "results" / "causal_evidence" / "causal_evidence_grades.tsv"
+    if causal_path.exists():
+        with causal_path.open(encoding="utf-8") as f:
+            for row_number, row in enumerate(csv.DictReader(f, delimiter="\t"), 2):
+                source = str(causal_path.relative_to(project_dir))
+                summary["sources"].append(source) if source not in summary["sources"] else None
+                grade = row.get("causal_grade", "D")
+                evidence = {
+                    "evidence_id": _evidence_id(project_dir.name, row.get("gene_symbol", ""), "causal_grade", row_number),
+                    "project_id": project_dir.name,
+                    "entity_symbol": row.get("gene_symbol", ""),
+                    "disease_context": disease,
+                    "evidence_type": "causal_grade",
+                    "direction": grade,
+                    "effect_size": row.get("evidence_count", ""),
+                    "p_value": row.get("best_p_value", ""),
+                    "quality_score": {"A": 0.9, "B": 0.75, "C": 0.45, "D": 0.1}.get(grade, 0.1),
+                    "review_status": "PENDING",
+                    "source_dataset": row.get("evidence_types", ""),
+                    "artifact_path": source,
+                    "run_id": _current_run_id(project_dir),
+                    "artifact_id": _artifact_id(project_dir, source, artifact_cache),
+                    "module_version": "causal_evidence_grading_v1",
+                    "limitation": row.get("limitation", "automated causal triage grade"),
+                    "created_at": created,
+                }
+                if _insert_evidence(con, evidence, rejected, source, row_number):
+                    summary["inserted_rows"] += 1
+                    summary["by_evidence_type"]["causal_grade"] = summary["by_evidence_type"].get("causal_grade", 0) + 1
     summary["rejected_rows"] = len(rejected)
     con.commit()
     con.close()

@@ -1,8 +1,11 @@
 import csv
+import json
 import math
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .paths import KB
+from .v4 import file_hash
 
 
 GENE_SETS = KB / "enrichment_gene_sets.tsv"
@@ -102,4 +105,21 @@ def run_enrichment(project_dir: Path) -> Path:
         writer = csv.DictWriter(f, fieldnames=fields, delimiter="\t")
         writer.writeheader()
         writer.writerows(all_rows)
+    manifest = {
+        "schema_version": "v4.enrichment_manifest/0.2",
+        "module_id": "enrichment_v2",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "input_deg_files": [str(path.relative_to(project_dir)) for path in sorted((project_dir / "results").glob("bulk_deg_*/deg_results.tsv"))],
+        "gene_set_count": len(gene_sets),
+        "tested_rows": len(all_rows),
+        "significant_rows": sum(1 for row in all_rows if float(row["adj_p_value"]) < 0.05),
+        "output": str(out.relative_to(project_dir)),
+        "output_hash": file_hash(out),
+        "qc": {
+            "status": "pass" if all_rows else "warning",
+            "message": "enrichment completed" if all_rows else "no DEG inputs or gene sets produced testable rows",
+        },
+    }
+    (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    (out_dir / "qc_summary.json").write_text(json.dumps(manifest["qc"], indent=2, ensure_ascii=False), encoding="utf-8")
     return out

@@ -196,6 +196,20 @@ def main() -> None:
     p.add_argument("--project", required=True)
     p = sub.add_parser("enrichment")
     p.add_argument("--project", required=True)
+    p = sub.add_parser("scrna-pseudobulk")
+    p.add_argument("--project", required=True)
+    p.add_argument("--dataset-id", required=True)
+    p.add_argument("--count-matrix", required=True)
+    p.add_argument("--metadata", required=True)
+    p.add_argument("--cell-type", default="")
+    p.add_argument("--donor-column", default="donor_id")
+    p.add_argument("--group-column", default="group")
+    p.add_argument("--cell-type-column", default="cell_type")
+    p.add_argument("--min-cells-per-donor", type=int, default=1)
+    p = sub.add_parser("meta-analysis")
+    p.add_argument("--project", required=True)
+    p = sub.add_parser("causal-grade")
+    p.add_argument("--project", required=True)
     p = sub.add_parser("import-evidence")
     p.add_argument("--project", required=True)
     p = sub.add_parser("score")
@@ -348,6 +362,30 @@ def main() -> None:
         print(annotate_project(pdir))
     elif args.cmd == "enrichment":
         print(run_enrichment(pdir))
+    elif args.cmd == "scrna-pseudobulk":
+        from .scrna import run_scrna_pseudobulk
+
+        print(
+            run_scrna_pseudobulk(
+                pdir,
+                args.dataset_id,
+                args.count_matrix,
+                args.metadata,
+                cell_type=args.cell_type,
+                donor_column=args.donor_column,
+                group_column=args.group_column,
+                cell_type_column=args.cell_type_column,
+                min_cells_per_donor=args.min_cells_per_donor,
+            )
+        )
+    elif args.cmd == "meta-analysis":
+        from .meta_analysis import run_meta_analysis
+
+        print(run_meta_analysis(pdir))
+    elif args.cmd == "causal-grade":
+        from .causal_evidence import grade_causal_evidence
+
+        print(grade_causal_evidence(pdir))
     elif args.cmd == "import-evidence":
         print(import_evidence(pdir))
     elif args.cmd == "score":

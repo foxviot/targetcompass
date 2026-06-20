@@ -12,12 +12,12 @@ ANALYSIS_MODULES = [
         "notes": "Supports RNA-seq count-like and microarray/log-expression-like matrices after gene-symbol normalization.",
     },
     {
-        "module_id": "enrichment_v1",
+        "module_id": "enrichment_v2",
         "status": "implemented",
         "input_modality": "deg_results",
         "runner": "targetcompass_lite.enrichment.run_enrichment",
-        "outputs": ["results/enrichment/enrichment_results.tsv"],
-        "notes": "Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files.",
+        "outputs": ["results/enrichment/enrichment_results.tsv", "results/enrichment/run_manifest.json", "results/enrichment/qc_summary.json"],
+        "notes": "Consumes local and adapter-imported gene sets, including MSigDB/Reactome normalized files; writes QC and manifest.",
     },
     {
         "module_id": "accessibility_annotation_v1",
@@ -36,12 +36,20 @@ ANALYSIS_MODULES = [
         "notes": "Preserves UNKNOWN values for manual review rather than silently passing candidates.",
     },
     {
-        "module_id": "scrna_pseudobulk_v0",
-        "status": "reserved_interface",
+        "module_id": "scrna_pseudobulk_v1",
+        "status": "implemented",
         "input_modality": "single_cell_expression",
-        "runner": "reserved",
-        "outputs": ["pseudobulk_matrix.tsv", "pseudobulk_metadata.tsv", "qc_summary.json"],
-        "notes": "Reserved MVP interface. Requires donor-aware aggregation before DEG; cells must not be treated as biological replicates.",
+        "runner": "targetcompass_lite.scrna.run_scrna_pseudobulk",
+        "outputs": ["results/scrna_pseudobulk_{dataset_id}/pseudobulk_matrix.tsv", "results/scrna_pseudobulk_{dataset_id}/pseudobulk_metadata.tsv", "qc_summary.json"],
+        "notes": "Donor-aware pseudobulk aggregation. Cells are never treated as biological replicates. Legacy interface alias: scrna_pseudobulk_v0.",
+    },
+    {
+        "module_id": "deg_meta_analysis_v1",
+        "status": "implemented",
+        "input_modality": "bulk_deg_results",
+        "runner": "targetcompass_lite.meta_analysis.run_meta_analysis",
+        "outputs": ["results/meta_analysis/deg_meta_analysis.tsv", "results/meta_analysis/run_manifest.json"],
+        "notes": "Lightweight cross-dataset DEG summary for triage; publication-grade meta-analysis still requires formal model review.",
     },
     {
         "module_id": "genetic_coloc_mr_v0",
@@ -50,6 +58,14 @@ ANALYSIS_MODULES = [
         "runner": "reserved",
         "outputs": ["genetic_evidence.tsv", "sensitivity_summary.tsv"],
         "notes": "Reserved post-MVP interface for GWAS/QTL/colocalization/MR evidence.",
+    },
+    {
+        "module_id": "causal_evidence_grading_v1",
+        "status": "implemented",
+        "input_modality": "genetic_evidence",
+        "runner": "targetcompass_lite.causal_evidence.grade_causal_evidence",
+        "outputs": ["results/causal_evidence/causal_evidence_grades.tsv", "results/causal_evidence/run_manifest.json"],
+        "notes": "Grades GWAS/QTL/coloc/MR-like evidence for triage while preserving limitations for human review.",
     },
 ]
 
