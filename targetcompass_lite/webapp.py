@@ -42,7 +42,7 @@ from .secrets import apply_project_secrets, clear_openai_api_key, masked_openai_
 from .status_ui import build_status_center
 from .system_status import system_status
 from .validators import load_dataset_card
-from .v4 import build_v4_manifest, load_codex_task_packet, load_v4_work_orders
+from .v4 import build_v4_manifest, load_codex_task_packet, load_v4_work_orders, read_work_order_attempts
 
 
 class _Args:
@@ -279,7 +279,7 @@ def _run_status(project_dir: Path) -> str:
     return (
         f'<div class="status {css}"><span></span><strong>{html.escape(status.get("status", "idle"))}</strong>'
         f'<p>{html.escape(status.get("message", ""))}</p>'
-        f'<p class="muted">run_id: {html.escape(status.get("run_id", "")) or "none"} · active_stage: {html.escape(status.get("active_stage", "")) or "none"} · status file: <code>{html.escape(center.get("run_status_file", ""))}</code></p>'
+        f'<p class="muted">run_id: {html.escape(status.get("run_id", "")) or "none"} · active_stage: {html.escape(status.get("active_stage", "")) or "none"} · status file: <code>{html.escape(center.get("run_status_file", ""))}</code> · attempts: <code>{html.escape(status.get("work_order_attempts", ""))}</code></p>'
         f'</div><h3>Stage cards</h3><div class="audit-grid">{stage_cards}</div><h3>Recovery center</h3>{recovery_cards}{geo_table}{logs}{controls}'
     )
 
@@ -798,7 +798,26 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         if resource_rows
         else ""
     )
-    return "".join(cards) + resource_table
+    attempts = read_work_order_attempts(project_dir).get("attempts", [])
+    attempt_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('attempt_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('module_id', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(row.get('run_id', ''))}</td>"
+        f"<td>{html.escape('; '.join(row.get('artifacts', [])[:3]))}</td>"
+        f"<td>{html.escape(row.get('failure_reason', ''))}</td>"
+        "</tr>"
+        for row in attempts[-12:]
+    )
+    attempt_table = (
+        "<details open><summary>WorkOrder attempts</summary>"
+        "<table><thead><tr><th>Attempt</th><th>Module</th><th>Status</th><th>Run</th><th>Artifacts</th><th>Failure</th></tr></thead>"
+        f"<tbody>{attempt_rows}</tbody></table></details>"
+        if attempt_rows
+        else '<p class="muted">No WorkOrder attempts recorded yet.</p>'
+    )
+    return "".join(cards) + attempt_table + resource_table
 
 
 def _review_form(item_type: str, item_id: str, label: str) -> str:

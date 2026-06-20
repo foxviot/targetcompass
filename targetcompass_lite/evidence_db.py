@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS evidence_item (
   review_status TEXT DEFAULT 'PENDING',
   source_dataset TEXT,
   artifact_path TEXT,
+  run_id TEXT,
+  artifact_id TEXT,
+  module_version TEXT,
   limitation TEXT,
   created_at TEXT NOT NULL
 );
@@ -99,8 +102,8 @@ def _insert_evidence(con: sqlite3.Connection, row: dict, rejected: list[dict], s
         INSERT INTO evidence_item
         (evidence_id, project_id, entity_symbol, disease_context, organism, tissue, route,
          evidence_type, direction, effect_size, p_value, quality_score, review_status,
-         source_dataset, artifact_path, limitation, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         source_dataset, artifact_path, run_id, artifact_id, module_version, limitation, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             row["evidence_id"],
@@ -118,6 +121,9 @@ def _insert_evidence(con: sqlite3.Connection, row: dict, rejected: list[dict], s
             row.get("review_status", "PENDING"),
             row.get("source_dataset"),
             row.get("artifact_path"),
+            row.get("run_id"),
+            row.get("artifact_id"),
+            row.get("module_version"),
             row.get("limitation"),
             row["created_at"],
         ),
@@ -138,8 +144,9 @@ def _write_import_audit(project_dir: Path, summary: dict, rejected: list[dict]) 
 
 def import_evidence(project_dir: Path) -> Path:
     db_path = project_dir / "evidence.sqlite"
-    con = sqlite3.connect(db_path)
+    con = sqlite3.connect(db_path, timeout=30)
     con.executescript(SCHEMA)
+    _ensure_lineage_columns(con)
     con.execute("DELETE FROM evidence_item")
     con.execute("DELETE FROM evidence_metadata")
     con.execute(
@@ -158,6 +165,7 @@ def import_evidence(project_dir: Path) -> Path:
         "sources": [],
     }
     rejected = []
+    artifact_cache: dict[str, str] = {}
     for deg_path in sorted((project_dir / "results").glob("bulk_deg_*/deg_results.tsv")):
         dataset_id = deg_path.parent.name.replace("bulk_deg_", "")
         with deg_path.open(encoding="utf-8") as f:
@@ -178,6 +186,9 @@ def import_evidence(project_dir: Path) -> Path:
                     "quality_score": 0.75 if _is_float(adj_p_value) and float(adj_p_value) < 0.05 else 0.45,
                     "source_dataset": dataset_id,
                     "artifact_path": source,
+                    "run_id": _run_id_for_artifact(project_dir, deg_path.parent),
+                    "artifact_id": _artifact_id(project_dir, source, artifact_cache),
+                    "module_version": "bulk_deg_v1",
                     "limitation": "fixture demo evidence; association only",
                     "created_at": created,
                 }
@@ -198,7 +209,12 @@ def import_evidence(project_dir: Path) -> Path:
                     "route": row.get("route", ""),
                     "evidence_type": "accessibility",
                     "quality_score": 0.8 if row.get("accessibility_status") == "SUPPORTED" else 0.2,
+                    "review_status": "PENDING",
+                    "source_dataset": "annotation_accessibility",
                     "artifact_path": source,
+                    "run_id": _current_run_id(project_dir),
+                    "artifact_id": _artifact_id(project_dir, source, artifact_cache),
+                    "module_version": "accessibility_annotation_v1",
                     "limitation": row.get("accessibility_status", ""),
                     "created_at": created,
                 }
@@ -224,8 +240,11 @@ def import_evidence(project_dir: Path) -> Path:
                     "p_value": row.get("p_value", ""),
                     "quality_score": row.get("quality_score", "0.5"),
                     "review_status": "PENDING",
-                    "source_dataset": row.get("source_dataset", ""),
+                    "source_dataset": row.get("source_dataset", "") or source,
                     "artifact_path": source,
+                    "run_id": _current_run_id(project_dir),
+                    "artifact_id": _artifact_id(project_dir, source, artifact_cache),
+                    "module_version": row.get("module_version", "external_database_adapter_v1"),
                     "limitation": row.get("limitation", "external database; requires review"),
                     "created_at": created,
                 }
@@ -245,3 +264,43 @@ def _is_float(value: str) -> bool:
         return True
     except (TypeError, ValueError):
         return False
+
+
+def _ensure_lineage_columns(con: sqlite3.Connection) -> None:
+    existing = {row[1] for row in con.execute("PRAGMA table_info(evidence_item)").fetchall()}
+    for column in ["run_id", "artifact_id", "module_version"]:
+        if column not in existing:
+            con.execute(f"ALTER TABLE evidence_item ADD COLUMN {column} TEXT")
+
+
+def _current_run_id(project_dir: Path) -> str:
+    path = project_dir / "results" / "run_status.json"
+    if not path.exists():
+        return "manual_import"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("run_id") or "manual_import"
+    except json.JSONDecodeError:
+        return "manual_import"
+
+
+def _run_id_for_artifact(project_dir: Path, result_dir: Path) -> str:
+    manifest = result_dir / "run_manifest.json"
+    if manifest.exists():
+        try:
+            return json.loads(manifest.read_text(encoding="utf-8")).get("run_id") or _current_run_id(project_dir)
+        except json.JSONDecodeError:
+            pass
+    return _current_run_id(project_dir)
+
+
+def _artifact_id(project_dir: Path, relative_path: str, cache: dict[str, str] | None = None) -> str:
+    if cache is not None and relative_path in cache:
+        return cache[relative_path]
+    path = project_dir / relative_path
+    payload = relative_path
+    if path.exists():
+        payload += "|" + hashlib.sha256(path.read_bytes()).hexdigest()
+    value = "artifact_" + hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    if cache is not None:
+        cache[relative_path] = value
+    return value

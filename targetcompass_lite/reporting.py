@@ -65,6 +65,7 @@ def _cell_text(value: Any) -> str:
 def _candidate_rows(scores: list[dict[str, str]]) -> list[list[str]]:
     return [
         [
+            row.get("score_id", ""),
             row.get("entity_symbol", ""),
             row.get("route", ""),
             row.get("final_score", ""),
@@ -245,15 +246,16 @@ def _review_status(scores: list[dict[str, str]], matches: list[dict[str, str]], 
 
 
 def _evidence_by_gene(project_dir: Path, genes: list[str]) -> dict[str, list[dict[str, Any]]]:
-    con = sqlite3.connect(project_dir / "evidence.sqlite")
+    con = sqlite3.connect(project_dir / "evidence.sqlite", timeout=30)
     con.row_factory = sqlite3.Row
     try:
         out = {}
         for gene in genes:
             rows = con.execute(
                 """
-                SELECT evidence_type, direction, effect_size, p_value, quality_score,
-                       source_dataset, artifact_path, limitation
+                SELECT evidence_id, evidence_type, direction, effect_size, p_value, quality_score,
+                       review_status, source_dataset, artifact_path, run_id, artifact_id,
+                       module_version, limitation
                 FROM evidence_item
                 WHERE entity_symbol = ?
                 ORDER BY evidence_type, source_dataset, artifact_path
@@ -275,6 +277,9 @@ def _evidence_records(project_dir: Path, scores: list[dict[str, str]]) -> list[d
         records.append(
             {
                 "gene": gene,
+                "score_id": score.get("score_id", ""),
+                "evidence_snapshot_id": score.get("evidence_snapshot_id", ""),
+                "evidence_refs": [item for item in score.get("evidence_refs", "").split(";") if item],
                 "score": score.get("final_score", ""),
                 "tier": score.get("tier", ""),
                 "hard_gate_status": score.get("hard_gate_status", ""),
@@ -290,11 +295,14 @@ def _evidence_sections(records: list[dict[str, Any]]) -> str:
         ev_rows = [
             [
                 ev.get("evidence_type", ""),
+                ev.get("evidence_id", ""),
                 ev.get("source_dataset", "") or "",
                 ev.get("direction", "") or "",
                 "" if ev.get("effect_size") is None else f"{ev.get('effect_size'):.4g}",
                 "" if ev.get("p_value") is None else f"{ev.get('p_value'):.4g}",
                 ev.get("artifact_path", "") or "",
+                ev.get("run_id", "") or "",
+                ev.get("artifact_id", "") or "",
                 ev.get("limitation", "") or "",
             ]
             for ev in record.get("evidence", [])
@@ -302,7 +310,8 @@ def _evidence_sections(records: list[dict[str, Any]]) -> str:
         gene = record.get("gene", "")
         sections.append(
             f'<h3 id="evidence-{html.escape(gene)}">{html.escape(gene)} evidence chain</h3>'
-            + _table(["Evidence", "Dataset", "Direction", "Effect", "P/adj.P", "Artifact", "Limitation"], ev_rows)
+            f'<p class="note">score_id: <code>{html.escape(record.get("score_id", ""))}</code> | snapshot: <code>{html.escape(record.get("evidence_snapshot_id", ""))}</code></p>'
+            + _table(["Evidence", "Evidence ID", "Dataset", "Direction", "Effect", "P/adj.P", "Artifact", "Run", "Artifact ID", "Limitation"], ev_rows)
         )
     return "".join(sections)
 
@@ -396,6 +405,15 @@ def _structured_report(project_dir: Path, context: dict[str, Any]) -> dict[str, 
         },
         "candidate_ranking": context["scores"][:20],
         "evidence_chain": evidence,
+        "report_evidence_refs": {
+            row.get("gene", ""): {
+                "score_id": row.get("score_id", ""),
+                "evidence_snapshot_id": row.get("evidence_snapshot_id", ""),
+                "evidence_refs": row.get("evidence_refs", []),
+            }
+            for row in evidence
+        },
+        "scoring_manifest": _read_json(project_dir / "results" / "scoring" / "target_score_manifest.json", {}),
         "limitations": _limitation_records(context),
         "experiment_suggestions": _experiment_records(project_dir),
         "approval_and_audit": {
@@ -477,7 +495,7 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
   </section>
 
   <section id="candidate-ranking"><h2>候选排序</h2>
-    {_table(["Gene", "Route", "Score", "Tier", "Hard gate", "Safety", "Next experiments"], _candidate_rows(scores))}
+    {_table(["Score ID", "Gene", "Route", "Score", "Tier", "Hard gate", "Safety", "Next experiments"], _candidate_rows(scores))}
   </section>
 
   <section id="evidence-chain"><h2>证据链</h2>
@@ -533,7 +551,7 @@ def _build_context(project_dir: Path) -> dict[str, Any]:
     screening = _read_csv(project_dir / "eligible_datasets.csv")
     matches = _read_csv(project_dir / "dataset_match_report.csv")
     unknown_review = _read_tsv(project_dir / "results" / "annotation" / "unknown_review.tsv")
-    con = sqlite3.connect(project_dir / "evidence.sqlite")
+    con = sqlite3.connect(project_dir / "evidence.sqlite", timeout=30)
     con.row_factory = sqlite3.Row
     try:
         evidence_count = con.execute("SELECT COUNT(*) AS n FROM evidence_item").fetchone()["n"]

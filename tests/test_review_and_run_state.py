@@ -13,7 +13,14 @@ from targetcompass_lite.review import (
 )
 from targetcompass_lite.run_state import check_cancelled, clear_cancel, read_status, request_cancel, write_status
 from targetcompass_lite.webapp import _run_status
-from targetcompass_lite.v4 import compile_v4_work_orders, load_codex_task_packet, load_v4_work_orders
+from targetcompass_lite.v4 import (
+    compile_v4_work_orders,
+    finish_work_order_attempt,
+    load_codex_task_packet,
+    load_v4_work_orders,
+    read_work_order_attempts,
+    start_work_order_attempt,
+)
 
 
 def _project(tmp: str) -> Path:
@@ -102,6 +109,18 @@ class ReviewAndRunStateTest(unittest.TestCase):
                 check_cancelled(project)
             clear_cancel(project)
             check_cancelled(project)
+
+    def test_work_order_attempt_status_is_recorded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            compile_v4_work_orders(project, {"project_id": "demo", "modules": [{"module_id": "P4_bulk_deg_ds", "module": "bulk_deg", "dataset_id": "ds"}]})
+            attempt = start_work_order_attempt(project, "P4_bulk_deg_ds", "run_test")
+            finish_work_order_attempt(project, attempt["attempt_id"], "success", ["results/bulk_deg_ds/deg_results.tsv"])
+            manifest = read_work_order_attempts(project)
+            self.assertEqual(manifest["attempts"][0]["status"], "success")
+            write_status(project, "success", "done", run_id="run_test")
+            self.assertEqual(read_status(project)["work_order_attempts"], "v4/work_order_attempts.json")
 
     def test_review_can_approve_v4_work_order_and_codex_task(self):
         with tempfile.TemporaryDirectory() as tmp:

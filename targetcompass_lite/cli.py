@@ -15,6 +15,7 @@ from .scoring import score_project
 from .screening import screen_project
 from .spec_builder import confirm_project_spec, readiness_errors, update_project_spec
 from .validators import validate_dataset_card, validate_research_spec
+from .v4 import finish_work_order_attempt, start_work_order_attempt
 
 
 def init_project(project: str) -> Path:
@@ -108,7 +109,22 @@ def cmd_demo(args) -> int:
     print(f"planned {len(plan['modules'])} module(s)")
     for module in plan["modules"]:
         if module["module"] == "bulk_deg":
-            run_deg(p, module["dataset_id"])
+            attempt = start_work_order_attempt(p, module["module_id"], "demo_run")
+            try:
+                result_path = run_deg(p, module["dataset_id"])
+                finish_work_order_attempt(
+                    p,
+                    attempt["attempt_id"],
+                    "success",
+                    [
+                        str(result_path.relative_to(p)),
+                        f"results/bulk_deg_{module['dataset_id']}/qc_summary.json",
+                        f"results/bulk_deg_{module['dataset_id']}/run_manifest.json",
+                    ],
+                )
+            except Exception as exc:
+                finish_work_order_attempt(p, attempt["attempt_id"], "failed", failure_reason=str(exc))
+                raise
             print(f"ran DEG for {module['dataset_id']}")
         else:
             print(f"planned {module['module']} for {module['dataset_id']}")

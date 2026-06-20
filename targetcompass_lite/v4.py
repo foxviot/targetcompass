@@ -231,11 +231,31 @@ def build_mcp_resource_manifest(project_dir: Path, plan: dict[str, Any] | None =
 def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
     db = project_dir / "evidence.sqlite"
     rows = 0
+    accepted_or_pending = 0
+    missing_lineage = 0
     datasets: list[str] = []
     if db.exists():
-        con = sqlite3.connect(db)
+        con = sqlite3.connect(db, timeout=30)
         try:
             rows = con.execute("SELECT COUNT(*) FROM evidence_item").fetchone()[0]
+            accepted_or_pending = con.execute(
+                """
+                SELECT COUNT(*)
+                FROM evidence_item
+                WHERE COALESCE(review_status, 'PENDING') IN ('PENDING', 'ACCEPT', 'ACCEPT_WITH_FLAGS', 'approve', 'accepted')
+                """
+            ).fetchone()[0]
+            columns = {row[1] for row in con.execute("PRAGMA table_info(evidence_item)").fetchall()}
+            if {"run_id", "artifact_id", "module_version"}.issubset(columns):
+                missing_lineage = con.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM evidence_item
+                    WHERE COALESCE(run_id, '') = ''
+                       OR COALESCE(artifact_id, '') = ''
+                       OR COALESCE(module_version, '') = ''
+                    """
+                ).fetchone()[0]
             datasets = [
                 row[0]
                 for row in con.execute(
@@ -246,11 +266,16 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
             con.close()
     snapshot = {
         "schema_version": "v4.evidence_snapshot/0.1",
-        "snapshot_id": "es_" + content_hash({"project": project_dir.name, "rows": rows, "datasets": datasets})[:16],
+        "snapshot_id": "es_" + content_hash({"project": project_dir.name, "rows": rows, "datasets": datasets, "lineage_missing": missing_lineage})[:16],
         "project_id": project_dir.name,
         "evidence_db": "evidence.sqlite" if db.exists() else "",
         "evidence_rows": rows,
+        "accepted_or_pending_rows": accepted_or_pending,
+        "missing_lineage_rows": missing_lineage,
         "source_datasets": datasets,
+        "scoring_manifest": "results/scoring/target_score_manifest.json"
+        if (project_dir / "results" / "scoring" / "target_score_manifest.json").exists()
+        else "",
         "review_status_policy": "report_writer_may_reference_accepted_or_flagged_evidence_only",
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -349,6 +374,69 @@ def save_codex_task_packet(project_dir: Path, work_order: dict[str, Any], packet
     path = project_dir / rel
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(packet, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def attempt_manifest_path(project_dir: Path) -> Path:
+    return v4_dir(project_dir) / "work_order_attempts.json"
+
+
+def read_work_order_attempts(project_dir: Path) -> dict[str, Any]:
+    path = attempt_manifest_path(project_dir)
+    if not path.exists():
+        return {"schema_version": "v4.work_order_attempts/0.1", "project_id": project_dir.name, "attempts": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def start_work_order_attempt(project_dir: Path, module_id: str, run_id: str = "") -> dict[str, Any]:
+    orders = load_v4_work_orders(project_dir)
+    order = next((row for row in orders if row.get("module_id") == module_id), {})
+    seed = {"module_id": module_id, "run_id": run_id, "time": datetime.now(timezone.utc).isoformat()}
+    attempt = {
+        "attempt_id": "attempt_" + content_hash(seed)[:16],
+        "work_order_id": order.get("work_order_id", ""),
+        "module_id": module_id,
+        "dataset_id": order.get("dataset_id", ""),
+        "work_order_type": order.get("work_order_type", ""),
+        "run_id": run_id,
+        "status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": "",
+        "failure_reason": "",
+        "artifacts": [],
+        "resume_key": order.get("idempotency_key", ""),
+    }
+    manifest = read_work_order_attempts(project_dir)
+    manifest["attempts"].append(attempt)
+    _write_attempt_manifest(project_dir, manifest)
+    return attempt
+
+
+def finish_work_order_attempt(
+    project_dir: Path,
+    attempt_id: str,
+    status: str,
+    artifacts: list[str] | None = None,
+    failure_reason: str = "",
+) -> dict[str, Any]:
+    manifest = read_work_order_attempts(project_dir)
+    updated = {}
+    for row in manifest["attempts"]:
+        if row.get("attempt_id") == attempt_id:
+            row["status"] = status
+            row["finished_at"] = datetime.now(timezone.utc).isoformat()
+            row["failure_reason"] = failure_reason
+            row["artifacts"] = artifacts or row.get("artifacts", [])
+            updated = row
+            break
+    _write_attempt_manifest(project_dir, manifest)
+    return updated
+
+
+def _write_attempt_manifest(project_dir: Path, manifest: dict[str, Any]) -> None:
+    path = attempt_manifest_path(project_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def _stable_id(prefix: str, value: str) -> str:

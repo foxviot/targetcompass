@@ -47,10 +47,20 @@ class EvidenceImportTest(unittest.TestCase):
                     "SELECT value FROM evidence_metadata WHERE key = 'schema_version'"
                 ).fetchone()[0]
                 count = con.execute("SELECT COUNT(*) FROM evidence_item").fetchone()[0]
+                lineage_missing = con.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM evidence_item
+                    WHERE COALESCE(run_id, '') = ''
+                       OR COALESCE(artifact_id, '') = ''
+                       OR COALESCE(module_version, '') = ''
+                    """
+                ).fetchone()[0]
             finally:
                 con.close()
             self.assertEqual(version, SCHEMA_VERSION)
             self.assertEqual(count, 2)
+            self.assertEqual(lineage_missing, 0)
 
             summary = json.loads((project / "results" / "evidence_import" / "import_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["schema_version"], SCHEMA_VERSION)

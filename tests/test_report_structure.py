@@ -71,6 +71,8 @@ class ReportStructureTest(unittest.TestCase):
             "data_sources_and_qc",
             "candidate_ranking",
             "evidence_chain",
+            "report_evidence_refs",
+            "scoring_manifest",
             "limitations",
             "experiment_suggestions",
             "approval_and_audit",
@@ -97,9 +99,15 @@ class ReportStructureTest(unittest.TestCase):
 
         evidence = data["evidence_chain"][0]
         self.assertIn("gene", evidence)
+        self.assertIn("score_id", evidence)
+        self.assertIn("evidence_snapshot_id", evidence)
+        self.assertIn("evidence_refs", evidence)
         self.assertIn("evidence", evidence)
         self.assertTrue(evidence["evidence"])
+        self.assertIn("evidence_id", evidence["evidence"][0])
         self.assertIn("artifact_path", evidence["evidence"][0])
+        self.assertIn("run_id", evidence["evidence"][0])
+        self.assertIn("artifact_id", evidence["evidence"][0])
 
     def test_report_has_no_mojibake_section_titles(self):
         html = (PROJECT / "reports" / "target_report.html").read_text(encoding="utf-8")

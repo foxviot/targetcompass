@@ -63,6 +63,9 @@ class DemoWorkflowTest(unittest.TestCase):
             rows = list(csv.DictReader(f))
         self.assertGreaterEqual(len(rows), 5)
         self.assertEqual(rows[0]["entity_symbol"], "CXCL8")
+        self.assertTrue(rows[0]["score_id"].startswith("score_"))
+        self.assertTrue(rows[0]["evidence_snapshot_id"].startswith("es_"))
+        self.assertTrue(rows[0]["evidence_refs"])
         self.assertEqual(rows[0]["hard_gate_status"], "PASS")
         self.assertEqual(rows[0]["safety_gate"], "PASS")
 
@@ -79,7 +82,10 @@ class DemoWorkflowTest(unittest.TestCase):
                 SELECT COUNT(*)
                 FROM evidence_item
                 WHERE COALESCE(source_dataset, '') = ''
-                  AND COALESCE(artifact_path, '') = ''
+                  OR COALESCE(artifact_path, '') = ''
+                  OR COALESCE(run_id, '') = ''
+                  OR COALESCE(artifact_id, '') = ''
+                  OR COALESCE(module_version, '') = ''
                 """
             ).fetchone()[0]
         finally:
@@ -87,6 +93,8 @@ class DemoWorkflowTest(unittest.TestCase):
         self.assertGreater(count, 1000)
         self.assertGreater(real_count, 1000)
         self.assertEqual(missing_lineage, 0)
+        self.assertTrue((PROJECT / "results" / "scoring" / "target_score_manifest.json").exists())
+        self.assertTrue((PROJECT / "v4" / "work_order_attempts.json").exists())
 
     def test_score_output_is_stable(self):
         score_path = PROJECT / "candidate_scores.csv"

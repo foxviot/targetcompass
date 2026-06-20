@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -45,10 +46,14 @@ def _tier(final: float, hard_gate: str, rules: dict) -> str:
 
 def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
     rules = load_scoring_rules(rules_path)
-    con = sqlite3.connect(project_dir / "evidence.sqlite")
+    rubric_hash = hashlib.sha256(json.dumps(rules, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    con = sqlite3.connect(project_dir / "evidence.sqlite", timeout=30)
     con.row_factory = sqlite3.Row
     rows = con.execute("SELECT * FROM evidence_item ORDER BY entity_symbol, evidence_type, evidence_id").fetchall()
     con.close()
+    evidence_snapshot_id = "es_" + hashlib.sha256(
+        json.dumps([dict(row) for row in rows], sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()[:16]
     by_gene = {}
     for row in rows:
         by_gene.setdefault(row["entity_symbol"], []).append(dict(row))
@@ -57,6 +62,7 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
     scored = []
     for gene, evidences in by_gene.items():
         degs = [e for e in evidences if e["evidence_type"] == "bulk_deg"]
+        evidence_refs = sorted(e["evidence_id"] for e in evidences if e.get("review_status", "PENDING") in {"PENDING", "ACCEPT", "ACCEPT_WITH_FLAGS", "approve", "accepted"})
         route = access.get(gene, {}).get("route", "unknown")
         safety_gate = safety.get(gene, {}).get("safety_gate", "UNKNOWN")
         best_deg = max(degs, key=lambda e: abs(e["effect_size"] or 0)) if degs else None
@@ -78,14 +84,30 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
         if safety_gate == "EXCLUDED":
             hard_gate = "EXCLUDED_SAFETY"
         tier = _tier(final, hard_gate, rules)
+        score_id = "score_" + hashlib.sha256(
+            json.dumps(
+                {
+                    "project": project_dir.name,
+                    "gene": gene,
+                    "snapshot": evidence_snapshot_id,
+                    "rubric": rubric_hash,
+                    "final": round(final, 6),
+                    "hard_gate": hard_gate,
+                },
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()[:16]
         scored.append(
             {
+                "score_id": score_id,
+                "evidence_snapshot_id": evidence_snapshot_id,
                 "entity_symbol": gene,
                 "route": route,
                 "final_score": f"{final:.2f}",
                 "tier": tier,
                 "hard_gate_status": hard_gate,
                 "safety_gate": safety_gate,
+                "evidence_refs": ";".join(evidence_refs),
                 "score_json": json.dumps(
                     {
                         "expression": round(expression_score, 2),
@@ -103,8 +125,35 @@ def score_project(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> Path:
     scored.sort(key=lambda r: (-float(r["final_score"]), r["hard_gate_status"], r["entity_symbol"]))
     out = project_dir / "candidate_scores.csv"
     with out.open("w", newline="", encoding="utf-8") as f:
-        fields = ["entity_symbol", "route", "final_score", "tier", "hard_gate_status", "safety_gate", "score_json", "next_experiments"]
+        fields = [
+            "score_id",
+            "evidence_snapshot_id",
+            "entity_symbol",
+            "route",
+            "final_score",
+            "tier",
+            "hard_gate_status",
+            "safety_gate",
+            "evidence_refs",
+            "score_json",
+            "next_experiments",
+        ]
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         writer.writerows(scored)
+    _write_score_manifest(project_dir, evidence_snapshot_id, rubric_hash, scored)
     return out
+
+
+def _write_score_manifest(project_dir: Path, evidence_snapshot_id: str, rubric_hash: str, scored: list[dict]) -> None:
+    out_dir = project_dir / "results" / "scoring"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": "target_score_manifest_v1",
+        "project_id": project_dir.name,
+        "evidence_snapshot_id": evidence_snapshot_id,
+        "rubric_hash": rubric_hash,
+        "score_count": len(scored),
+        "score_ids": [row["score_id"] for row in scored],
+    }
+    (out_dir / "target_score_manifest.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

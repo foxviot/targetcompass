@@ -20,6 +20,7 @@ def read_status(project_dir: Path) -> dict:
     path = status_path(project_dir)
     if not path.exists():
         return {
+            "schema_version": "run_status_v2",
             "run_id": "",
             "status": "idle",
             "message": "No workflow run recorded yet.",
@@ -30,6 +31,7 @@ def read_status(project_dir: Path) -> dict:
             "stages": [],
             "last_request": {},
             "cancel_requested": False,
+            "work_order_attempts": "",
             "updated_at": "",
         }
     return json.loads(path.read_text(encoding="utf-8"))
@@ -49,6 +51,7 @@ def write_status(
 ) -> dict:
     previous = read_status(project_dir)
     payload = {
+        "schema_version": "run_status_v2",
         "run_id": run_id or previous.get("run_id") or new_run_id(),
         "status": status,
         "message": message,
@@ -59,6 +62,9 @@ def write_status(
         "stages": stages or [],
         "last_request": last_request if last_request is not None else previous.get("last_request", {}),
         "cancel_requested": cancel_path(project_dir).exists(),
+        "work_order_attempts": "v4/work_order_attempts.json"
+        if (project_dir / "v4" / "work_order_attempts.json").exists()
+        else "",
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     path = status_path(project_dir)

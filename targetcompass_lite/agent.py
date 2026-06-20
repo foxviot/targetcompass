@@ -23,7 +23,7 @@ from .scoring import score_project
 from .screening import screen_project
 from .spec_builder import readiness_errors, update_project_spec
 from .validators import validate_dataset_card, validate_research_spec
-from .v4 import build_v4_manifest
+from .v4 import build_v4_manifest, finish_work_order_attempt, start_work_order_attempt
 
 
 AGENT_STATE_MACHINE = [
@@ -327,8 +327,26 @@ class TargetDiscoveryAgent:
         for module in analysis_plan.get("modules", []):
             check_cancelled(self.project_dir)
             if module.get("module") == "bulk_deg":
-                run_deg(self.project_dir, module["dataset_id"])
-                executed.append({"module": "bulk_deg", "dataset_id": module["dataset_id"], "status": "executed"})
+                attempt = start_work_order_attempt(self.project_dir, module["module_id"], "")
+                try:
+                    result_path = run_deg(self.project_dir, module["dataset_id"])
+                    artifacts = [
+                        str(result_path.relative_to(self.project_dir)),
+                        f"results/bulk_deg_{module['dataset_id']}/qc_summary.json",
+                        f"results/bulk_deg_{module['dataset_id']}/run_manifest.json",
+                    ]
+                    finish_work_order_attempt(self.project_dir, attempt["attempt_id"], "success", artifacts)
+                    executed.append(
+                        {
+                            "module": "bulk_deg",
+                            "dataset_id": module["dataset_id"],
+                            "status": "executed",
+                            "attempt_id": attempt["attempt_id"],
+                        }
+                    )
+                except Exception as exc:
+                    finish_work_order_attempt(self.project_dir, attempt["attempt_id"], "failed", failure_reason=str(exc))
+                    raise
             else:
                 executed.append({"module": module.get("module", "unknown"), "dataset_id": module.get("dataset_id", ""), "status": "planned"})
         check_cancelled(self.project_dir)

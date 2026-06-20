@@ -24,6 +24,9 @@
     "review_status": {"type": "string"},
     "source_dataset": {"type": "string"},
     "artifact_path": {"type": "string"},
+    "run_id": {"type": "string"},
+    "artifact_id": {"type": "string"},
+    "module_version": {"type": "string"},
     "limitation": {"type": "string"},
     "created_at": {"type": "string", "minLength": 1}
   }
