@@ -64,6 +64,7 @@ FALLBACK_CAUSAL_RUBRIC = {
 def grade_causal_evidence(project_dir: Path) -> Path:
     rubric, rubric_meta = load_causal_review_rubric(project_dir)
     evidence_type_map = rubric["recognized_evidence_types"]
+    genetic_context = _load_genetic_context(project_dir)
     db = project_dir / "evidence.sqlite"
     if not db.exists():
         raise ValueError("evidence.sqlite is required before causal grading")
@@ -90,18 +91,24 @@ def grade_causal_evidence(project_dir: Path) -> Path:
         evidence_types = {row["evidence_type"] for row in evidences}
         methods = {evidence_type_map[row["evidence_type"]] for row in evidences}
         best_p = _best_p_value(evidences)
-        grade, rationale = _grade(methods, evidence_types, best_p, rubric)
+        triage_grade, triage_rationale = _grade(methods, evidence_types, best_p, rubric)
+        causal_level, support_level, rationale, bias_flags = _causal_level(gene, evidences, methods, best_p, genetic_context)
         review_flags = _review_flags(evidences, methods, rubric)
+        review_flags = sorted(set(review_flags + bias_flags))
         grades.append(
             {
                 "gene_symbol": gene,
-                "causal_grade": grade,
-                "support_level": _support_level(grade, rubric),
+                "causal_grade": causal_level,
+                "causal_support_level": causal_level,
+                "triage_grade": triage_grade,
+                "support_level": support_level,
                 "methods": ";".join(sorted(methods)),
                 "evidence_types": ";".join(sorted(evidence_types)),
                 "evidence_count": len(evidences),
                 "best_p_value": "" if best_p is None else f"{best_p:.6g}",
                 "rationale": rationale,
+                "triage_rationale": triage_rationale,
+                "bias_flags": ";".join(bias_flags) or "none",
                 "evidence_ids": ";".join(sorted({row.get("evidence_id", "") for row in evidences if row.get("evidence_id")})),
                 "artifact_refs": ";".join(sorted({_artifact_ref(row) for row in evidences if row.get("artifact_path")})),
                 "review_flags": ";".join(review_flags) or "none",
@@ -116,12 +123,16 @@ def grade_causal_evidence(project_dir: Path) -> Path:
     fields = [
         "gene_symbol",
         "causal_grade",
+        "causal_support_level",
+        "triage_grade",
         "support_level",
         "methods",
         "evidence_types",
         "evidence_count",
         "best_p_value",
         "rationale",
+        "triage_rationale",
+        "bias_flags",
         "evidence_ids",
         "artifact_refs",
         "review_flags",
@@ -133,11 +144,18 @@ def grade_causal_evidence(project_dir: Path) -> Path:
         writer.writeheader()
         writer.writerows(grades)
     manifest = {
-        "schema_version": "v4.causal_evidence_manifest/0.1",
+        "schema_version": "v4.causal_evidence_manifest/0.2",
         "module_id": "causal_evidence_grading_v1",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "graded_genes": len(grades),
         "output": str(out.relative_to(project_dir)),
+        "causal_level_policy": {
+            "C4": "Multi-source genetic support with coloc and MR, acceptable sensitivity, and no major bias flags.",
+            "C3": "Coloc or robust cis-MR support with reviewable sensitivity.",
+            "C2": "QTL/V2G/GWAS support with partial direction or sensitivity support.",
+            "C1": "Association or mapping-only genetic evidence.",
+            "C0": "No reliable genetic causal support or blocked genetics route.",
+        },
         "rubric_id": rubric.get("rubric_id", ""),
         "rubric_version": rubric.get("version", ""),
         "rubric_path": rubric_meta["path"],
@@ -148,6 +166,63 @@ def grade_causal_evidence(project_dir: Path) -> Path:
     }
     (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     return out
+
+
+def _load_genetic_context(project_dir: Path) -> dict[str, dict[str, list[dict[str, str]]]]:
+    base = project_dir / "results" / "genetic_coloc_mr"
+    return {
+        "coloc": _group_by_gene(_read_tsv(base / "coloc_results.tsv")),
+        "mr": _group_by_gene(_read_tsv(base / "mr_results.tsv")),
+        "sensitivity": _group_by_gene(_read_tsv(base / "sensitivity_summary.tsv")),
+    }
+
+
+def _read_tsv(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8") as f:
+        return list(csv.DictReader(f, delimiter="\t"))
+
+
+def _group_by_gene(rows: list[dict[str, str]]) -> dict[str, list[dict[str, str]]]:
+    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in rows:
+        grouped[row.get("gene_symbol", "")].append(row)
+    return grouped
+
+
+def _causal_level(gene: str, evidences: list[dict], methods: set[str], best_p: float | None, context: dict) -> tuple[str, str, str, list[str]]:
+    coloc_rows = context.get("coloc", {}).get(gene, [])
+    mr_rows = context.get("mr", {}).get(gene, [])
+    sensitivity_rows = context.get("sensitivity", {}).get(gene, [])
+    flags = set()
+    for row in [*coloc_rows, *mr_rows, *sensitivity_rows]:
+        for key in ["bias_flags", "sensitivity_flags", "flags"]:
+            value = row.get(key, "")
+            if value and value != "none":
+                flags.update(flag for flag in value.split(";") if flag)
+    max_pp_h4 = max([_safe_float(row.get("posterior_shared_signal")) or 0 for row in coloc_rows] or [0])
+    max_f = max([_safe_float(row.get("instrument_f_stat")) or 0 for row in mr_rows] or [0])
+    has_mr = "mr" in methods or bool(mr_rows)
+    has_coloc = "coloc" in methods or bool(coloc_rows)
+    has_assoc = "association" in methods
+    major_bias = bool(flags & {"opposite_direction", "weak_instrument_f_lt_10", "zero_qtl_beta", "invalid_wald_ratio"})
+    if has_coloc and has_mr and max_pp_h4 >= 0.7 and max_f >= 10 and not major_bias:
+        return "C4", "genetic_strong", "Coloc and MR support are both present with acceptable proxy sensitivity.", sorted(flags)
+    if (has_coloc and max_pp_h4 >= 0.5 and not major_bias) or (has_mr and max_f >= 10 and not major_bias):
+        return "C3", "genetic_moderate", "Coloc or cis-MR support is present and sensitivity flags are reviewable.", sorted(flags)
+    if has_coloc or has_mr or (has_assoc and best_p is not None and best_p < 5e-8):
+        return "C2", "genetic_limited", "Genetic support is present but sensitivity, LD, or method completeness limits interpretation.", sorted(flags)
+    if has_assoc:
+        return "C1", "genetic_mapping_only", "Association or database genetic evidence is present without reliable coloc/MR support.", sorted(flags)
+    return "C0", "genetic_insufficient", "No reliable genetic causal support is available.", sorted(flags)
+
+
+def _safe_float(value: str | None) -> float | None:
+    try:
+        return float(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
 
 
 def load_causal_review_rubric(project_dir: Path) -> tuple[dict, dict]:

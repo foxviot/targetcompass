@@ -162,7 +162,8 @@ class AnalysisExtensionsTest(unittest.TestCase):
             con.commit()
             con.close()
             causal = grade_causal_evidence(project)
-            self.assertIn("CXCL8\tB", causal.read_text(encoding="utf-8"))
+            causal_meta_text = causal.read_text(encoding="utf-8")
+            self.assertIn("CXCL8\tC2\tC2\tB\tgenetic_limited", causal_meta_text)
             manifest = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["rubric_id"], "causal_review")
             self.assertEqual(manifest["rubric_version"], "0.1.0")
@@ -183,13 +184,13 @@ class AnalysisExtensionsTest(unittest.TestCase):
             data = project / "data" / "genetic"
             data.mkdir(parents=True)
             (data / "gwas.tsv").write_text(
-                "variant_id\tgene_symbol\tbeta\tp_value\teffect_allele\tother_allele\ttrait\n"
-                "rs1\tCXCL8\t0.4\t1e-9\tA\tG\tinflammation\n",
+                "variant_id\tgene_symbol\tbeta\tse\tp_value\teffect_allele\tother_allele\ttrait\tchromosome\tposition\tancestry\tbuild\tsample_size\n"
+                "rs1\tCXCL8\t0.4\t0.08\t1e-9\tA\tG\tinflammation\t1\t12345\tEUR\tGRCh38\t10000\n",
                 encoding="utf-8",
             )
             (data / "qtl.tsv").write_text(
-                "variant_id\tgene_symbol\tbeta\tp_value\ttissue\n"
-                "rs1\tCXCL8\t0.2\t1e-6\tartery\n",
+                "variant_id\tgene_symbol\tbeta\tse\tp_value\ttissue\tchromosome\tposition\tancestry\tbuild\tsample_size\n"
+                "rs1\tCXCL8\t0.2\t0.04\t1e-6\tartery\t1\t12345\tEUR\tGRCh38\t800\n",
                 encoding="utf-8",
             )
 
@@ -203,16 +204,28 @@ class AnalysisExtensionsTest(unittest.TestCase):
             evidence_text = evidence.read_text(encoding="utf-8")
             self.assertIn("qtl_colocalization", evidence_text)
             self.assertIn("mendelian_randomization", evidence_text)
+            out_dir = evidence.parent
+            self.assertTrue((out_dir / "standard_gwas_summary.tsv").exists())
+            self.assertTrue((out_dir / "standard_qtl_summary.tsv").exists())
+            self.assertTrue((out_dir / "coloc_results.tsv").exists())
+            self.assertTrue((out_dir / "mr_results.tsv").exists())
+            self.assertTrue((out_dir / "ld_reference_manifest.json").exists())
+            manifest_genetic = json.loads((out_dir / "run_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest_genetic["schema_version"], "v4.genetic_coloc_mr_manifest/0.2")
+            self.assertEqual(manifest_genetic["ld_reference"]["status"], "placeholder")
+            self.assertEqual(manifest_genetic["schemas"]["coloc_result"], "v4.coloc_result/0.1")
 
             import_evidence(project)
             causal = grade_causal_evidence(project)
             causal_text = causal.read_text(encoding="utf-8")
-            self.assertIn("CXCL8\tA", causal_text)
-            self.assertIn("triage_high", causal_text)
+            self.assertIn("CXCL8\tC4\tC4\tA\tgenetic_strong", causal_text)
             self.assertIn("qtl_colocalization", causal_text)
             self.assertIn("mendelian_randomization", causal_text)
             self.assertIn("human_review_required", causal_text)
             self.assertIn("results/genetic_coloc_mr/genetic_evidence.tsv", causal_text)
+            manifest_causal = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest_causal["schema_version"], "v4.causal_evidence_manifest/0.2")
+            self.assertIn("C4", manifest_causal["causal_level_policy"])
 
             con = sqlite3.connect(project / "evidence.sqlite")
             try:
@@ -221,6 +234,17 @@ class AnalysisExtensionsTest(unittest.TestCase):
                 con.close()
             self.assertIn("qtl_colocalization", types)
             self.assertIn("mendelian_randomization", types)
+
+            import_evidence(project)
+            con = sqlite3.connect(project / "evidence.sqlite")
+            try:
+                causal_row = con.execute(
+                    "SELECT direction, quality_score FROM evidence_item WHERE evidence_type = 'causal_grade' AND entity_symbol = 'CXCL8'"
+                ).fetchone()
+            finally:
+                con.close()
+            self.assertEqual(causal_row[0], "C4")
+            self.assertGreater(causal_row[1], 0.9)
 
     def test_project_causal_rubric_overrides_support_and_review_flags(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -256,7 +280,7 @@ class AnalysisExtensionsTest(unittest.TestCase):
 
             causal = grade_causal_evidence(project)
             causal_text = causal.read_text(encoding="utf-8")
-            self.assertIn("CXCL8\tB\tcustom_moderate", causal_text)
+            self.assertIn("CXCL8\tC2\tC2\tB\tgenetic_limited", causal_text)
             self.assertIn("custom_association_review", causal_text)
             self.assertIn("single_variant_mr_proxy", causal_text)
             manifest = json.loads((project / "results" / "causal_evidence" / "run_manifest.json").read_text(encoding="utf-8"))

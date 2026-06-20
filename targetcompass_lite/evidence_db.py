@@ -316,7 +316,7 @@ def import_evidence(project_dir: Path) -> Path:
             for row_number, row in enumerate(csv.DictReader(f, delimiter="\t"), 2):
                 source = str(causal_path.relative_to(project_dir))
                 summary["sources"].append(source) if source not in summary["sources"] else None
-                grade = row.get("causal_grade", "D")
+                grade = row.get("causal_grade", "C0")
                 evidence = {
                     "evidence_id": _evidence_id(project_dir.name, row.get("gene_symbol", ""), "causal_grade", row_number),
                     "project_id": project_dir.name,
@@ -326,7 +326,17 @@ def import_evidence(project_dir: Path) -> Path:
                     "direction": grade,
                     "effect_size": row.get("evidence_count", ""),
                     "p_value": row.get("best_p_value", ""),
-                    "quality_score": {"A": 0.9, "B": 0.75, "C": 0.45, "D": 0.1}.get(grade, 0.1),
+                    "quality_score": {
+                        "A": 0.9,
+                        "B": 0.75,
+                        "C": 0.45,
+                        "D": 0.1,
+                        "C4": 0.95,
+                        "C3": 0.8,
+                        "C2": 0.55,
+                        "C1": 0.3,
+                        "C0": 0.05,
+                    }.get(grade, 0.1),
                     "review_status": "PENDING",
                     "source_dataset": row.get("evidence_types", ""),
                     "artifact_path": source,
