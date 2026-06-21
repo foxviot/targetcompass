@@ -42,6 +42,7 @@ def build_nextflow_tasks(project_dir: Path, module_ids: list[str] | None = None)
             "dataset_id": order.get("dataset_id", ""),
             "inputs": order.get("inputs", {}),
             "parameters": order.get("parameters", {}),
+            "resources": _task_resources(order),
             "expected_outputs": order.get("expected_artifacts", []),
             "resume_key": order.get("idempotency_key", ""),
         }
@@ -210,6 +211,16 @@ def _flatten_task_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
         if key in {"expression_matrix", "metadata", "count_matrix", "gwas_summary", "qtl_summary", "ld_reference"}:
             flattened[key] = value
     return flattened
+
+
+def _task_resources(order: dict[str, Any]) -> dict[str, Any]:
+    params = order.get("parameters", {})
+    resources = params.get("resources", {}) if isinstance(params.get("resources", {}), dict) else {}
+    return {
+        "cpus": int(resources.get("cpus") or params.get("cpus") or 1),
+        "memory": resources.get("memory") or params.get("memory") or "2 GB",
+        "time": resources.get("time") or params.get("time") or "1h",
+    }
 
 
 def _parse_trace_failures(trace_path: Path) -> list[dict[str, str]]:

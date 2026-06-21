@@ -5,6 +5,7 @@ import subprocess
 
 from targetcompass_lite.nextflow_plane import build_nextflow_execution_plane, validate_nextflow_execution_plane
 from targetcompass_lite.nextflow_runner import build_nextflow_tasks, run_nextflow_local
+from targetcompass_lite.container_plane import build_container_mount_policy, build_docker_image, inspect_image_digest, write_apptainer_recipe
 from targetcompass_lite.v4 import compile_v4_work_orders, read_work_order_attempts
 
 
@@ -50,7 +51,7 @@ class NextflowPlaneTest(unittest.TestCase):
                         "module": "bulk_deg",
                         "dataset_id": "ds1",
                         "inputs": {"expression_matrix": "data/matrix.tsv", "metadata": "data/meta.tsv"},
-                        "parameters": {"case": "old", "control": "young"},
+                        "parameters": {"case": "old", "control": "young", "resources": {"cpus": 3, "memory": "6 GB", "time": "3h"}},
                         "expected_outputs": ["results/bulk_deg_ds1/deg_results.tsv"],
                     }
                 ],
@@ -59,6 +60,7 @@ class NextflowPlaneTest(unittest.TestCase):
             tasks = build_nextflow_tasks(project)
             self.assertEqual(tasks["task_count"], 1)
             self.assertEqual(tasks["tasks"][0]["module_id"], "bulk_deg_v1")
+            self.assertEqual(tasks["tasks"][0]["resources"]["cpus"], 3)
             self.assertTrue((project / "workflows" / "target_discovery" / "tasks.json").exists())
 
             def fake_runner(command, cwd):
@@ -128,6 +130,34 @@ class NextflowPlaneTest(unittest.TestCase):
             attempts = read_work_order_attempts(project)["attempts"]
             self.assertEqual(attempts[-1]["status"], "failed")
             self.assertIn("Nextflow executable not found", attempts[-1]["failure_reason"])
+
+    def test_container_policy_apptainer_and_fake_docker_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            policy = build_container_mount_policy(project)
+            self.assertTrue(policy["policy"]["no_host_root_mount"])
+            self.assertTrue((project / "workflows" / "target_discovery" / "container_mount_policy.json").exists())
+            recipe = write_apptainer_recipe(project)
+            self.assertTrue(recipe.exists())
+            self.assertIn("Bootstrap: docker", recipe.read_text(encoding="utf-8"))
+
+            calls = []
+
+            def fake_docker(command, cwd):
+                calls.append(command)
+                if command[1:3] == ["image", "inspect"]:
+                    return subprocess.CompletedProcess(command, 0, stdout='["targetcompass-lite@sha256:abc123"]', stderr="")
+                return subprocess.CompletedProcess(command, 0, stdout="built", stderr="")
+
+            result = build_docker_image(project, image_tag="targetcompass-lite:test", docker_bin="docker", runner=fake_docker)
+            self.assertEqual(result["status"], "success")
+            self.assertEqual(result["digest"], "sha256:abc123")
+            self.assertEqual(result["immutable_ref"], "targetcompass-lite@sha256:abc123")
+            self.assertTrue((project / "workflows" / "target_discovery" / "container_build_result.json").exists())
+            digest = inspect_image_digest(project, image_tag="targetcompass-lite:test", docker_bin="docker", runner=fake_docker)
+            self.assertEqual(digest["digest"], "sha256:abc123")
+            self.assertTrue(any("build" in call for call in calls))
 
 
 if __name__ == "__main__":

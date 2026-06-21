@@ -374,6 +374,14 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "path": "workflows/target_discovery/nextflow_run_manifest.json",
                 "exists": (project_dir / "workflows" / "target_discovery" / "nextflow_run_manifest.json").exists(),
             },
+            "container_build": {
+                "path": "workflows/target_discovery/container_build_result.json",
+                "exists": (project_dir / "workflows" / "target_discovery" / "container_build_result.json").exists(),
+            },
+            "container_mount_policy": {
+                "path": "workflows/target_discovery/container_mount_policy.json",
+                "exists": (project_dir / "workflows" / "target_discovery" / "container_mount_policy.json").exists(),
+            },
         },
     }
     path = v4_dir(project_dir) / "object_manifest.json"

@@ -193,9 +193,9 @@ def _module_nf(contract: dict[str, Any]) -> str:
     return f"""process {contract['process_name']} {{
   tag "$task.ext.label"
   container '{contract['container']}'
-  cpus {contract['cpus']}
-  memory '{contract['memory']}'
-  time '{contract['time']}'
+  cpus {{ task.resources?.cpus ?: {contract['cpus']} }}
+  memory {{ task.resources?.memory ?: '{contract['memory']}' }}
+  time {{ task.resources?.time ?: '{contract['time']}' }}
   publishDir "${{params.outdir}}", mode: 'copy', overwrite: true
 
   input:

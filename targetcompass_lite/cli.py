@@ -381,6 +381,16 @@ def main() -> None:
     p.add_argument("--module-id", action="append", default=[])
     p.add_argument("--nextflow-bin", default="nextflow")
     p.add_argument("--resume", action="store_true")
+    p = sub.add_parser("container-policy")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("container-build")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--image-tag", default="targetcompass-lite:local")
+    p.add_argument("--docker-bin", default="auto")
+    p = sub.add_parser("container-digest")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--image-tag", default="targetcompass-lite:local")
+    p.add_argument("--docker-bin", default="auto")
     p = sub.add_parser("codex-workspace")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--work-order-id", required=True)
@@ -696,6 +706,18 @@ def main() -> None:
                 ensure_ascii=False,
             )
         )
+    elif args.cmd == "container-policy":
+        from .container_plane import build_container_mount_policy, write_apptainer_recipe
+
+        print(json.dumps({"mount_policy": build_container_mount_policy(pdir), "apptainer_recipe": str(write_apptainer_recipe(pdir))}, indent=2, ensure_ascii=False))
+    elif args.cmd == "container-build":
+        from .container_plane import build_docker_image
+
+        print(json.dumps(build_docker_image(pdir, image_tag=args.image_tag, docker_bin=args.docker_bin), indent=2, ensure_ascii=False))
+    elif args.cmd == "container-digest":
+        from .container_plane import inspect_image_digest
+
+        print(json.dumps(inspect_image_digest(pdir, image_tag=args.image_tag, docker_bin=args.docker_bin), indent=2, ensure_ascii=False))
     elif args.cmd == "codex-workspace":
         from .codex_engineering import create_isolated_workspace
 
