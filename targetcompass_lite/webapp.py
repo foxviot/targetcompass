@@ -40,6 +40,7 @@ from .package import export_run_package
 from .reporting import build_report
 from .review import build_review_queue, final_signoff, load_approval_state, load_reviews, record_review
 from .evidence_index import evidence_trace_detail, query_evidence_trace
+from .nextflow_runner import build_nextflow_tasks, run_nextflow_local
 from .reset_demo import reset_demo_outputs
 from .run_state import new_run_id, read_status, request_cancel, write_status
 from .scoring import score_project
@@ -841,6 +842,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         + _evidence_trace_index_panel(project_dir)
         + _codex_engineering_panel(project_dir)
         + _role_runs_panel(project_dir)
+        + _nextflow_execution_panel(project_dir)
         + _mcp_gateway_panel(project_dir)
         + _registry_snapshot_panel(project_dir)
         + _executor_manifest_panel(project_dir)
@@ -1108,6 +1110,40 @@ def _executor_manifest_panel(project_dir: Path) -> str:
         "<table><thead><tr><th>Module</th><th>Backend</th><th>Status</th><th>Resume key</th><th>Artifacts</th><th>Manifest</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></details>"
     )
+
+
+def _nextflow_execution_panel(project_dir: Path) -> str:
+    tasks = _read_json(project_dir / "workflows" / "target_discovery" / "tasks.json", {})
+    run = _read_json(project_dir / "workflows" / "target_discovery" / "nextflow_run_manifest.json", {})
+    artifacts = run.get("artifacts", [])
+    artifact_rows = "".join(f"<li><code>{html.escape(path)}</code></li>" for path in artifacts[:10])
+    failed_tasks = run.get("recovery", {}).get("failed_tasks", [])
+    failed_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.get('process', ''))}</td>"
+        f"<td>{html.escape(row.get('name', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(row.get('exit', ''))}</td>"
+        "</tr>"
+        for row in failed_tasks[:10]
+    )
+    return f"""
+      <details open><summary>Nextflow execution</summary>
+        <p class="muted">tasks: {html.escape(str(tasks.get("task_count", 0)))} · status: {html.escape(run.get("status", "not_run"))} · profile: {html.escape(run.get("profile", "local"))}</p>
+        <form class="mini-form" method="post">
+          <div class="actions">
+            <button class="ghost" type="submit" formaction="/nextflow/tasks">Generate tasks.json</button>
+            <button class="ghost" type="submit" formaction="/nextflow/run">Run local profile</button>
+            <button class="ghost" name="resume" value="1" type="submit" formaction="/nextflow/run">Resume run</button>
+          </div>
+        </form>
+        <small>Run manifest: <code>workflows/target_discovery/nextflow_run_manifest.json</code></small>
+        <ul>{artifact_rows}</ul>
+        <p class="muted">{html.escape(run.get("failure_reason", ""))}</p>
+        <p class="muted">{html.escape(run.get("recovery", {}).get("recommendation", ""))}</p>
+        <table><thead><tr><th>Process</th><th>Name</th><th>Status</th><th>Exit</th></tr></thead><tbody>{failed_rows}</tbody></table>
+      </details>
+    """
 
 
 def _agent_roles_panel(project_dir: Path) -> str:
@@ -2385,6 +2421,22 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                     self._send(200, _page(project_dir, f"Consistency check completed: {result['status']}"))
                 except Exception as exc:
                     self._send(400, _page(project_dir, f"Consistency check failed: {exc}"))
+                return
+            if self.path == "/nextflow/tasks":
+                try:
+                    result = build_nextflow_tasks(project_dir)
+                    self._send(200, _page(project_dir, f"Nextflow tasks generated: {result['task_count']} task(s)."))
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"Nextflow task generation failed: {exc}"))
+                return
+            if self.path == "/nextflow/run":
+                length = int(self.headers.get("Content-Length", "0"))
+                form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+                try:
+                    result = run_nextflow_local(project_dir, profile="local", resume=form.get("resume", [""])[0] == "1")
+                    self._send(200, _page(project_dir, f"Nextflow run finished: {result['status']}"))
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"Nextflow run failed: {exc}"))
                 return
             if self.path == "/adapter-audit":
                 try:

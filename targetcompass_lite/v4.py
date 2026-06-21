@@ -366,6 +366,14 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "path": "v4/codex_engineering/result_registry.json",
                 "exists": (project_dir / "v4" / "codex_engineering" / "result_registry.json").exists(),
             },
+            "nextflow_tasks": {
+                "path": "workflows/target_discovery/tasks.json",
+                "exists": (project_dir / "workflows" / "target_discovery" / "tasks.json").exists(),
+            },
+            "nextflow_run": {
+                "path": "workflows/target_discovery/nextflow_run_manifest.json",
+                "exists": (project_dir / "workflows" / "target_discovery" / "nextflow_run_manifest.json").exists(),
+            },
         },
     }
     path = v4_dir(project_dir) / "object_manifest.json"
@@ -458,6 +466,7 @@ def finish_work_order_attempt(
     status: str,
     artifacts: list[str] | None = None,
     failure_reason: str = "",
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     manifest = read_work_order_attempts(project_dir)
     updated = {}
@@ -467,6 +476,8 @@ def finish_work_order_attempt(
             row["finished_at"] = datetime.now(timezone.utc).isoformat()
             row["failure_reason"] = failure_reason
             row["artifacts"] = artifacts or row.get("artifacts", [])
+            if metadata:
+                row.setdefault("metadata", {}).update(metadata)
             updated = row
             break
     _write_attempt_manifest(project_dir, manifest)

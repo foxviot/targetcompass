@@ -93,13 +93,15 @@ def build_nextflow_execution_plane(project_dir: Path) -> dict[str, Any]:
     config = target / "nextflow.config"
     params_schema = target / "params.schema.json"
     container_manifest = target / "container_manifest.json"
+    dockerfile = target / "Dockerfile.targetcompass-lite"
     resume_manifest = target / "resume_manifest.template.json"
     main_nf.write_text(_target_main_nf(), encoding="utf-8")
     config.write_text(_nextflow_config(), encoding="utf-8")
     params_schema.write_text(json.dumps(_params_schema(), indent=2, ensure_ascii=False), encoding="utf-8")
     container_manifest.write_text(json.dumps(_container_manifest(project_dir), indent=2, ensure_ascii=False), encoding="utf-8")
+    dockerfile.write_text(_dockerfile(), encoding="utf-8")
     resume_manifest.write_text(json.dumps(_resume_manifest(project_dir), indent=2, ensure_ascii=False), encoding="utf-8")
-    written.extend([main_nf, config, params_schema, container_manifest, resume_manifest])
+    written.extend([main_nf, config, params_schema, container_manifest, dockerfile, resume_manifest])
     payload = {
         "schema_version": NEXTFLOW_PLANE_SCHEMA,
         "project_id": project_dir.name,
@@ -113,6 +115,7 @@ def build_nextflow_execution_plane(project_dir: Path) -> dict[str, Any]:
         "module_count": len(MODULE_CONTRACTS),
         "modules": [_module_contract_payload(contract) for contract in MODULE_CONTRACTS.values()],
         "container_manifest": str(container_manifest.relative_to(project_dir)),
+        "dockerfile": str(dockerfile.relative_to(project_dir)),
         "resume_manifest_template": str(resume_manifest.relative_to(project_dir)),
         "generated_files": [str(path.relative_to(project_dir)) for path in written],
         "plane_hash": content_hash([path.read_text(encoding="utf-8") for path in written]),
@@ -231,7 +234,7 @@ workflow TARGET_DISCOVERY {{
 
   main:
   task_ch = Channel.fromPath(params.tasks_json)
-    .splitJson()
+    .splitJson(path: 'tasks')
     .map {{ task -> task + [label: task.module_id + ':' + (task.dataset_id ?: 'project')] }}
 
   bulk_tasks = task_ch.filter {{ it.module_id == 'bulk_deg_v1' }}
@@ -325,10 +328,23 @@ def _container_manifest(project_dir: Path) -> dict[str, Any]:
                 "image": "targetcompass-lite:local",
                 "digest": "",
                 "status": "local_development_placeholder",
+                "dockerfile": "workflows/target_discovery/Dockerfile.targetcompass-lite",
+                "build_command": "docker build -f workflows/target_discovery/Dockerfile.targetcompass-lite -t targetcompass-lite:local .",
+                "production_image_policy": "replace local tag with immutable registry image plus digest before shared execution",
                 "modules": sorted(MODULE_CONTRACTS),
             }
         ],
     }
+
+
+def _dockerfile() -> str:
+    return """FROM python:3.11-slim
+WORKDIR /app
+COPY . /app
+RUN python -m pip install --no-cache-dir -U pip
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "tc_lite.py"]
+"""
 
 
 def _resume_manifest(project_dir: Path) -> dict[str, Any]:

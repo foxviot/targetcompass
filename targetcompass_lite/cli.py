@@ -372,6 +372,15 @@ def main() -> None:
     p = sub.add_parser("nextflow-plane")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--validate", action="store_true")
+    p = sub.add_parser("nextflow-tasks")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--module-id", action="append", default=[])
+    p = sub.add_parser("nextflow-run")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--profile", default="local")
+    p.add_argument("--module-id", action="append", default=[])
+    p.add_argument("--nextflow-bin", default="nextflow")
+    p.add_argument("--resume", action="store_true")
     p = sub.add_parser("codex-workspace")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--work-order-id", required=True)
@@ -667,6 +676,26 @@ def main() -> None:
         manifest = build_nextflow_execution_plane(pdir)
         validation = validate_nextflow_execution_plane(pdir) if args.validate else None
         print(json.dumps({"manifest": manifest, "validation": validation}, indent=2, ensure_ascii=False))
+    elif args.cmd == "nextflow-tasks":
+        from .nextflow_runner import build_nextflow_tasks
+
+        print(json.dumps(build_nextflow_tasks(pdir, args.module_id or None), indent=2, ensure_ascii=False))
+    elif args.cmd == "nextflow-run":
+        from .nextflow_runner import run_nextflow_local
+
+        print(
+            json.dumps(
+                run_nextflow_local(
+                    pdir,
+                    profile=args.profile,
+                    module_ids=args.module_id or None,
+                    nextflow_bin=args.nextflow_bin,
+                    resume=args.resume,
+                ),
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
     elif args.cmd == "codex-workspace":
         from .codex_engineering import create_isolated_workspace
 

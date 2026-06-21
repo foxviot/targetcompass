@@ -1,8 +1,11 @@
 import tempfile
 import unittest
 from pathlib import Path
+import subprocess
 
 from targetcompass_lite.nextflow_plane import build_nextflow_execution_plane, validate_nextflow_execution_plane
+from targetcompass_lite.nextflow_runner import build_nextflow_tasks, run_nextflow_local
+from targetcompass_lite.v4 import compile_v4_work_orders, read_work_order_attempts
 
 
 class NextflowPlaneTest(unittest.TestCase):
@@ -18,6 +21,7 @@ class NextflowPlaneTest(unittest.TestCase):
             self.assertTrue((project / "workflows" / "target_discovery" / "main.nf").exists())
             self.assertTrue((project / "workflows" / "target_discovery" / "nextflow.config").exists())
             self.assertTrue((project / "workflows" / "target_discovery" / "params.schema.json").exists())
+            self.assertTrue((project / "workflows" / "target_discovery" / "Dockerfile.targetcompass-lite").exists())
             self.assertTrue((project / "workflows" / "common" / "modules" / "bulk_deg" / "module_contract.json").exists())
             self.assertIn("production containers must replace", " ".join(manifest["limitations"]))
 
@@ -27,10 +31,103 @@ class NextflowPlaneTest(unittest.TestCase):
             config_text = (project / "workflows" / "target_discovery" / "nextflow.config").read_text(encoding="utf-8")
             self.assertIn("profiles", config_text)
             self.assertIn("docker.enabled", config_text)
+            container_manifest = (project / "workflows" / "target_discovery" / "container_manifest.json").read_text(encoding="utf-8")
+            self.assertIn("docker build", container_manifest)
 
             validation = validate_nextflow_execution_plane(project)
             self.assertEqual(validation["status"], "pass")
             self.assertTrue((project / "workflows" / "target_discovery" / "nextflow_validation.json").exists())
+
+    def test_builds_tasks_and_runs_nextflow_with_attempt_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            plan = {
+                "project_id": "demo",
+                "modules": [
+                    {
+                        "module_id": "P4_bulk_deg_ds1",
+                        "module": "bulk_deg",
+                        "dataset_id": "ds1",
+                        "inputs": {"expression_matrix": "data/matrix.tsv", "metadata": "data/meta.tsv"},
+                        "parameters": {"case": "old", "control": "young"},
+                        "expected_outputs": ["results/bulk_deg_ds1/deg_results.tsv"],
+                    }
+                ],
+            }
+            compile_v4_work_orders(project, plan)
+            tasks = build_nextflow_tasks(project)
+            self.assertEqual(tasks["task_count"], 1)
+            self.assertEqual(tasks["tasks"][0]["module_id"], "bulk_deg_v1")
+            self.assertTrue((project / "workflows" / "target_discovery" / "tasks.json").exists())
+
+            def fake_runner(command, cwd):
+                self.assertIn("nextflow", command[0])
+                self.assertIn("-profile", command)
+                self.assertIn("local", command)
+                self.assertIn("-resume", command)
+                report = Path(command[command.index("-with-report") + 1])
+                timeline = Path(command[command.index("-with-timeline") + 1])
+                trace = Path(command[command.index("-with-trace") + 1])
+                dag = Path(command[command.index("-with-dag") + 1])
+                for path, text in [(report, "<html>report</html>"), (timeline, "<html>timeline</html>"), (trace, "trace"), (dag, "<html>dag</html>")]:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(text, encoding="utf-8")
+                (cwd / ".nextflow.log").write_text("nextflow log", encoding="utf-8")
+                return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
+
+            manifest = run_nextflow_local(project, resume=True, runner=fake_runner)
+            self.assertEqual(manifest["status"], "success")
+            self.assertTrue(manifest["resume"])
+            self.assertIn("workflows/target_discovery/runs/", manifest["artifacts"][0])
+            attempts = read_work_order_attempts(project)["attempts"]
+            self.assertEqual(attempts[-1]["status"], "success")
+            self.assertIn("nextflow", attempts[-1]["metadata"])
+            self.assertTrue((project / "workflows" / "target_discovery" / "nextflow_run_manifest.json").exists())
+
+    def test_nextflow_failure_extracts_trace_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            compile_v4_work_orders(
+                project,
+                {
+                    "project_id": "demo",
+                    "modules": [{"module_id": "P4_bulk_deg_ds1", "module": "bulk_deg", "dataset_id": "ds1", "inputs": {}, "parameters": {}}],
+                },
+            )
+
+            def failing_runner(command, cwd):
+                trace = Path(command[command.index("-with-trace") + 1])
+                trace.parent.mkdir(parents=True, exist_ok=True)
+                trace.write_text("task_id\tprocess\tname\tstatus\texit\n1\tBULK_DEG\tBULK_DEG (ds1)\tFAILED\t1\n", encoding="utf-8")
+                return subprocess.CompletedProcess(command, 1, stdout="", stderr="process failed")
+
+            manifest = run_nextflow_local(project, runner=failing_runner)
+            self.assertEqual(manifest["status"], "failed")
+            self.assertEqual(manifest["recovery"]["failed_tasks"][0]["process"], "BULK_DEG")
+            self.assertIn("-resume", manifest["recovery"]["resume_command"])
+            attempts = read_work_order_attempts(project)["attempts"]
+            self.assertEqual(attempts[-1]["metadata"]["nextflow"]["recovery"]["failed_tasks"][0]["status"], "FAILED")
+
+    def test_nextflow_missing_records_structured_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            compile_v4_work_orders(
+                project,
+                {
+                    "project_id": "demo",
+                    "modules": [{"module_id": "P4_bulk_deg_ds1", "module": "bulk_deg", "dataset_id": "ds1", "inputs": {}, "parameters": {}}],
+                },
+            )
+            manifest = run_nextflow_local(project, nextflow_bin="definitely_missing_nextflow_binary")
+            self.assertEqual(manifest["status"], "failed")
+            self.assertEqual(manifest["returncode"], 127)
+            self.assertIn("Nextflow executable not found", manifest["failure_reason"])
+            attempts = read_work_order_attempts(project)["attempts"]
+            self.assertEqual(attempts[-1]["status"], "failed")
+            self.assertIn("Nextflow executable not found", attempts[-1]["failure_reason"])
 
 
 if __name__ == "__main__":

@@ -51,9 +51,12 @@ PACKAGE_FILES = [
     "workflows/target_discovery/nextflow.config",
     "workflows/target_discovery/params.schema.json",
     "workflows/target_discovery/container_manifest.json",
+    "workflows/target_discovery/Dockerfile.targetcompass-lite",
     "workflows/target_discovery/resume_manifest.template.json",
     "workflows/target_discovery/nextflow_execution_plane.json",
     "workflows/target_discovery/nextflow_validation.json",
+    "workflows/target_discovery/tasks.json",
+    "workflows/target_discovery/nextflow_run_manifest.json",
 ]
 
 
