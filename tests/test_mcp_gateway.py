@@ -5,6 +5,7 @@ from pathlib import Path
 
 from targetcompass_lite.mcp_gateway import build_mcp_gateway, call_tool, load_call_audit, read_resource
 from targetcompass_lite.mcp_policy import load_policy_decisions, parse_token
+from targetcompass_lite.services import query_service_audit
 from targetcompass_lite.v4 import build_v4_manifest
 from targetcompass_lite.webapp import _v4_work_order_panel
 
@@ -46,6 +47,8 @@ class McpGatewayTest(unittest.TestCase):
 
             methods = call_tool(project, "method.registry.list", actor="unit_test")
             self.assertIn("dataset_scout", methods["methods"])
+            service_audit = query_service_audit(project)
+            self.assertTrue(any(row["service_id"] == "registry_service" for row in service_audit["items"]))
             config = call_tool(
                 project,
                 "method.config.update",
@@ -104,6 +107,9 @@ class McpGatewayTest(unittest.TestCase):
 
             out = call_tool(project, "resource.read", {"uri": "project://demo"}, actor="unit_test")
             self.assertEqual(out["text"], "demo")
+            call_tool(project, "v4.build_manifest", actor="unit_test")
+            service_audit = query_service_audit(project, service_id="project_api")
+            self.assertGreaterEqual(service_audit["match_count"], 1)
             with self.assertRaises(ValueError):
                 call_tool(project, "resource.read", {"uri": "missing://demo"}, actor="unit_test")
             audit = load_call_audit(project)

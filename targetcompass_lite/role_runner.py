@@ -108,6 +108,19 @@ def run_role(
         "output_refs": _existing_outputs(project_dir, role.get("output_refs", [])),
         "finished_at": finished_at,
     }
+    try:
+        from .orchestration_graph import validate_role_output_packet
+
+        temp_record = {"role_id": role_id, "output_packet": str(result_path.relative_to(project_dir))}
+        result_path.write_text(json.dumps(output_packet, indent=2, ensure_ascii=False), encoding="utf-8")
+        validation = validate_role_output_packet(project_dir, role_id, temp_record)
+        output_packet["schema_validation"] = {
+            "schema_name": validation.get("schema_name", ""),
+            "valid": validation.get("valid", False),
+            "errors": validation.get("errors", []),
+        }
+    except Exception as exc:
+        output_packet["schema_validation"] = {"schema_name": role.get("schema", ""), "valid": False, "errors": [str(exc)]}
     result_path.write_text(json.dumps(output_packet, indent=2, ensure_ascii=False), encoding="utf-8")
     log_path.write_text(stdout.getvalue() + stderr.getvalue(), encoding="utf-8")
     record = {
@@ -130,6 +143,8 @@ def run_role(
         "decision_id": "decision_" + content_hash(output_packet)[:16],
         "resume_key": "role_resume_" + content_hash({"role": role_id, "input_refs": input_refs})[:16],
         "method_config_hash": content_hash(method_config),
+        "schema_valid": output_packet.get("schema_validation", {}).get("valid", False),
+        "schema_errors": output_packet.get("schema_validation", {}).get("errors", []),
     }
     _append_role_run(project_dir, record)
     _refresh_role_manifest(project_dir)

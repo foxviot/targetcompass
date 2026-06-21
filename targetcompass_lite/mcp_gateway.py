@@ -196,7 +196,7 @@ def call_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any] | None 
     result: Any = None
     try:
         policy_decision = authorize_tool(project_dir, principal, tool_id, arguments)
-        result = _dispatch_tool(project_dir, tool_id, arguments)
+        result = _dispatch_tool(project_dir, tool_id, arguments, caller="mcp_gateway")
         return result
     except Exception as exc:
         status = "failed"
@@ -384,30 +384,17 @@ def _discover_core_resources(project_dir: Path) -> list[dict[str, Any]]:
     return resources
 
 
-def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any]) -> Any:
+def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any], caller: str = "mcp_gateway") -> Any:
     if tool_id == "resource.read":
         return _read_resource(project_dir, arguments["uri"])
     if tool_id == "v4.build_manifest":
-        from .v4 import build_v4_manifest
-
-        return build_v4_manifest(project_dir)
+        return _service_result(project_dir, "project_api", "build_manifest", caller=caller)
     if tool_id == "review.queue.build":
-        from .review import build_review_queue
-
-        return build_review_queue(project_dir)
+        return _service_result(project_dir, "project_api", "review_queue_build", caller=caller)
     if tool_id == "evidence.index.build":
-        from .evidence_index import build_evidence_review_report_index
-
-        return build_evidence_review_report_index(project_dir)
+        return _service_result(project_dir, "evidence_service", "trace_index", caller=caller)
     if tool_id == "evidence.trace.query":
-        from .evidence_index import query_evidence_trace
-
-        return query_evidence_trace(
-            project_dir,
-            gene=arguments.get("gene", ""),
-            evidence_id=arguments.get("evidence_id", ""),
-            review_status=arguments.get("review_status", ""),
-        )
+        return _service_result(project_dir, "evidence_service", "trace_query", arguments, caller=caller)
     if tool_id == "knowledge.adapt_resources":
         from .knowledge import adapt_resources
 
@@ -415,13 +402,7 @@ def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any]) -
     if tool_id == "codex.task_packet.inspect":
         return inspect_codex_task_packet(project_dir, arguments["work_order_id"])
     if tool_id == "method.registry.list":
-        from .methods.registry import available_project_methods
-
-        return {
-            "schema_version": "v4.method_registry/0.1",
-            "project_id": project_dir.name,
-            "methods": available_project_methods(project_dir),
-        }
+        return _service_result(project_dir, "registry_service", "method_registry_list", caller=caller)
     if tool_id == "method.config.read":
         from .methods.registry import load_method_config
 
@@ -445,6 +426,12 @@ def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any]) -
     if tool_id == "role.run.inspect":
         return inspect_role_run(project_dir, arguments["role_run_id"])
     raise ValueError(f"unsupported tool: {tool_id}")
+
+
+def _service_result(project_dir: Path, service_id: str, action: str, payload: dict[str, Any] | None = None, caller: str = "mcp_gateway") -> Any:
+    from .services import dispatch_service_request
+
+    return dispatch_service_request(service_id, action, project_dir, payload or {}, caller=caller)["result"]
 
 
 def _tool_contract(tool_id: str) -> dict[str, Any]:

@@ -366,6 +366,8 @@ def main() -> None:
     p.add_argument("--caller", default="")
     p.add_argument("--status", default="")
     p.add_argument("--limit", type=int, default=50)
+    p = sub.add_parser("orchestration-graph")
+    p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("mcp-client-config")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--base-url", default="")
@@ -707,6 +709,10 @@ def main() -> None:
         from .services import query_service_audit
 
         print(json.dumps(query_service_audit(pdir, service_id=args.service_id, caller=args.caller, status=args.status, limit=args.limit), indent=2, ensure_ascii=False))
+    elif args.cmd == "orchestration-graph":
+        from .orchestration_graph import build_typed_orchestration_graph
+
+        print(json.dumps(build_typed_orchestration_graph(pdir), indent=2, ensure_ascii=False))
     elif args.cmd == "mcp-client-config":
         from .mcp_sessions import build_mcp_client_config
 

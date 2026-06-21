@@ -709,8 +709,56 @@ def _method_panel(project_dir: Path) -> str:
         f'<div><small>Query</small><strong>{html.escape(config.get("query", ""))}</strong></div>'
         f'<div><small>Audit</small><strong>{html.escape(config.get("audit", ""))}</strong></div>'
         f'<div><small>Experiment</small><strong>{html.escape(config.get("experiment", ""))}</strong></div>'
+        f'<div><small>Disease normalizer</small><strong>{html.escape(config.get("disease_normalizer", ""))}</strong></div>'
+        f'<div><small>Dataset scout</small><strong>{html.escape(config.get("dataset_scout", ""))}</strong></div>'
+        f'<div><small>Planner</small><strong>{html.escape(config.get("planner", ""))}</strong></div>'
+        f'<div><small>Reviewers</small><strong>{html.escape(config.get("method_reviewer", ""))}</strong></div>'
         "</div>"
     )
+
+
+def _role_model_config_path(project_dir: Path) -> Path:
+    return project_dir / "configs" / "role_models.json"
+
+
+def _load_role_model_config(project_dir: Path) -> dict[str, str]:
+    path = _role_model_config_path(project_dir)
+    if not path.exists():
+        return {}
+    return _read_json(path, {})
+
+
+def _save_role_model_config(project_dir: Path, config: dict[str, str]) -> dict[str, str]:
+    normalized = {key: value.strip() for key, value in config.items() if value.strip()}
+    path = _role_model_config_path(project_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(normalized, indent=2, ensure_ascii=False), encoding="utf-8")
+    return normalized
+
+
+def _v4_role_method_fields(project_dir: Path) -> str:
+    role_labels = [
+        ("disease_normalizer", "Disease Normalizer"),
+        ("dataset_scout", "Dataset Scout"),
+        ("planner", "Planner"),
+        ("method_reviewer", "Method Reviewer"),
+        ("result_reviewer", "Result Reviewer"),
+        ("causal_reviewer", "Causal Reviewer"),
+        ("report_writer", "Report Writer"),
+    ]
+    model_config = _load_role_model_config(project_dir)
+    blocks = []
+    for stage, label in role_labels:
+        model = model_config.get(stage, "local")
+        blocks.append(
+            '<div class="method-role-row">'
+            f'<label for="{html.escape(stage)}_method">{html.escape(label)} method</label>'
+            f'<select id="{html.escape(stage)}_method" name="{html.escape(stage)}">{_method_select(project_dir, stage)}</select>'
+            f'<label for="{html.escape(stage)}_model">{html.escape(label)} model</label>'
+            f'<input id="{html.escape(stage)}_model" name="model__{html.escape(stage)}" type="text" value="{html.escape(model)}" placeholder="local / gpt-4.1 / reviewer-model">'
+            "</div>"
+        )
+    return "".join(blocks)
 
 
 def _markdown_method_panel(project_dir: Path) -> str:
@@ -738,6 +786,13 @@ def _markdown_method_panel(project_dir: Path) -> str:
           <option value="query">生成 / Query</option>
           <option value="audit">初审复核 / Audit</option>
           <option value="experiment">实验设计 / Experiment</option>
+          <option value="disease_normalizer">Disease Normalizer</option>
+          <option value="dataset_scout">Dataset Scout</option>
+          <option value="planner">Planner</option>
+          <option value="method_reviewer">Method Reviewer</option>
+          <option value="result_reviewer">Result Reviewer</option>
+          <option value="causal_reviewer">Causal Reviewer</option>
+          <option value="report_writer">Report Writer</option>
         </select>
         <label for="method_file">Drag or choose Markdown skill / agent method</label>
         <input id="method_file" name="method_file" type="file" accept=".md,text/markdown,text/plain">
@@ -762,6 +817,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
             + _consistency_check_panel(project_dir)
             + _evidence_trace_index_panel(project_dir)
             + _role_runs_panel(project_dir)
+            + _orchestration_graph_panel(project_dir)
             + _mcp_gateway_panel(project_dir)
             + _registry_snapshot_panel(project_dir)
             + _executor_manifest_panel(project_dir)
@@ -842,6 +898,7 @@ def _v4_work_order_panel(project_dir: Path) -> str:
         + _evidence_trace_index_panel(project_dir)
         + _codex_engineering_panel(project_dir)
         + _role_runs_panel(project_dir)
+        + _orchestration_graph_panel(project_dir)
         + _nextflow_execution_panel(project_dir)
         + _mcp_gateway_panel(project_dir)
         + _registry_snapshot_panel(project_dir)
@@ -1187,6 +1244,39 @@ def _role_runs_panel(project_dir: Path) -> str:
     return (
         "<details open><summary>v4 Role runs</summary>"
         "<table><thead><tr><th>Role</th><th>Status</th><th>Run</th><th>Input</th><th>Output</th><th>Log</th><th>Failure</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></details>"
+    )
+
+
+def _orchestration_graph_panel(project_dir: Path) -> str:
+    graph = _read_json(project_dir / "v4" / "typed_orchestration_graph.json", {})
+    if not graph:
+        return """
+        <details><summary>Typed orchestration graph</summary>
+          <p class="muted">No typed orchestration graph recorded yet.</p>
+          <form class="mini-form" method="post" action="/orchestration-graph">
+            <div class="actions"><button class="ghost" type="submit">Build typed graph</button></div>
+          </form>
+        </details>
+        """
+    rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('role_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('schema', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(str(row.get('schema_valid', False)))}</td>"
+        f"<td>{html.escape(row.get('selected_method', ''))}</td>"
+        f"<td>{html.escape(row.get('selected_model', ''))}</td>"
+        f"<td>{html.escape(row.get('fallback_policy', {}).get('fallback_method', ''))}</td>"
+        f"<td>{html.escape('; '.join(row.get('schema_errors', [])[:2]))}</td>"
+        "</tr>"
+        for row in graph.get("nodes", [])
+    )
+    return (
+        "<details open><summary>Typed orchestration graph</summary>"
+        f'<p class="muted">graph: <code>{html.escape(graph.get("graph_hash", "")[:16])}</code> · strict schemas: {html.escape(str(len(graph.get("role_schemas", {}))))} · edges: {html.escape(str(len(graph.get("edges", []))))}</p>'
+        '<form class="mini-form" method="post" action="/orchestration-graph"><div class="actions"><button class="ghost" type="submit">Refresh typed graph</button></div></form>'
+        "<table><thead><tr><th>Role</th><th>Schema</th><th>Status</th><th>Schema valid</th><th>Method</th><th>Model</th><th>Fallback</th><th>Errors</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></details>"
     )
 
@@ -2024,6 +2114,8 @@ def _page(project_dir: Path, message: str = "") -> bytes:
           <select id="audit_method" name="audit">{_method_select(project_dir, "audit")}</select>
           <label for="experiment_method">Experiment design method</label>
           <select id="experiment_method" name="experiment">{_method_select(project_dir, "experiment")}</select>
+          <h3>v4 role methods</h3>
+          {_v4_role_method_fields(project_dir)}
           <div class="actions">
             <button type="submit">{html.escape(t("save_methods"))}</button>
           </div>
@@ -2415,6 +2507,17 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                 except Exception as exc:
                     self._send(400, _page(project_dir, f"Evidence trace query failed: {exc}"))
                 return
+            if self.path == "/orchestration-graph":
+                try:
+                    from .orchestration_graph import build_typed_orchestration_graph
+
+                    build_typed_orchestration_graph(project_dir)
+                    self.send_response(303)
+                    self.send_header("Location", "/")
+                    self.end_headers()
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"Typed orchestration graph failed: {exc}"))
+                return
             if self.path == "/consistency-check":
                 try:
                     result = run_consistency_check(project_dir)
@@ -2471,6 +2574,25 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                             "query": form.get("query", [""])[0],
                             "audit": form.get("audit", [""])[0],
                             "experiment": form.get("experiment", [""])[0],
+                            "disease_normalizer": form.get("disease_normalizer", [""])[0],
+                            "dataset_scout": form.get("dataset_scout", [""])[0],
+                            "planner": form.get("planner", [""])[0],
+                            "method_reviewer": form.get("method_reviewer", [""])[0],
+                            "result_reviewer": form.get("result_reviewer", [""])[0],
+                            "causal_reviewer": form.get("causal_reviewer", [""])[0],
+                            "report_writer": form.get("report_writer", [""])[0],
+                        },
+                    )
+                    _save_role_model_config(
+                        project_dir,
+                        {
+                            "disease_normalizer": form.get("model__disease_normalizer", [""])[0],
+                            "dataset_scout": form.get("model__dataset_scout", [""])[0],
+                            "planner": form.get("model__planner", [""])[0],
+                            "method_reviewer": form.get("model__method_reviewer", [""])[0],
+                            "result_reviewer": form.get("model__result_reviewer", [""])[0],
+                            "causal_reviewer": form.get("model__causal_reviewer", [""])[0],
+                            "report_writer": form.get("model__report_writer", [""])[0],
                         },
                     )
                     self.send_response(303)

@@ -10,7 +10,9 @@ from .evidence_db import import_evidence
 from .evidence_index import build_evidence_review_report_index, evidence_trace_detail, query_evidence_trace
 from .package import export_run_package
 from .paths import project_path
+from .methods.registry import available_project_methods
 from .registry_snapshots import build_registry_snapshots, load_registry_snapshots
+from .review import build_review_queue
 from .reporting import build_report
 from .review import final_signoff
 from .service_boundaries import build_service_boundaries
@@ -31,9 +33,9 @@ SERVICE_IDENTITIES = {
 }
 
 SERVICE_ENDPOINTS = {
-    "project_api": ["health", "status", "boundaries", "consistency_check"],
+    "project_api": ["health", "status", "boundaries", "consistency_check", "build_manifest", "review_queue_build"],
     "evidence_service": ["health", "import", "trace_index", "trace_query", "trace_detail"],
-    "registry_service": ["health", "snapshot", "snapshot_read"],
+    "registry_service": ["health", "snapshot", "snapshot_read", "method_registry_list"],
     "report_service": ["health", "build", "export_package", "signoff", "validate"],
 }
 
@@ -222,6 +224,12 @@ def _project_action(action: str, project_dir: Path) -> Any:
         return build_service_boundaries(project_dir)
     if action == "consistency_check":
         return run_consistency_check(project_dir)
+    if action == "build_manifest":
+        from .v4 import build_v4_manifest
+
+        return build_v4_manifest(project_dir)
+    if action == "review_queue_build":
+        return build_review_queue(project_dir)
     raise ValueError(f"unsupported project action: {action}")
 
 
@@ -242,6 +250,12 @@ def _registry_action(action: str, project_dir: Path) -> Any:
         return build_registry_snapshots(project_dir)
     if action == "snapshot_read":
         return load_registry_snapshots(project_dir)
+    if action == "method_registry_list":
+        return {
+            "schema_version": "v4.method_registry/0.1",
+            "project_id": project_dir.name,
+            "methods": available_project_methods(project_dir),
+        }
     raise ValueError(f"unsupported registry action: {action}")
 
 
