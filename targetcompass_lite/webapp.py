@@ -34,6 +34,8 @@ from .methods import (
     load_method_config,
     save_method_config,
 )
+from .mcp_sessions import create_token, load_sessions, load_token_registry, query_mcp_audit, update_policy
+from .mcp_policy import write_default_policy
 from .package import export_run_package
 from .reporting import build_report
 from .review import build_review_queue, final_signoff, load_approval_state, load_reviews, record_review
@@ -1156,11 +1158,18 @@ def _role_runs_panel(project_dir: Path) -> str:
 def _mcp_gateway_panel(project_dir: Path) -> str:
     tools = _read_json(project_dir / "v4" / "mcp_tools.json", {}).get("tools", [])
     audit = _read_json(project_dir / "v4" / "mcp_call_audit_summary.json", {})
-    if not tools and not audit:
-        return '<p class="muted">No local MCP gateway contract recorded yet.</p>'
+    policy = write_default_policy(project_dir)
+    sessions = load_sessions(project_dir).get("sessions", [])
+    tokens = load_token_registry(project_dir).get("tokens", [])
+    audit_query = _read_json(project_dir / "v4" / "mcp_audit_last_query.json", {})
+    if not audit_query:
+        audit_query = query_mcp_audit(project_dir, limit=20)
+    if not tools and not audit and not sessions and not tokens:
+        return '<p class="muted">No local MCP gateway contract recorded yet.</p>' + _mcp_control_forms(policy)
     tool_rows = "".join(
         "<tr>"
         f"<td><code>{html.escape(row.get('tool_id', ''))}</code></td>"
+        f"<td><code>{html.escape(row.get('required_scope', ''))}</code></td>"
         f"<td>{html.escape(row.get('risk', ''))}</td>"
         f"<td>{html.escape(str(row.get('requires_review', False)))}</td>"
         f"<td>{html.escape(row.get('output_schema', ''))}</td>"
@@ -1174,20 +1183,120 @@ def _mcp_gateway_panel(project_dir: Path) -> str:
         f"<td><code>{html.escape(row.get('tool_id', ''))}</code></td>"
         f"<td>{html.escape(row.get('status', ''))}</td>"
         f"<td>{html.escape(row.get('actor', ''))}</td>"
+        f"<td>{html.escape(row.get('principal', ''))}</td>"
+        f"<td>{html.escape(row.get('role', ''))}</td>"
         f"<td>{html.escape(row.get('risk', ''))}</td>"
         f"<td>{html.escape(row.get('failure_reason', ''))}</td>"
         "</tr>"
         for row in calls[-8:]
     )
+    session_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('session_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('client_id', ''))}</td>"
+        f"<td>{html.escape(row.get('principal', ''))}</td>"
+        f"<td>{html.escape(row.get('role', ''))}</td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(row.get('last_seen_at', ''))}</td>"
+        "</tr>"
+        for row in sessions[-12:]
+    )
+    token_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('token_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('principal', ''))}</td>"
+        f"<td>{html.escape(row.get('role', ''))}</td>"
+        f"<td>{html.escape(', '.join(row.get('scopes', [])))}</td>"
+        f"<td><code>{html.escape(row.get('token_hash', '')[:12])}</code></td>"
+        "</tr>"
+        for row in tokens[-12:]
+    )
+    decision_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(str(row.get('allow', '')))}</td>"
+        f"<td>{html.escape(row.get('principal', ''))}</td>"
+        f"<td>{html.escape(row.get('action', ''))}</td>"
+        f"<td><code>{html.escape(row.get('required_scope', ''))}</code></td>"
+        f"<td>{html.escape(row.get('reason', ''))}</td>"
+        "</tr>"
+        for row in audit_query.get("latest_policy_decisions", [])[-10:]
+    )
+    queried_call_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(row.get('tool_id', ''))}</code></td>"
+        f"<td>{html.escape(row.get('status', ''))}</td>"
+        f"<td>{html.escape(row.get('principal', ''))}</td>"
+        f"<td>{html.escape(row.get('role', ''))}</td>"
+        f"<td>{html.escape(row.get('failure_reason', ''))}</td>"
+        "</tr>"
+        for row in audit_query.get("calls", [])[-20:]
+    )
     return (
         "<details open><summary>Local MCP Gateway</summary>"
-        f"<p class=\"muted\">calls: {html.escape(str(audit.get('call_count', 0)))} · failures: {html.escape(str(audit.get('failure_count', 0)))}</p>"
-        "<table><thead><tr><th>Tool</th><th>Risk</th><th>Review</th><th>Output</th><th>Hash</th></tr></thead>"
+        f"<p class=\"muted\">calls: {html.escape(str(audit.get('call_count', 0)))} · failures: {html.escape(str(audit.get('failure_count', 0)))} · default role: {html.escape(policy.get('default_role', ''))} · require token: {html.escape(str(policy.get('require_token_for_external_clients', False)))}</p>"
+        + _mcp_control_forms(policy)
+        + "<h3>Tool contracts</h3>"
+        "<table><thead><tr><th>Tool</th><th>Scope</th><th>Risk</th><th>Review</th><th>Output</th><th>Hash</th></tr></thead>"
         f"<tbody>{tool_rows}</tbody></table>"
-        "<details><summary>MCP call audit</summary>"
-        "<table><thead><tr><th>Tool</th><th>Status</th><th>Actor</th><th>Risk</th><th>Failure</th></tr></thead>"
-        f"<tbody>{call_rows}</tbody></table></details></details>"
+        "<details open><summary>Client sessions</summary>"
+        "<table><thead><tr><th>Session</th><th>Client</th><th>Principal</th><th>Role</th><th>Status</th><th>Last seen</th></tr></thead>"
+        f"<tbody>{session_rows}</tbody></table></details>"
+        "<details><summary>Registered token descriptors</summary>"
+        "<table><thead><tr><th>Token</th><th>Principal</th><th>Role</th><th>Scopes</th><th>Hash</th></tr></thead>"
+        f"<tbody>{token_rows}</tbody></table></details>"
+        "<details open><summary>MCP call audit</summary>"
+        "<table><thead><tr><th>Tool</th><th>Status</th><th>Actor</th><th>Principal</th><th>Role</th><th>Risk</th><th>Failure</th></tr></thead>"
+        f"<tbody>{call_rows}</tbody></table></details>"
+        "<details open><summary>Audit query result</summary>"
+        f"<p class=\"muted\">matched calls: {html.escape(str(audit_query.get('call_count', 0)))} · policy decisions: {html.escape(str(audit_query.get('decision_count', 0)))}</p>"
+        "<table><thead><tr><th>Tool</th><th>Status</th><th>Principal</th><th>Role</th><th>Failure</th></tr></thead>"
+        f"<tbody>{queried_call_rows}</tbody></table>"
+        "<h3>Policy decisions</h3>"
+        "<table><thead><tr><th>Allow</th><th>Principal</th><th>Action</th><th>Required scope</th><th>Reason</th></tr></thead>"
+        f"<tbody>{decision_rows}</tbody></table></details></details>"
     )
+
+
+def _mcp_control_forms(policy: dict) -> str:
+    roles = ["local_admin", "reviewer", "agent_reader", "agent_operator"]
+    role_options = "".join(
+        f'<option value="{html.escape(role)}"{" selected" if role == policy.get("default_role") else ""}>{html.escape(role)}</option>'
+        for role in roles
+    )
+    token_role_options = "".join(f'<option value="{html.escape(role)}">{html.escape(role)}</option>' for role in roles)
+    require_checked = " checked" if policy.get("require_token_for_external_clients") else ""
+    return f"""
+      <div class="mcp-console">
+        <form class="mini-form" method="post" action="/mcp/policy">
+          <label for="mcp_default_role">Default local role</label>
+          <select id="mcp_default_role" name="default_role">{role_options}</select>
+          <label><input type="checkbox" name="require_token" value="1"{require_checked}> Require token for external clients</label>
+          <div class="actions"><button type="submit">Save MCP policy</button></div>
+        </form>
+        <form class="mini-form" method="post" action="/mcp/token">
+          <label for="mcp_principal">Client principal</label>
+          <input id="mcp_principal" name="principal" type="text" placeholder="dataset-scout-agent">
+          <label for="mcp_role">Role</label>
+          <select id="mcp_role" name="role">{token_role_options}</select>
+          <label for="mcp_scopes">Scopes override</label>
+          <input id="mcp_scopes" name="scopes" type="text" placeholder="resource:read,tool:read">
+          <div class="actions"><button type="submit">Create token JSON</button></div>
+        </form>
+        <form class="mini-form" method="post" action="/mcp/audit-query">
+          <label for="mcp_audit_principal">Audit principal</label>
+          <input id="mcp_audit_principal" name="principal" type="text" placeholder="reader-agent">
+          <label for="mcp_audit_tool">Tool</label>
+          <input id="mcp_audit_tool" name="tool" type="text" placeholder="evidence.trace.query">
+          <label for="mcp_audit_status">Status</label>
+          <select id="mcp_audit_status" name="status">
+            <option value="">any</option>
+            <option value="success">success</option>
+            <option value="failed">failed</option>
+          </select>
+          <div class="actions"><button type="submit">Query audit</button></div>
+        </form>
+      </div>
+    """
 
 
 def _registry_snapshot_panel(project_dir: Path) -> str:
@@ -2205,6 +2314,56 @@ def run_server(project: str, host: str = "127.0.0.1", port: int = 8765) -> None:
                     self._send(200, _page(project_dir, f"Approval state updated: {state['status']}"))
                 except Exception as exc:
                     self._send(400, _page(project_dir, f"Approval signoff failed: {exc}"))
+                return
+            if self.path == "/mcp/policy":
+                length = int(self.headers.get("Content-Length", "0"))
+                form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+                try:
+                    update_policy(
+                        project_dir,
+                        default_role=form.get("default_role", [""])[0],
+                        require_token=form.get("require_token", [""])[0] == "1",
+                    )
+                    self.send_response(303)
+                    self.send_header("Location", "/")
+                    self.end_headers()
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"MCP policy update failed: {exc}"))
+                return
+            if self.path == "/mcp/token":
+                length = int(self.headers.get("Content-Length", "0"))
+                form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+                try:
+                    scopes = [s.strip() for s in form.get("scopes", [""])[0].split(",") if s.strip()]
+                    token = create_token(
+                        project_dir,
+                        form.get("principal", [""])[0],
+                        form.get("role", ["agent_reader"])[0],
+                        scopes=scopes or None,
+                    )
+                    self._send(200, _page(project_dir, "MCP token JSON created: " + html.escape(json.dumps(token, ensure_ascii=False))))
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"MCP token creation failed: {exc}"))
+                return
+            if self.path == "/mcp/audit-query":
+                length = int(self.headers.get("Content-Length", "0"))
+                form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+                try:
+                    result = query_mcp_audit(
+                        project_dir,
+                        principal=form.get("principal", [""])[0].strip(),
+                        tool_id=form.get("tool", [""])[0].strip(),
+                        status=form.get("status", [""])[0].strip(),
+                        limit=50,
+                    )
+                    out = project_dir / "v4" / "mcp_audit_last_query.json"
+                    out.parent.mkdir(parents=True, exist_ok=True)
+                    out.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+                    self.send_response(303)
+                    self.send_header("Location", "/")
+                    self.end_headers()
+                except Exception as exc:
+                    self._send(400, _page(project_dir, f"MCP audit query failed: {exc}"))
                 return
             if self.path == "/evidence-trace/query":
                 length = int(self.headers.get("Content-Length", "0"))

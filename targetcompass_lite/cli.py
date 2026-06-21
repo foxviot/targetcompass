@@ -335,8 +335,31 @@ def main() -> None:
     p.add_argument("--read-resource", default="")
     p.add_argument("--call-tool", default="")
     p.add_argument("--args-json", default="{}")
+    p.add_argument("--token-json", default="")
+    p.add_argument("--token-file", default="")
+    p.add_argument("--token-env", default="TARGETCOMPASS_MCP_TOKEN")
     p = sub.add_parser("mcp-server")
     p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--token-json", default="")
+    p.add_argument("--token-file", default="")
+    p.add_argument("--token-env", default="TARGETCOMPASS_MCP_TOKEN")
+    p.add_argument("--client-id", default="mcp_stdio_client")
+    p = sub.add_parser("mcp-token")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--principal", required=True)
+    p.add_argument("--role", choices=["local_admin", "reviewer", "agent_reader", "agent_operator"], default="agent_reader")
+    p.add_argument("--scopes", default="")
+    p.add_argument("--token-id", default="")
+    p = sub.add_parser("mcp-policy")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--default-role", default="")
+    p.add_argument("--require-token", choices=["true", "false", ""], default="")
+    p = sub.add_parser("mcp-audit")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--principal", default="")
+    p.add_argument("--tool", default="")
+    p.add_argument("--status", default="")
+    p.add_argument("--limit", type=int, default=50)
     p = sub.add_parser("registry-snapshot")
     p.add_argument("--project", default="vascular_aging_demo")
     p = sub.add_parser("nextflow-plane")
@@ -584,19 +607,41 @@ def main() -> None:
         print(json.dumps(run_consistency_check(pdir), indent=2, ensure_ascii=False))
     elif args.cmd == "mcp-gateway":
         from .mcp_gateway import build_mcp_gateway, call_tool, read_resource
+        from .mcp_policy import parse_token
+        from .mcp_sessions import load_token_from_sources
 
+        token = load_token_from_sources(args.token_json, args.token_file, args.token_env) or None
+        principal = parse_token(pdir, token, actor="cli") if token else None
         if args.list_tools:
-            print(json.dumps(build_mcp_gateway(pdir)["tools"], indent=2, ensure_ascii=False))
+            print(json.dumps(build_mcp_gateway(pdir, principal=principal)["tools"], indent=2, ensure_ascii=False))
         elif args.read_resource:
-            print(json.dumps(read_resource(pdir, args.read_resource, actor="cli"), indent=2, ensure_ascii=False))
+            print(json.dumps(read_resource(pdir, args.read_resource, actor="cli", token=token), indent=2, ensure_ascii=False))
         elif args.call_tool:
-            print(json.dumps(call_tool(pdir, args.call_tool, json.loads(args.args_json), actor="cli"), indent=2, ensure_ascii=False))
+            print(json.dumps(call_tool(pdir, args.call_tool, json.loads(args.args_json), actor="cli", token=token), indent=2, ensure_ascii=False))
         else:
-            print(json.dumps(build_mcp_gateway(pdir), indent=2, ensure_ascii=False))
+            print(json.dumps(build_mcp_gateway(pdir, principal=principal), indent=2, ensure_ascii=False))
     elif args.cmd == "mcp-server":
         from .mcp_server import run_stdio_server
+        from .mcp_sessions import load_token_from_sources
 
-        run_stdio_server(args.project)
+        token = load_token_from_sources(args.token_json, args.token_file, args.token_env) or None
+        run_stdio_server(args.project, token=token, client_id=args.client_id)
+    elif args.cmd == "mcp-token":
+        from .mcp_sessions import create_token
+
+        scopes = [s.strip() for s in args.scopes.split(",") if s.strip()] if args.scopes else None
+        print(json.dumps(create_token(pdir, args.principal, args.role, scopes=scopes, token_id=args.token_id), indent=2, ensure_ascii=False))
+    elif args.cmd == "mcp-policy":
+        from .mcp_policy import write_default_policy
+        from .mcp_sessions import update_policy
+
+        require_token = None if args.require_token == "" else args.require_token == "true"
+        policy = update_policy(pdir, default_role=args.default_role, require_token=require_token) if args.default_role or require_token is not None else write_default_policy(pdir)
+        print(json.dumps(policy, indent=2, ensure_ascii=False))
+    elif args.cmd == "mcp-audit":
+        from .mcp_sessions import query_mcp_audit
+
+        print(json.dumps(query_mcp_audit(pdir, principal=args.principal, tool_id=args.tool, status=args.status, limit=args.limit), indent=2, ensure_ascii=False))
     elif args.cmd == "registry-snapshot":
         from .registry_snapshots import build_registry_snapshots
 

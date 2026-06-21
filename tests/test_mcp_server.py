@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from targetcompass_lite.mcp_server import _read_framed_message, _write_framed_message, handle_jsonrpc
+from targetcompass_lite.mcp_server import _read_framed_message, _write_framed_message, handle_jsonrpc, run_stdio_server
+from targetcompass_lite.mcp_sessions import create_token, load_sessions, load_token_from_sources, query_mcp_audit, update_policy
 from targetcompass_lite.v4 import build_v4_manifest
 
 
@@ -89,6 +90,47 @@ class McpServerTest(unittest.TestCase):
             )
             self.assertTrue(denied["result"]["isError"])
             self.assertIn("missing required scope", denied["result"]["structuredContent"]["error"])
+
+    def test_token_sources_policy_and_audit_query(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "research_interest.md").write_text("vascular aging\n", encoding="utf-8")
+            token = create_token(project, "reader-agent", "agent_reader", scopes=["resource:read", "tool:read"])
+            token_file = project / "reader_token.json"
+            token_file.write_text(json.dumps(token), encoding="utf-8")
+
+            loaded = load_token_from_sources(token_file=str(token_file))
+            self.assertEqual(json.loads(loaded)["principal"], "reader-agent")
+            update_policy(project, require_token=True)
+            missing = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+            self.assertIn("MCP token is required", missing["error"]["message"])
+
+            tools = handle_jsonrpc(project, {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}, token=loaded)
+            self.assertFalse(any(row["name"] == "method.config.update" for row in tools["result"]["tools"]))
+            denied = handle_jsonrpc(
+                project,
+                {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "method.config.update", "arguments": {"config": {}}}},
+                token=loaded,
+            )
+            self.assertTrue(denied["result"]["isError"])
+            audit = query_mcp_audit(project, principal="reader-agent", status="failed")
+            self.assertEqual(audit["call_count"], 1)
+
+    def test_stdio_server_records_client_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "research_interest.md").write_text("vascular aging\n", encoding="utf-8")
+            stream_in = io.BytesIO()
+            _write_framed_message(stream_in, {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
+            stream_in.seek(0)
+            stream_out = io.BytesIO()
+
+            run_stdio_server(str(project), stdin=stream_in, stdout=stream_out, client_id="unit-client")
+            sessions = load_sessions(project)["sessions"]
+            self.assertEqual(sessions[-1]["client_id"], "unit-client")
+            self.assertEqual(sessions[-1]["status"], "closed")
 
     def test_content_length_framing_roundtrip(self):
         stream = io.BytesIO()

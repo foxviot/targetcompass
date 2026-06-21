@@ -330,6 +330,14 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
                 "path": str(policy_decisions_path(project_dir).relative_to(project_dir)),
                 "exists": policy_decisions_path(project_dir).exists(),
             },
+            "mcp_sessions": {
+                "path": "v4/mcp_sessions.json",
+                "exists": (project_dir / "v4" / "mcp_sessions.json").exists(),
+            },
+            "mcp_tokens": {
+                "path": "v4/mcp_tokens.json",
+                "exists": (project_dir / "v4" / "mcp_tokens.json").exists(),
+            },
             "service_boundaries": {
                 "path": str(service_boundaries_path(project_dir).relative_to(project_dir)),
                 "exists": service_boundaries_path(project_dir).exists(),

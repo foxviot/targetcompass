@@ -78,6 +78,8 @@ def policy_decisions_path(project_dir: Path) -> Path:
 def parse_token(project_dir: Path, token: str | None, actor: str = "local_gateway") -> Principal:
     policy = write_default_policy(project_dir)
     if not token:
+        if policy.get("require_token_for_external_clients") and actor not in {"local_gateway", "cli", "unit_test", "token_registry"}:
+            raise PermissionError("MCP token is required for external clients")
         role = policy.get("default_role", "local_admin")
         scopes = set(policy.get("roles", {}).get(role, []))
         return Principal(actor, role, project_dir.name, scopes, "local_dev", False)
