@@ -341,9 +341,10 @@ def _container_manifest(project_dir: Path, base_image: str = "python:3.11-slim")
 def _dockerfile(base_image: str = "python:3.11-slim") -> str:
     return f"""ARG TARGETCOMPASS_BASE_IMAGE={base_image}
 FROM ${{TARGETCOMPASS_BASE_IMAGE}}
+ARG TARGETCOMPASS_UPGRADE_PIP=false
 WORKDIR /app
 COPY . /app
-RUN python -m pip install --no-cache-dir -U pip
+RUN python -V && if [ "$TARGETCOMPASS_UPGRADE_PIP" = "true" ]; then python -m pip install --no-cache-dir -U pip; fi
 ENV PYTHONUNBUFFERED=1
 ENTRYPOINT ["python", "tc_lite.py"]
 """

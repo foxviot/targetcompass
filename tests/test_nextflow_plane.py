@@ -165,6 +165,8 @@ class NextflowPlaneTest(unittest.TestCase):
             self.assertEqual(result["immutable_ref"], "targetcompass-lite@sha256:abc123")
             dockerfile = (project / "workflows" / "target_discovery" / "Dockerfile.targetcompass-lite").read_text(encoding="utf-8")
             self.assertIn("ARG TARGETCOMPASS_BASE_IMAGE=python:3.11-bookworm", dockerfile)
+            self.assertIn("ARG TARGETCOMPASS_UPGRADE_PIP=false", dockerfile)
+            self.assertIn('TARGETCOMPASS_UPGRADE_PIP" = "true"', dockerfile)
             self.assertTrue((project / "workflows" / "target_discovery" / "container_build_result.json").exists())
             digest = inspect_image_digest(project, image_tag="targetcompass-lite:test", docker_bin="docker", runner=fake_docker)
             self.assertEqual(digest["digest"], "sha256:abc123")
