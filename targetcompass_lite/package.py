@@ -44,6 +44,8 @@ PACKAGE_FILES = [
     "v4/mcp_call_audit.jsonl",
     "v4/mcp_call_audit_summary.json",
     "v4/service_boundaries.json",
+    "v4/service_runtime.json",
+    "v4/service_request_audit.jsonl",
     "v4/registry_snapshots.json",
     "v4/role_runs.json",
     "v4/agent_roles.json",

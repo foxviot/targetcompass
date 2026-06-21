@@ -347,6 +347,25 @@ def main() -> None:
     p = sub.add_parser("mcp-http-server")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8790)
+    p = sub.add_parser("service-runtime")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p = sub.add_parser("service-run")
+    p.add_argument("--service-id", required=True)
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8800)
+    p = sub.add_parser("service-call")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--service-id", required=True)
+    p.add_argument("--action", required=True)
+    p.add_argument("--payload-json", default="{}")
+    p.add_argument("--caller", default="mcp_gateway")
+    p.add_argument("--trace-id", default="")
+    p = sub.add_parser("service-audit")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--service-id", default="")
+    p.add_argument("--caller", default="")
+    p.add_argument("--status", default="")
+    p.add_argument("--limit", type=int, default=50)
     p = sub.add_parser("mcp-client-config")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--base-url", default="")
@@ -659,6 +678,35 @@ def main() -> None:
         from .mcp_http_server import run_http_server
 
         run_http_server(args.host, args.port)
+    elif args.cmd == "service-runtime":
+        from .services import service_runtime_manifest
+
+        print(json.dumps(service_runtime_manifest(pdir), indent=2, ensure_ascii=False))
+    elif args.cmd == "service-run":
+        from .services import run_service
+
+        run_service(args.service_id, args.host, args.port)
+    elif args.cmd == "service-call":
+        from .services import dispatch_service_request
+
+        print(
+            json.dumps(
+                dispatch_service_request(
+                    args.service_id,
+                    args.action,
+                    pdir,
+                    json.loads(args.payload_json),
+                    caller=args.caller,
+                    trace_id=args.trace_id,
+                ),
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+    elif args.cmd == "service-audit":
+        from .services import query_service_audit
+
+        print(json.dumps(query_service_audit(pdir, service_id=args.service_id, caller=args.caller, status=args.status, limit=args.limit), indent=2, ensure_ascii=False))
     elif args.cmd == "mcp-client-config":
         from .mcp_sessions import build_mcp_client_config
 
