@@ -253,6 +253,7 @@ def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
 def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
     from .evidence_index import evidence_review_report_index_path
     from .mcp_policy import policy_decisions_path, policy_path
+    from .mcp_sessions import build_mcp_client_config
     from .registry_snapshots import build_registry_snapshots
     from .service_boundaries import service_boundaries_path
     from .trace_orchestrator import refresh_traceability
@@ -271,6 +272,9 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     evidence_index = traceability.get("refreshed", {}).get("evidence_review_report_index", {})
     mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
     registry_snapshots = build_registry_snapshots(project_dir)
+    mcp_client_config = build_mcp_client_config(project_dir)
+    mcp_client_config_path = v4_dir(project_dir) / "mcp_client_config.json"
+    mcp_client_config_path.write_text(json.dumps(mcp_client_config, indent=2, ensure_ascii=False), encoding="utf-8")
     manifest = {
         "schema_version": "v4.object_manifest/0.1",
         "project_id": project_dir.name,
@@ -337,6 +341,10 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
             "mcp_tokens": {
                 "path": "v4/mcp_tokens.json",
                 "exists": (project_dir / "v4" / "mcp_tokens.json").exists(),
+            },
+            "mcp_client_config": {
+                "path": "v4/mcp_client_config.json",
+                "exists": mcp_client_config_path.exists(),
             },
             "service_boundaries": {
                 "path": str(service_boundaries_path(project_dir).relative_to(project_dir)),

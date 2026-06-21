@@ -344,6 +344,13 @@ def main() -> None:
     p.add_argument("--token-file", default="")
     p.add_argument("--token-env", default="TARGETCOMPASS_MCP_TOKEN")
     p.add_argument("--client-id", default="mcp_stdio_client")
+    p = sub.add_parser("mcp-http-server")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8790)
+    p = sub.add_parser("mcp-client-config")
+    p.add_argument("--project", default="vascular_aging_demo")
+    p.add_argument("--base-url", default="")
+    p.add_argument("--token-env", default="TARGETCOMPASS_MCP_TOKEN")
     p = sub.add_parser("mcp-token")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--principal", required=True)
@@ -626,6 +633,14 @@ def main() -> None:
 
         token = load_token_from_sources(args.token_json, args.token_file, args.token_env) or None
         run_stdio_server(args.project, token=token, client_id=args.client_id)
+    elif args.cmd == "mcp-http-server":
+        from .mcp_http_server import run_http_server
+
+        run_http_server(args.host, args.port)
+    elif args.cmd == "mcp-client-config":
+        from .mcp_sessions import build_mcp_client_config
+
+        print(json.dumps(build_mcp_client_config(pdir, base_url=args.base_url, token_env=args.token_env), indent=2, ensure_ascii=False))
     elif args.cmd == "mcp-token":
         from .mcp_sessions import create_token
 

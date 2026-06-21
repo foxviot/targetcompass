@@ -182,6 +182,40 @@ def build_mcp_server_config(project_dir: Path, token_file: str = "", env_var: st
     }
 
 
+def build_mcp_client_config(project_dir: Path, base_url: str = "", token_env: str = "TARGETCOMPASS_MCP_TOKEN") -> dict[str, Any]:
+    base = base_url.rstrip("/") or f"http://127.0.0.1:8790/mcp/{project_dir.name}"
+    return {
+        "schema_version": "v4.mcp_client_config/0.1",
+        "project_id": project_dir.name,
+        "client_name": f"targetcompass-{project_dir.name}",
+        "transports": {
+            "http_jsonrpc": {
+                "url": base,
+                "method": "POST",
+                "headers": {
+                    "Authorization": f"Bearer ${{{token_env}}}",
+                    "X-MCP-Client-ID": "external-agent",
+                },
+            },
+            "sse_events": {
+                "url": base + "/events",
+                "method": "GET",
+                "purpose": "Lightweight server/session readiness events. JSON-RPC calls still use http_jsonrpc.",
+            },
+            "stdio": {
+                "command": "python",
+                "args": ["tc_lite.py", "mcp-server", "--project", project_dir.name, "--token-env", token_env],
+            },
+        },
+        "security": {
+            "token_source": token_env,
+            "project_bound_tokens": True,
+            "recommended_role_for_read_only_agents": "agent_reader",
+            "recommended_role_for_operators": "agent_operator",
+        },
+    }
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

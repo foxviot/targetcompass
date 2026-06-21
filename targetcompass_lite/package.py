@@ -40,6 +40,7 @@ PACKAGE_FILES = [
     "v4/mcp_policy_decisions.jsonl",
     "v4/mcp_sessions.json",
     "v4/mcp_tokens.json",
+    "v4/mcp_client_config.json",
     "v4/mcp_call_audit.jsonl",
     "v4/mcp_call_audit_summary.json",
     "v4/service_boundaries.json",

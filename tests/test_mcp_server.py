@@ -1,11 +1,15 @@
 import io
 import json
+import threading
+import urllib.error
+import urllib.request
 import tempfile
 import unittest
 from pathlib import Path
 
+from targetcompass_lite.mcp_http_server import McpHttpHandler
 from targetcompass_lite.mcp_server import _read_framed_message, _write_framed_message, handle_jsonrpc, run_stdio_server
-from targetcompass_lite.mcp_sessions import create_token, load_sessions, load_token_from_sources, query_mcp_audit, update_policy
+from targetcompass_lite.mcp_sessions import build_mcp_client_config, create_token, load_sessions, load_token_from_sources, query_mcp_audit, update_policy
 from targetcompass_lite.v4 import build_v4_manifest
 
 
@@ -132,6 +136,74 @@ class McpServerTest(unittest.TestCase):
             self.assertEqual(sessions[-1]["client_id"], "unit-client")
             self.assertEqual(sessions[-1]["status"], "closed")
 
+    def test_http_mcp_requires_token_filters_tools_and_records_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "research_interest.md").write_text("vascular aging\n", encoding="utf-8")
+            token = create_token(project, "reader-agent", "agent_reader", scopes=["resource:read", "tool:read"])
+            server, base = _start_http_server()
+            project_url = base + "/mcp/" + urllib.parse.quote(str(project), safe="")
+            try:
+                missing = _post_json(project_url, {"jsonrpc": "2.0", "id": 1, "method": "initialize"}, expect_status=401)
+                self.assertIn("token is required", missing["error"]["message"])
+
+                init, headers = _post_json(
+                    project_url,
+                    {"jsonrpc": "2.0", "id": 2, "method": "initialize"},
+                    token=token,
+                    client_id="reader-http",
+                    return_headers=True,
+                )
+                self.assertEqual(init["result"]["protocolVersion"], "2025-06-18")
+                self.assertTrue(headers.get("X-MCP-Session-ID"))
+                tools = _post_json(
+                    project_url,
+                    {"jsonrpc": "2.0", "id": 3, "method": "tools/list"},
+                    token=token,
+                    client_id="reader-http",
+                    session_id=headers.get("X-MCP-Session-ID"),
+                )
+                names = {row["name"] for row in tools["result"]["tools"]}
+                self.assertIn("method.config.read", names)
+                self.assertNotIn("method.config.update", names)
+                sessions = load_sessions(project)["sessions"]
+                self.assertEqual(sessions[-1]["transport"], "http")
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_http_mcp_rejects_cross_project_token_and_serves_sse_and_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_a = Path(tmp) / "demo_a"
+            project_b = Path(tmp) / "demo_b"
+            project_a.mkdir()
+            project_b.mkdir()
+            (project_a / "research_interest.md").write_text("a\n", encoding="utf-8")
+            (project_b / "research_interest.md").write_text("b\n", encoding="utf-8")
+            token_a = create_token(project_a, "reader-agent", "agent_reader", scopes=["resource:read", "tool:read"])
+            server, base = _start_http_server()
+            project_a_url = base + "/mcp/" + urllib.parse.quote(str(project_a), safe="")
+            project_b_url = base + "/mcp/" + urllib.parse.quote(str(project_b), safe="")
+            try:
+                denied = _post_json(
+                    project_b_url,
+                    {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                    token=token_a,
+                    expect_status=401,
+                )
+                self.assertIn("project scope", denied["error"]["message"])
+
+                events = urllib.request.urlopen(project_a_url + "/events", timeout=5).read().decode("utf-8")
+                self.assertIn("event: mcp.ready", events)
+                config = urllib.request.urlopen(project_a_url + "/client-config", timeout=5).read().decode("utf-8")
+                self.assertIn("http_jsonrpc", config)
+                client_config = build_mcp_client_config(project_a, base_url=project_a_url)
+                self.assertEqual(client_config["transports"]["http_jsonrpc"]["url"], project_a_url)
+            finally:
+                server.shutdown()
+                server.server_close()
+
     def test_content_length_framing_roundtrip(self):
         stream = io.BytesIO()
         message = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
@@ -142,3 +214,34 @@ class McpServerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _start_http_server():
+    from http.server import ThreadingHTTPServer
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), McpHttpHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    host, port = server.server_address
+    return server, f"http://{host}:{port}"
+
+
+def _post_json(url, payload, token=None, client_id="unit-http", session_id="", expect_status=200, return_headers=False):
+    data = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json", "X-MCP-Client-ID": client_id}
+    if token:
+        headers["X-MCP-Token"] = urllib.parse.quote(json.dumps(token), safe="")
+    if session_id:
+        headers["X-MCP-Session-ID"] = session_id
+    request = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        response = urllib.request.urlopen(request, timeout=5)
+        body = json.loads(response.read().decode("utf-8"))
+        if expect_status != response.status:
+            raise AssertionError(f"expected HTTP {expect_status}, got {response.status}: {body}")
+        return (body, response.headers) if return_headers else body
+    except urllib.error.HTTPError as exc:
+        body = json.loads(exc.read().decode("utf-8"))
+        if expect_status != exc.code:
+            raise AssertionError(f"expected HTTP {expect_status}, got {exc.code}: {body}")
+        return (body, exc.headers) if return_headers else body
