@@ -387,6 +387,9 @@ def main() -> None:
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--image-tag", default="targetcompass-lite:local")
     p.add_argument("--docker-bin", default="auto")
+    p.add_argument("--base-image", default="python:3.11-slim")
+    p.add_argument("--build-arg", action="append", default=[])
+    p.add_argument("--network", default="")
     p = sub.add_parser("container-digest")
     p.add_argument("--project", default="vascular_aging_demo")
     p.add_argument("--image-tag", default="targetcompass-lite:local")
@@ -713,7 +716,26 @@ def main() -> None:
     elif args.cmd == "container-build":
         from .container_plane import build_docker_image
 
-        print(json.dumps(build_docker_image(pdir, image_tag=args.image_tag, docker_bin=args.docker_bin), indent=2, ensure_ascii=False))
+        build_args = {}
+        for item in args.build_arg:
+            if "=" not in item:
+                raise SystemExit(f"--build-arg must be KEY=VALUE, got: {item}")
+            key, value = item.split("=", 1)
+            build_args[key] = value
+        print(
+            json.dumps(
+                build_docker_image(
+                    pdir,
+                    image_tag=args.image_tag,
+                    docker_bin=args.docker_bin,
+                    base_image=args.base_image,
+                    build_args=build_args,
+                    network=args.network,
+                ),
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
     elif args.cmd == "container-digest":
         from .container_plane import inspect_image_digest
 

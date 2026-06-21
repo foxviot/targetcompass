@@ -74,7 +74,7 @@ MODULE_CONTRACTS = {
 }
 
 
-def build_nextflow_execution_plane(project_dir: Path) -> dict[str, Any]:
+def build_nextflow_execution_plane(project_dir: Path, base_image: str = "python:3.11-slim") -> dict[str, Any]:
     root = project_dir / "workflows"
     target = root / "target_discovery"
     common = root / "common" / "modules"
@@ -98,8 +98,8 @@ def build_nextflow_execution_plane(project_dir: Path) -> dict[str, Any]:
     main_nf.write_text(_target_main_nf(), encoding="utf-8")
     config.write_text(_nextflow_config(), encoding="utf-8")
     params_schema.write_text(json.dumps(_params_schema(), indent=2, ensure_ascii=False), encoding="utf-8")
-    container_manifest.write_text(json.dumps(_container_manifest(project_dir), indent=2, ensure_ascii=False), encoding="utf-8")
-    dockerfile.write_text(_dockerfile(), encoding="utf-8")
+    container_manifest.write_text(json.dumps(_container_manifest(project_dir, base_image=base_image), indent=2, ensure_ascii=False), encoding="utf-8")
+    dockerfile.write_text(_dockerfile(base_image=base_image), encoding="utf-8")
     resume_manifest.write_text(json.dumps(_resume_manifest(project_dir), indent=2, ensure_ascii=False), encoding="utf-8")
     written.extend([main_nf, config, params_schema, container_manifest, dockerfile, resume_manifest])
     payload = {
@@ -314,7 +314,7 @@ def _params_schema() -> dict[str, Any]:
     }
 
 
-def _container_manifest(project_dir: Path) -> dict[str, Any]:
+def _container_manifest(project_dir: Path, base_image: str = "python:3.11-slim") -> dict[str, Any]:
     return {
         "schema_version": "v4.container_manifest/0.1",
         "project_id": project_dir.name,
@@ -326,10 +326,11 @@ def _container_manifest(project_dir: Path) -> dict[str, Any]:
         "containers": [
             {
                 "image": "targetcompass-lite:local",
+                "base_image": base_image,
                 "digest": "",
                 "status": "local_development_placeholder",
                 "dockerfile": "workflows/target_discovery/Dockerfile.targetcompass-lite",
-                "build_command": "docker build -f workflows/target_discovery/Dockerfile.targetcompass-lite -t targetcompass-lite:local .",
+                "build_command": "docker build --build-arg TARGETCOMPASS_BASE_IMAGE=<base> -f workflows/target_discovery/Dockerfile.targetcompass-lite -t targetcompass-lite:local .",
                 "production_image_policy": "replace local tag with immutable registry image plus digest before shared execution",
                 "modules": sorted(MODULE_CONTRACTS),
             }
@@ -337,8 +338,9 @@ def _container_manifest(project_dir: Path) -> dict[str, Any]:
     }
 
 
-def _dockerfile() -> str:
-    return """FROM python:3.11-slim
+def _dockerfile(base_image: str = "python:3.11-slim") -> str:
+    return f"""ARG TARGETCOMPASS_BASE_IMAGE={base_image}
+FROM ${{TARGETCOMPASS_BASE_IMAGE}}
 WORKDIR /app
 COPY . /app
 RUN python -m pip install --no-cache-dir -U pip

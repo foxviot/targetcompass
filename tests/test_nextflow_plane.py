@@ -150,15 +150,49 @@ class NextflowPlaneTest(unittest.TestCase):
                     return subprocess.CompletedProcess(command, 0, stdout='["targetcompass-lite@sha256:abc123"]', stderr="")
                 return subprocess.CompletedProcess(command, 0, stdout="built", stderr="")
 
-            result = build_docker_image(project, image_tag="targetcompass-lite:test", docker_bin="docker", runner=fake_docker)
+            result = build_docker_image(
+                project,
+                image_tag="targetcompass-lite:test",
+                docker_bin="docker",
+                base_image="python:3.11-bookworm",
+                build_args={"HTTP_PROXY": "http://127.0.0.1:7890"},
+                network="host",
+                runner=fake_docker,
+            )
             self.assertEqual(result["status"], "success")
+            self.assertEqual(result["base_image"], "python:3.11-bookworm")
             self.assertEqual(result["digest"], "sha256:abc123")
             self.assertEqual(result["immutable_ref"], "targetcompass-lite@sha256:abc123")
+            dockerfile = (project / "workflows" / "target_discovery" / "Dockerfile.targetcompass-lite").read_text(encoding="utf-8")
+            self.assertIn("ARG TARGETCOMPASS_BASE_IMAGE=python:3.11-bookworm", dockerfile)
             self.assertTrue((project / "workflows" / "target_discovery" / "container_build_result.json").exists())
             digest = inspect_image_digest(project, image_tag="targetcompass-lite:test", docker_bin="docker", runner=fake_docker)
             self.assertEqual(digest["digest"], "sha256:abc123")
-            self.assertTrue(any("build" in call for call in calls))
+            build_call = next(call for call in calls if "build" in call)
+            self.assertIn("--network", build_call)
+            self.assertIn("host", build_call)
+            self.assertIn("TARGETCOMPASS_BASE_IMAGE=python:3.11-bookworm", build_call)
+            self.assertIn("HTTP_PROXY=http://127.0.0.1:7890", build_call)
             self.assertIsInstance(resolve_docker_bin("docker"), str)
+
+    def test_docker_build_network_failure_has_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+
+            def failing_docker(command, cwd):
+                return subprocess.CompletedProcess(
+                    command,
+                    1,
+                    stdout="",
+                    stderr="failed to resolve reference: Method Not Allowed because Docker Desktop has no HTTPS proxy",
+                )
+
+            result = build_docker_image(project, docker_bin="docker", runner=failing_docker)
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(result["recovery"]["category"], "base_image_unavailable")
+            self.assertTrue(result["recovery"]["recoverable"])
+            self.assertTrue(any("proxy" in action.lower() or "base image" in action.lower() for action in result["recovery"]["actions"]))
 
 
 if __name__ == "__main__":

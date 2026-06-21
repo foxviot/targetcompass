@@ -1,5 +1,6 @@
 import json
 import shutil
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,12 +52,12 @@ def build_container_mount_policy(project_dir: Path) -> dict[str, Any]:
     return payload
 
 
-def write_apptainer_recipe(project_dir: Path) -> Path:
-    build_nextflow_execution_plane(project_dir)
+def write_apptainer_recipe(project_dir: Path, base_image: str = "python:3.11-slim") -> Path:
+    build_nextflow_execution_plane(project_dir, base_image=base_image)
     path = apptainer_recipe_path(project_dir)
     path.write_text(
-        """Bootstrap: docker
-From: python:3.11-slim
+        f"""Bootstrap: docker
+From: {base_image}
 
 %post
     python -m pip install --no-cache-dir -U pip
@@ -77,21 +78,30 @@ def build_docker_image(
     project_dir: Path,
     image_tag: str = "targetcompass-lite:local",
     docker_bin: str = "auto",
+    base_image: str = "python:3.11-slim",
+    build_args: dict[str, str] | None = None,
+    network: str = "",
     runner: CommandRunner | None = None,
 ) -> dict[str, Any]:
-    build_nextflow_execution_plane(project_dir)
+    build_nextflow_execution_plane(project_dir, base_image=base_image)
     build_container_mount_policy(project_dir)
-    write_apptainer_recipe(project_dir)
+    write_apptainer_recipe(project_dir, base_image=base_image)
     dockerfile = project_dir / "workflows" / "target_discovery" / "Dockerfile.targetcompass-lite"
     resolved = resolve_docker_bin(docker_bin)
-    command = [resolved or docker_bin, "build", "-f", str(dockerfile), "-t", image_tag, "."]
+    command = [resolved or docker_bin, "build"]
+    if network:
+        command.extend(["--network", network])
+    command.extend(["--build-arg", f"TARGETCOMPASS_BASE_IMAGE={base_image}"])
+    for key, value in sorted((build_args or {}).items()):
+        command.extend(["--build-arg", f"{key}={value}"])
+    command.extend(["-f", str(dockerfile), "-t", image_tag, "."])
     if runner is None and not resolved:
-        return _write_build_result(project_dir, image_tag, command, 127, "", f"Docker executable not found: {docker_bin}", "")
+        return _write_build_result(project_dir, image_tag, base_image, command, 127, "", f"Docker executable not found: {docker_bin}", "")
     completed = (runner or _default_runner)(command, project_dir)
     digest = ""
     if completed.returncode == 0:
         digest = inspect_image_digest(project_dir, image_tag, docker_bin=docker_bin, runner=runner).get("digest", "")
-    return _write_build_result(project_dir, image_tag, command, completed.returncode, completed.stdout, completed.stderr, digest)
+    return _write_build_result(project_dir, image_tag, base_image, command, completed.returncode, completed.stdout, completed.stderr, digest)
 
 
 def inspect_image_digest(
@@ -142,6 +152,7 @@ def resolve_docker_bin(docker_bin: str = "auto") -> str:
 def _write_build_result(
     project_dir: Path,
     image_tag: str,
+    base_image: str,
     command: list[str],
     returncode: int,
     stdout: str,
@@ -152,6 +163,7 @@ def _write_build_result(
         "schema_version": BUILD_SCHEMA,
         "project_id": project_dir.name,
         "image": image_tag,
+        "base_image": base_image,
         "digest": digest,
         "immutable_ref": f"{image_tag.split(':', 1)[0]}@{digest}" if digest else "",
         "status": "success" if returncode == 0 else "failed",
@@ -160,9 +172,10 @@ def _write_build_result(
         "stdout_tail": stdout[-4000:],
         "stderr_tail": stderr[-4000:],
         "failure_reason": "" if returncode == 0 else (stderr or stdout or f"docker build exited with {returncode}"),
+        "recovery": _docker_recovery(returncode, stdout, stderr),
         "mount_policy": str(container_policy_path(project_dir).relative_to(project_dir)).replace("\\", "/"),
         "apptainer_recipe": str(apptainer_recipe_path(project_dir).relative_to(project_dir)).replace("\\", "/"),
-        "build_hash": content_hash({"image": image_tag, "digest": digest, "command": command, "returncode": returncode}),
+        "build_hash": content_hash({"image": image_tag, "base_image": base_image, "digest": digest, "command": command, "returncode": returncode}),
         "finished_at": _now(),
     }
     path = container_build_result_path(project_dir)
@@ -172,7 +185,36 @@ def _write_build_result(
 
 
 def _default_runner(command: list[str], cwd: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=False)
+    env = os.environ.copy()
+    docker_bin_dir = Path("C:/Program Files/Docker/Docker/resources/bin")
+    if docker_bin_dir.exists():
+        env["PATH"] = f"{docker_bin_dir}{os.pathsep}{env.get('PATH', '')}"
+    return subprocess.run(command, cwd=cwd, env=env, text=True, capture_output=True, check=False)
+
+
+def _docker_recovery(returncode: int, stdout: str, stderr: str) -> dict[str, Any]:
+    if returncode == 0:
+        return {"recoverable": False, "category": "", "actions": []}
+    text = f"{stderr}\n{stdout}".lower()
+    actions: list[str] = []
+    category = "docker_build_failed"
+    if "docker executable not found" in text:
+        category = "missing_docker"
+        actions.append("Install Docker Desktop or pass --docker-bin with an absolute docker.exe path.")
+    if "docker-credential" in text:
+        category = "docker_cli_path"
+        actions.append("Add Docker Desktop resources/bin to PATH or use the bundled resolver.")
+    if "no https proxy" in text or "connectex" in text or "method not allowed" in text:
+        category = "registry_network"
+        actions.append("Configure Docker Desktop with a real HTTP proxy that supports HTTPS CONNECT, not the FlClash service/control port.")
+        actions.append("Verify with: curl -I -x http://127.0.0.1:<proxy_port> https://registry-1.docker.io/v2/")
+        actions.append("Retry with --base-image set to an already mirrored or locally available Python image if Docker Hub is blocked.")
+    if "failed to resolve source metadata" in text or "failed to resolve reference" in text:
+        category = "base_image_unavailable"
+        actions.append("Pull or mirror the base image first, then rerun container-build.")
+    if not actions:
+        actions.append("Open workflows/target_discovery/container_build_result.json and inspect stdout_tail/stderr_tail.")
+    return {"recoverable": True, "category": category, "actions": actions}
 
 
 def _now() -> str:
