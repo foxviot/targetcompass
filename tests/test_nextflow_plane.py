@@ -5,7 +5,7 @@ import subprocess
 
 from targetcompass_lite.nextflow_plane import build_nextflow_execution_plane, validate_nextflow_execution_plane
 from targetcompass_lite.nextflow_runner import build_nextflow_tasks, run_nextflow_local
-from targetcompass_lite.container_plane import build_container_mount_policy, build_docker_image, inspect_image_digest, write_apptainer_recipe
+from targetcompass_lite.container_plane import build_container_mount_policy, build_docker_image, inspect_image_digest, resolve_docker_bin, write_apptainer_recipe
 from targetcompass_lite.v4 import compile_v4_work_orders, read_work_order_attempts
 
 
@@ -158,6 +158,7 @@ class NextflowPlaneTest(unittest.TestCase):
             digest = inspect_image_digest(project, image_tag="targetcompass-lite:test", docker_bin="docker", runner=fake_docker)
             self.assertEqual(digest["digest"], "sha256:abc123")
             self.assertTrue(any("build" in call for call in calls))
+            self.assertIsInstance(resolve_docker_bin("docker"), str)
 
 
 if __name__ == "__main__":

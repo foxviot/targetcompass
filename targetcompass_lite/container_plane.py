@@ -123,7 +123,15 @@ def inspect_image_digest(
 
 def resolve_docker_bin(docker_bin: str = "auto") -> str:
     if docker_bin and docker_bin != "auto":
-        return docker_bin if Path(docker_bin).exists() or shutil.which(docker_bin) else ""
+        resolved = shutil.which(docker_bin)
+        if resolved:
+            return resolved
+        if Path(docker_bin).exists():
+            return docker_bin
+        if docker_bin.lower() in {"docker", "docker.exe"}:
+            common = Path("C:/Program Files/Docker/Docker/resources/bin/docker.exe")
+            return str(common) if common.exists() else ""
+        return ""
     found = shutil.which("docker")
     if found:
         return found
