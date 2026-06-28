@@ -3,11 +3,13 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
-from targetcompass_lite.registry_snapshots import build_registry_snapshots
+from targetcompass_lite.package import export_run_package
+from targetcompass_lite.registry_snapshots import bind_project_kb_snapshot, build_registry_snapshots
 from targetcompass_lite.scoring import score_project
-from targetcompass_lite.v4 import build_v4_manifest
+from targetcompass_lite.v4 import build_v4_manifest, load_v4_work_orders
 from targetcompass_lite.webapp import _v4_work_order_panel
 
 
@@ -41,14 +43,49 @@ class RegistrySnapshotTest(unittest.TestCase):
             self.assertTrue(snapshot["snapshots"]["rubric"]["hash"])
             self.assertTrue(snapshot["snapshots"]["causal_review_rubric"]["hash"])
             self.assertEqual(snapshot["snapshots"]["causal_review_rubric"]["rubric_id"], "causal_review")
+            kb = bind_project_kb_snapshot(project)
+            self.assertTrue(kb["kb_snapshot_id"].startswith("kb_"))
+            self.assertEqual(kb["registry_snapshot_hash"], snapshot["snapshot_hash"])
 
             (project / "research_spec.json").write_text(json.dumps({"project_id": "demo"}), encoding="utf-8")
             (project / "analysis_plan.json").write_text(json.dumps({"project_id": "demo", "modules": []}), encoding="utf-8")
             manifest = build_v4_manifest(project)
             self.assertEqual(manifest["objects"]["registry_snapshots"]["path"], "v4/registry_snapshots.json")
+            self.assertEqual(manifest["kb_snapshot_id"], kb["kb_snapshot_id"])
+            self.assertEqual(manifest["objects"]["kb_snapshot"]["path"], "v4/kb_snapshot.json")
             html = _v4_work_order_panel(project)
             self.assertIn("Registry snapshots", html)
             self.assertIn("Method Registry", html)
+            self.assertIn("Project KB Binding", html)
+
+    def test_kb_snapshot_is_bound_into_workorders_and_delivery_package(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "research_spec.json").write_text(json.dumps({"project_id": "demo"}), encoding="utf-8")
+            plan = {
+                "project_id": "demo",
+                "modules": [
+                    {
+                        "module_id": "P4_bulk_deg_ds",
+                        "module": "bulk_deg",
+                        "dataset_id": "ds",
+                        "inputs": {},
+                        "parameters": {},
+                        "expected_outputs": [],
+                    }
+                ],
+            }
+            (project / "analysis_plan.json").write_text(json.dumps(plan), encoding="utf-8")
+            manifest = build_v4_manifest(project, plan)
+            kb = json.loads((project / "v4" / "kb_snapshot.json").read_text(encoding="utf-8"))
+            order = load_v4_work_orders(project)[0]
+            self.assertEqual(order["kb_snapshot_id"], kb["kb_snapshot_id"])
+            self.assertEqual(order["lineage"]["kb_snapshot"], "v4/kb_snapshot.json")
+            self.assertEqual(manifest["objects"]["kb_snapshot"]["kb_snapshot_id"], kb["kb_snapshot_id"])
+            package = export_run_package(project)
+            with zipfile.ZipFile(package) as zf:
+                self.assertIn("v4/kb_snapshot.json", zf.namelist())
 
     def test_score_manifest_references_rubric_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "dataset_id",
+    "method_id",
+    "decision",
+    "recommended_parameters"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "dataset_id": {"type": "string", "minLength": 1},
+    "method_id": {"type": "string", "minLength": 1},
+    "decision": {"type": "string", "enum": ["pass", "fail", "needs_manual_review", "repairable", "exploratory_only"]},
+    "matched_requirements": {"type": "array", "items": {"type": "string"}},
+    "unmet_requirements": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "recommended_parameters": {"type": "object"},
+    "next_actions": {"type": "array", "items": {"type": "string"}},
+    "claim_limit": {"type": "string"}
+  }
+}

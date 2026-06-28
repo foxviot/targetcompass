@@ -1,0 +1,2 @@
+{"case_id":"root_fail_rejected_dataset","mutation":"select_rejected_dataset","expected_exception":"ValidationError"}
+{"case_id":"root_fail_blocked_contract","mutation":"select_blocked_contract","expected_exception":"ValidationError"}

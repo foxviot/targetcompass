@@ -146,7 +146,8 @@ def run_scrna_pseudobulk(
         "warnings": warnings,
         "status": "pass" if not warnings else "warning",
     }
-    (out_dir / "qc_summary.json").write_text(json.dumps(qc, indent=2, ensure_ascii=False), encoding="utf-8")
+    qc_summary = out_dir / "qc_summary.json"
+    qc_summary.write_text(json.dumps(qc, indent=2, ensure_ascii=False), encoding="utf-8")
     manifest = {
         "schema_version": "v4.scrna_pseudobulk_manifest/0.2",
         "module_id": "scrna_pseudobulk_v1",
@@ -178,7 +179,21 @@ def run_scrna_pseudobulk(
         "contrast": contrast,
         "limitation": "Donor-level pseudobulk aggregate; downstream DEG must use donor/sample aggregates, not cells as replicates.",
     }
-    (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    run_manifest = out_dir / "run_manifest.json"
+    run_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [matrix_out, metadata_out, donor_qc_out, group_qc_out, qc_summary, run_manifest],
+            producer=f"scrna_pseudobulk_{dataset_id}",
+            artifact_type="scrna_pseudobulk_output",
+            task_id=f"scrna_pseudobulk_{dataset_id}",
+            qc_status="pass" if qc["status"] == "pass" else "pending",
+        )
+    except Exception:
+        pass
     return matrix_out
 
 

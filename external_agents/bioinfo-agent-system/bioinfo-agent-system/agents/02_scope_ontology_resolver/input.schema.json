@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScopeOntologyResolverInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "question_normalization_ref"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "question_normalization_ref": {"type": "string", "minLength": 1}
+  }
+}

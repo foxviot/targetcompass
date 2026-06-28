@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920">
+  <defs>
+    <style>
+      .bg { fill: #f6f8fb; }
+      .panel { fill: #ffffff; stroke: #d9e1ec; stroke-width: 1.5; }
+      .title { font: 700 34px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #132033; }
+      .subtitle { font: 400 18px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #5e6b7c; }
+      .h { font: 700 22px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #1a2a40; }
+      .t { font: 400 16px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #334155; }
+      .small { font: 400 14px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #64748b; }
+      .pill { fill: #edf4ff; stroke: #b7cef5; }
+      .agent { fill: #e9f7ef; stroke: #9bd1b4; }
+      .exec { fill: #fff4e6; stroke: #f2bd73; }
+      .data { fill: #eef2ff; stroke: #b9c4f7; }
+      .audit { fill: #fff1f2; stroke: #f2a9b3; }
+      .store { fill: #f0fdfa; stroke: #8dd7cb; }
+      .arrow { stroke: #64748b; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+    </marker>
+  </defs>
+  <rect class="bg" width="1440" height="920"/>
+  <text x="70" y="70" class="title">TargetCompass v5 本地版总体架构</text>
+  <text x="70" y="103" class="subtitle">以 canonical 控制面为核心，把 LLM Agent、真实数据库检索、本地/Nextflow/Codex 执行、证据追溯和人工审批串成可审计闭环。</text>
+
+  <rect x="70" y="145" width="260" height="680" rx="18" class="panel"/>
+  <text x="100" y="190" class="h">用户与 PilotDeck</text>
+  <rect x="100" y="220" width="200" height="58" rx="12" class="pill"/>
+  <text x="118" y="253" class="t">研究问题输入</text>
+  <rect x="100" y="300" width="200" height="58" rx="12" class="pill"/>
+  <text x="118" y="333" class="t">项目与运行历史</text>
+  <rect x="100" y="380" width="200" height="58" rx="12" class="pill"/>
+  <text x="118" y="413" class="t">人工纠错 / 审批</text>
+  <rect x="100" y="460" width="200" height="58" rx="12" class="pill"/>
+  <text x="118" y="493" class="t">报告与导出包</text>
+  <text x="100" y="570" class="small">界面目标：让非开发者看到</text>
+  <text x="100" y="592" class="small">每一步做了什么、卡在哪里、</text>
+  <text x="100" y="614" class="small">能否进入下一步。</text>
+
+  <rect x="390" y="145" width="320" height="680" rx="18" class="panel"/>
+  <text x="420" y="190" class="h">Canonical 控制面</text>
+  <rect x="420" y="220" width="250" height="52" rx="12" class="data"/>
+  <text x="438" y="252" class="t">ProjectState / EventLog</text>
+  <rect x="420" y="292" width="250" height="52" rx="12" class="data"/>
+  <text x="438" y="324" class="t">ResearchSpec / ScopeBundle</text>
+  <rect x="420" y="364" width="250" height="52" rx="12" class="data"/>
+  <text x="438" y="396" class="t">EvidencePlan / MethodContract</text>
+  <rect x="420" y="436" width="250" height="52" rx="12" class="data"/>
+  <text x="438" y="468" class="t">TaskPacket / WorkOrder DAG</text>
+  <rect x="420" y="508" width="250" height="52" rx="12" class="data"/>
+  <text x="438" y="540" class="t">Artifact / QC / Alignment</text>
+  <rect x="420" y="580" width="250" height="52" rx="12" class="data"/>
+  <text x="438" y="612" class="t">Claim ceiling / Human gate</text>
+  <text x="420" y="700" class="small">控制面只管理对象、状态、审计和门控；</text>
+  <text x="420" y="722" class="small">不把 mock 结果伪装成真实科学结论。</text>
+
+  <rect x="770" y="145" width="280" height="680" rx="18" class="panel"/>
+  <text x="800" y="190" class="h">七 Agent 协作层</text>
+  <rect x="800" y="220" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="248" class="t">问题规范化</text>
+  <rect x="800" y="280" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="308" class="t">范围解析</text>
+  <rect x="800" y="340" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="368" class="t">证据计划</text>
+  <rect x="800" y="400" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="428" class="t">资源发现</text>
+  <rect x="800" y="460" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="488" class="t">方法 / 任务包编译</text>
+  <rect x="800" y="520" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="548" class="t">结果审计</text>
+  <rect x="800" y="580" width="220" height="45" rx="12" class="agent"/>
+  <text x="818" y="608" class="t">证据综合与报告</text>
+  <text x="800" y="700" class="small">Agent 之间只传对象引用、证据引用、</text>
+  <text x="800" y="722" class="small">产物引用和 handoff，不传自由文本结论。</text>
+
+  <rect x="1110" y="145" width="260" height="680" rx="18" class="panel"/>
+  <text x="1140" y="190" class="h">执行与存储平面</text>
+  <rect x="1140" y="220" width="200" height="55" rx="12" class="exec"/>
+  <text x="1158" y="253" class="t">本地 Python/R 分析</text>
+  <rect x="1140" y="295" width="200" height="55" rx="12" class="exec"/>
+  <text x="1158" y="328" class="t">Nextflow / 容器</text>
+  <rect x="1140" y="370" width="200" height="55" rx="12" class="exec"/>
+  <text x="1158" y="403" class="t">Codex Worker</text>
+  <rect x="1140" y="465" width="200" height="55" rx="12" class="store"/>
+  <text x="1158" y="498" class="t">EvidenceRepository</text>
+  <rect x="1140" y="540" width="200" height="55" rx="12" class="store"/>
+  <text x="1158" y="573" class="t">ArtifactStore</text>
+  <rect x="1140" y="615" width="200" height="55" rx="12" class="audit"/>
+  <text x="1158" y="648" class="t">审计 / 权限 / 签出</text>
+
+  <path d="M330 250 C355 250 365 250 390 250" class="arrow"/>
+  <path d="M710 460 C740 460 740 425 770 425" class="arrow"/>
+  <path d="M1050 425 C1080 425 1080 330 1110 330" class="arrow"/>
+  <path d="M1050 545 C1080 545 1080 520 1110 520" class="arrow"/>
+  <path d="M1240 670 C1240 760 960 850 545 800 C380 780 330 645 300 520" class="arrow"/>
+
+  <text x="360" y="240" class="small">结构化输入</text>
+  <text x="720" y="410" class="small">handoff</text>
+  <text x="1065" y="310" class="small">任务派发</text>
+  <text x="1065" y="510" class="small">结果回写</text>
+  <text x="845" y="850" class="small">证据、QC、失败原因和报告引用回流到控制面与 UI</text>
+</svg>

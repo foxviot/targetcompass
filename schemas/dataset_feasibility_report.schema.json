@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "dataset_id",
+    "decision",
+    "matched_requirements",
+    "recommended_uses"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "dataset_id": {"type": "string", "minLength": 1},
+    "decision": {"type": "string", "enum": ["pass", "fail", "needs_manual_review", "needs_metadata_repair", "exploratory_only"]},
+    "matched_requirements": {"type": "array", "items": {"type": "string"}},
+    "unmet_requirements": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "recommended_uses": {"type": "array", "items": {"type": "string"}},
+    "blocked_uses": {"type": "array", "items": {"type": "string"}},
+    "next_actions": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScientificQuestionNormalizerOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent_id",
+    "schema_version",
+    "created_at",
+    "provenance",
+    "warnings",
+    "blocking_failures",
+    "claim_ceiling",
+    "original_question",
+    "expected_answer_type",
+    "task_mode",
+    "question_type",
+    "primary_entity_type",
+    "literal_extraction",
+    "normalized_context",
+    "directed_relations",
+    "candidate_interpretations",
+    "primary_interpretation",
+    "subquestions",
+    "blocking_uncertainties",
+    "non_blocking_uncertainties",
+    "default_assumptions",
+    "forbidden_inferences",
+    "method_discovery_needs",
+    "planner_hints"
+  ],
+  "properties": {
+    "agent_id": {"type": "string", "const": "01_scientific_question_normalizer"},
+    "schema_version": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_type", "source_id", "note"],
+        "properties": {
+          "source_type": {"type": "string", "enum": ["mock", "paper", "dataset", "manual"]},
+          "source_id": {"type": "string", "minLength": 1},
+          "note": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "blocking_failures": {"type": "array", "items": {"type": "string"}},
+    "claim_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_allowed_claim", "reason"],
+      "properties": {
+        "max_allowed_claim": {"type": "string", "enum": ["descriptive", "association", "correlation", "co_expression", "cell_state_marker", "candidate_biomarker", "mechanistic_hypothesis", "causal_support", "therapeutic_target_hypothesis", "experimentally_validated_target"]},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "original_question": {"type": "string", "minLength": 1},
+    "expected_answer_type": {"type": "string", "enum": ["candidate_ranked_list"]},
+    "task_mode": {"type": "string", "enum": ["bioinfo_research_planning"]},
+    "question_type": {"type": "string", "enum": ["candidate_discovery", "biomarker_discovery", "target_prioritization", "mechanism_explanation", "dataset_discovery", "method_planning", "validation_review", "cell_state_discovery", "pathway_program_association", "causal_inference"]},
+    "primary_entity_type": {"type": "string", "enum": ["molecule", "gene", "pathway", "dataset"]},
+    "literal_extraction": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "normalized_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disease", "tissue", "molecular_constraints", "biological_programs"],
+      "properties": {
+        "disease": {"type": "string", "minLength": 1},
+        "tissue": {"type": "string", "minLength": 1},
+        "molecular_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "biological_programs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "directed_relations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subject",
+          "predicate",
+          "object",
+          "directionality",
+          "user_requested_claim_strength",
+          "allowed_claim_strength_at_normalization",
+          "not_equivalent_to"
+        ],
+        "properties": {
+          "subject": {"type": "string", "minLength": 1},
+          "predicate": {"type": "string", "minLength": 1},
+          "object": {"type": "string", "minLength": 1},
+          "directionality": {"type": "string", "enum": ["molecule_to_program", "molecule_to_phenotype", "program_to_molecule"]},
+          "user_requested_claim_strength": {"type": "string", "enum": ["descriptive", "association", "correlation", "co_expression", "cell_state_marker", "candidate_biomarker", "mechanistic_hypothesis", "causal_support", "therapeutic_target_hypothesis", "experimentally_validated_target"]},
+          "allowed_claim_strength_at_normalization": {"type": "string", "enum": ["descriptive", "association", "correlation", "co_expression", "cell_state_marker", "candidate_biomarker", "mechanistic_hypothesis", "causal_support", "therapeutic_target_hypothesis", "experimentally_validated_target"]},
+          "not_equivalent_to": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "candidate_interpretations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "primary_interpretation": {"type": "string", "minLength": 1},
+    "subquestions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "blocking_uncertainties": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "non_blocking_uncertainties": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "default_assumptions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "forbidden_inferences": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "method_discovery_needs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "planner_hints": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  }
+}

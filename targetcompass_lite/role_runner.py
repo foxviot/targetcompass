@@ -92,6 +92,7 @@ def run_role(
         failure_reason = str(exc)
         stderr.write(traceback.format_exc())
     finished_at = datetime.now(timezone.utc).isoformat()
+    execution_dispatch = _extract_execution_dispatch(output)
     output_packet = {
         "schema_version": "v4.role_output_packet/0.1",
         "project_id": project_dir.name,
@@ -99,6 +100,8 @@ def run_role(
         "run_id": run_id,
         "status": status,
         "failure_reason": failure_reason,
+        "typed_output": _json_safe(_strip_execution_dispatch(output)),
+        "execution_dispatch": execution_dispatch,
         "output_summary": _summarize_output(output),
         "schema": role.get("schema", ""),
         "method_id": selected_method,
@@ -134,6 +137,7 @@ def run_role(
         "parameters_hash": content_hash(parameters),
         "manual_override": manual_override,
         "status": status,
+        "executor_backend": execution_dispatch.get("executor_backend", "unknown"),
         "started_at": started_at,
         "finished_at": finished_at,
         "failure_reason": failure_reason,
@@ -145,6 +149,7 @@ def run_role(
         "method_config_hash": content_hash(method_config),
         "schema_valid": output_packet.get("schema_validation", {}).get("valid", False),
         "schema_errors": output_packet.get("schema_validation", {}).get("errors", []),
+        "execution_dispatch": execution_dispatch,
     }
     _append_role_run(project_dir, record)
     _refresh_role_manifest(project_dir)
@@ -220,3 +225,27 @@ def _short_value(value: Any) -> Any:
     if isinstance(value, dict):
         return {"keys": sorted(str(key) for key in value.keys())[:12]}
     return str(value)
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(child) for child in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _extract_execution_dispatch(output: Any) -> dict[str, Any]:
+    if isinstance(output, dict) and isinstance(output.get("_execution_dispatch"), dict):
+        return _json_safe(output["_execution_dispatch"])
+    return {}
+
+
+def _strip_execution_dispatch(output: Any) -> Any:
+    if isinstance(output, dict) and "_execution_dispatch" in output:
+        return {key: value for key, value in output.items() if key != "_execution_dispatch"}
+    return output

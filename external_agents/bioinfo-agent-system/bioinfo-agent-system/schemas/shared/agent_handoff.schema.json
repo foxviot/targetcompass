@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentHandoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "agent_id",
+    "agent_name",
+    "step_index",
+    "input_refs",
+    "output_schema",
+    "output",
+    "warnings",
+    "blocking_failures",
+    "claim_ceiling",
+    "provenance",
+    "created_at"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "step_index": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output": {
+      "type": "object"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocking_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_allowed_claim", "reason"],
+      "properties": {
+        "max_allowed_claim": {
+          "type": "string",
+          "enum": [
+            "descriptive",
+            "association",
+            "correlation",
+            "co_expression",
+            "cell_state_marker",
+            "candidate_biomarker",
+            "mechanistic_hypothesis",
+            "causal_support",
+            "therapeutic_target_hypothesis",
+            "experimentally_validated_target"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_type", "source_id", "note"],
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": ["mock", "paper", "dataset", "manual"]
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

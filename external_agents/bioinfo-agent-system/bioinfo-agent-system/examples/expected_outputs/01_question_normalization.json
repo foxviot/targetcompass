@@ -1,0 +1,91 @@
+{
+  "agent_id": "01_scientific_question_normalizer",
+  "schema_version": "1.0.0",
+  "created_at": "2026-06-21T02:02:36Z",
+  "provenance": [
+    {
+      "source_type": "mock",
+      "source_id": "01_scientific_question_normalizer",
+      "note": "Deterministic mock output for pipeline testing; not a verified public accession."
+    }
+  ],
+  "warnings": [],
+  "blocking_failures": [],
+  "claim_ceiling": {
+    "max_allowed_claim": "co_expression",
+    "reason": "The bundled question asks for association with inflammatory gene upregulation only."
+  },
+  "original_question": "Find secreted or surface molecules in type 2 diabetes adipose tissue that are associated with inflammatory gene upregulation.",
+  "expected_answer_type": "candidate_ranked_list",
+  "task_mode": "bioinfo_research_planning",
+  "question_type": "candidate_discovery",
+  "primary_entity_type": "molecule",
+  "literal_extraction": [
+    "secreted",
+    "surface",
+    "type 2 diabetes",
+    "adipose tissue",
+    "inflammatory gene upregulation"
+  ],
+  "normalized_context": {
+    "disease": "type 2 diabetes",
+    "tissue": "adipose tissue",
+    "molecular_constraints": [
+      "secreted",
+      "surface"
+    ],
+    "biological_programs": [
+      "inflammatory gene program"
+    ]
+  },
+  "directed_relations": [
+    {
+      "subject": "secreted_or_surface_molecule",
+      "predicate": "is_associated_with",
+      "object": "inflammatory_gene_upregulation",
+      "directionality": "molecule_to_program",
+      "user_requested_claim_strength": "association",
+      "allowed_claim_strength_at_normalization": "co_expression",
+      "not_equivalent_to": [
+        "molecule_is_a_causal_driver",
+        "molecule_is_a_validated_therapeutic_target",
+        "molecule_is_experimentally_confirmed_secreted"
+      ]
+    }
+  ],
+  "candidate_interpretations": [
+    "association_screen",
+    "co_expression_screen",
+    "candidate_localization_screen"
+  ],
+  "primary_interpretation": "association_screen",
+  "subquestions": [
+    "Which candidate molecules satisfy the secreted or surface filter?",
+    "Which candidates track the inflammatory gene program in T2D adipose tissue?",
+    "Can fallback single-cell data localize candidate expression without upgrading the claim?"
+  ],
+  "blocking_uncertainties": [],
+  "non_blocking_uncertainties": [
+    "Bulk adipose expression does not resolve the source cell type.",
+    "Secreted or surface labels are annotation-level only in this mock pipeline."
+  ],
+  "default_assumptions": [
+    "Human adipose datasets are primary if available.",
+    "Expression-only evidence remains non-causal."
+  ],
+  "forbidden_inferences": [
+    "Do not infer causal drivers from association.",
+    "Do not infer validated therapeutic targets from expression and annotation.",
+    "Do not infer experimentally confirmed extracellular accessibility from surface or secretome labels."
+  ],
+  "method_discovery_needs": [
+    "Bulk expression program association workflow",
+    "Surface or secretome candidate annotation workflow",
+    "Fallback single-cell localization workflow"
+  ],
+  "planner_hints": [
+    "Start with tissue-level association and ranking.",
+    "Keep localization as a fallback path.",
+    "Preserve the candidate-level claim boundary in the final plan."
+  ]
+}

@@ -174,7 +174,8 @@ def run_genetic_coloc_mr(project_dir: Path, gwas_summary: str, qtl_summary: str,
         "mr_review_rows": sum(1 for row in mr_results if row["qc_status"] == "review"),
         "ld_reference_status": ld_manifest["status"],
     }
-    (out_dir / "qc_summary.json").write_text(json.dumps(qc, indent=2, ensure_ascii=False), encoding="utf-8")
+    qc_path = out_dir / "qc_summary.json"
+    qc_path.write_text(json.dumps(qc, indent=2, ensure_ascii=False), encoding="utf-8")
     manifest = {
         "schema_version": "v4.genetic_coloc_mr_manifest/0.2",
         "module_id": "genetic_coloc_mr_v1",
@@ -219,7 +220,33 @@ def run_genetic_coloc_mr(project_dir: Path, gwas_summary: str, qtl_summary: str,
             "Use as an engineering contract and triage signal before formal statistical genetics review.",
         ],
     }
-    (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    run_manifest_path = out_dir / "run_manifest.json"
+    run_manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [
+                gwas_standard_path,
+                qtl_standard_path,
+                harmonized_path,
+                coloc_path,
+                mr_path,
+                evidence_path,
+                sensitivity_path,
+                dropped_path,
+                ld_manifest_path,
+                qc_path,
+                run_manifest_path,
+            ],
+            producer="genetic_coloc_mr",
+            artifact_type="genetic_coloc_mr_output",
+            task_id="genetic_coloc_mr",
+            qc_status=qc.get("status", "pass"),
+        )
+    except Exception:
+        pass
     return evidence_path
 
 

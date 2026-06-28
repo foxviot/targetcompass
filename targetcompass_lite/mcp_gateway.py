@@ -51,6 +51,78 @@ TOOL_CONTRACTS = [
         "handler": "targetcompass_lite.evidence_index.build_evidence_review_report_index",
     },
     {
+        "tool_id": "evidence.db.migrate",
+        "purpose": "Apply Evidence DB migrations, lineage columns, metadata, and production query indexes.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "EvidenceDbMigration",
+        "handler": "targetcompass_lite.evidence_db.migrate_evidence_db",
+    },
+    {
+        "tool_id": "evidence.db.snapshot",
+        "purpose": "Build a versioned Evidence DB snapshot with row counts, indexes, migrations, and hashes.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "EvidenceDbSnapshot",
+        "handler": "targetcompass_lite.evidence_db.build_evidence_db_snapshot",
+    },
+    {
+        "tool_id": "evidence.db.query",
+        "purpose": "Query Evidence DB rows by gene, evidence type, dataset, review status, and limit.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {"gene": "string", "evidence_type": "string", "source_dataset": "string", "review_status": "string", "limit": "integer"},
+        "output_schema": "EvidenceQuery",
+        "handler": "targetcompass_lite.evidence_db.query_evidence_items",
+    },
+    {
+        "tool_id": "evidence.storage.manifest",
+        "purpose": "Build the Evidence/Report storage backend manifest for local SQLite and planned Postgres/S3/MinIO deployment contracts.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "StorageBackendManifest",
+        "handler": "targetcompass_lite.storage_manifest.build_storage_manifest",
+    },
+    {
+        "tool_id": "evidence.storage.readiness",
+        "purpose": "Build production storage readiness for PostgreSQL, S3/MinIO, local fallback, and cross-project isolation.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "ProductionStorageReadiness",
+        "handler": "targetcompass_lite.production_storage.build_production_storage_readiness",
+    },
+    {
+        "tool_id": "evidence.local_backends.prepare",
+        "purpose": "Generate local Docker Compose, env template, and startup scripts for PostgreSQL and MinIO.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "LocalBackendStack",
+        "handler": "targetcompass_lite.local_backends.prepare_local_backend_stack",
+    },
+    {
+        "tool_id": "evidence.local_backends.check",
+        "purpose": "Run live PostgreSQL and MinIO readiness checks and apply the local Evidence schema migration.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {"no_migrate": "boolean", "bucket": "string"},
+        "output_schema": "LocalBackendCheck",
+        "handler": "targetcompass_lite.local_backends.check_local_backends",
+    },
+    {
+        "tool_id": "evidence.local_backends.sync",
+        "purpose": "Sync SQLite Evidence rows to local PostgreSQL and project artifacts to local MinIO.",
+        "risk": "project_data_write",
+        "requires_review": True,
+        "input_schema": {"bucket": "string"},
+        "output_schema": "LocalBackendSync",
+        "handler": "targetcompass_lite.local_backends.sync_local_backends",
+    },
+    {
         "tool_id": "evidence.trace.query",
         "purpose": "Query EvidenceItem -> ReviewItem -> ReportRef links by gene, evidence_id, or review_status.",
         "risk": "read_only",
@@ -76,6 +148,33 @@ TOOL_CONTRACTS = [
         "input_schema": {"work_order_id": "string"},
         "output_schema": "CodexTaskPacket",
         "handler": "targetcompass_lite.mcp_gateway.inspect_codex_task_packet",
+    },
+    {
+        "tool_id": "codex.engineering.closure",
+        "purpose": "Refresh Codex engineering closure links across patch/test/result registry, WorkOrder attempts, Evidence snapshot, and traceability.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "EngineeringClosure",
+        "handler": "targetcompass_lite.engineering_closure.refresh_engineering_closure",
+    },
+    {
+        "tool_id": "codex.engineering.release_gate",
+        "purpose": "Build the Codex engineering release gate across patch, test, result, human approval, CI, SBOM, and merge readiness.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "CodexEngineeringReleaseGate",
+        "handler": "targetcompass_lite.engineering_release.build_engineering_release_gate",
+    },
+    {
+        "tool_id": "codex.engineering.sbom",
+        "purpose": "Build the local SBOM contract manifest for Codex engineering release gates.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "SbomManifest",
+        "handler": "targetcompass_lite.engineering_release.build_sbom_manifest",
     },
     {
         "tool_id": "method.registry.list",
@@ -121,6 +220,123 @@ TOOL_CONTRACTS = [
         "input_schema": {"role_run_id": "string"},
         "output_schema": "RoleRunDetail",
         "handler": "targetcompass_lite.mcp_gateway.inspect_role_run",
+    },
+    {
+        "tool_id": "orchestration.graph.build",
+        "purpose": "Build the typed role orchestration graph with schema, dependency, retry, fallback, and approval policies.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "TypedOrchestrationGraph",
+        "handler": "targetcompass_lite.orchestration_graph.build_typed_orchestration_graph",
+    },
+    {
+        "tool_id": "orchestration.run",
+        "purpose": "Execute typed role orchestration by dependency order, with retry, fallback, dependency blocking, and partial rerun support.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"role_id": "string", "force": "boolean"},
+        "output_schema": "TypedOrchestrationRun",
+        "handler": "targetcompass_lite.orchestration_graph.run_typed_orchestration",
+    },
+    {
+        "tool_id": "orchestrator.submit",
+        "purpose": "Submit a Temporal-compatible local orchestrator run with idempotency key and state refs.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"run_type": "string", "idempotency_key": "string", "role_id": "string", "force": "boolean", "partial_stage": "string", "module_id": "string", "work_order_id": "string"},
+        "output_schema": "OrchestratorRun",
+        "handler": "targetcompass_lite.orchestrator.submit_orchestrator_run",
+    },
+    {
+        "tool_id": "orchestrator.status",
+        "purpose": "Query unified orchestrator status across run_status, WorkOrder attempts, and typed role orchestration.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {"orchestrator_run_id": "string"},
+        "output_schema": "OrchestratorStatus",
+        "handler": "targetcompass_lite.orchestrator.get_orchestrator_status",
+    },
+    {
+        "tool_id": "orchestrator.cancel",
+        "purpose": "Request cancellation for a running orchestrator run and write the project cancel signal.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"orchestrator_run_id": "string", "reason": "string"},
+        "output_schema": "OrchestratorStatus",
+        "handler": "targetcompass_lite.orchestrator.cancel_orchestrator_run",
+    },
+    {
+        "tool_id": "orchestrator.resume",
+        "purpose": "Resume a previous orchestrator run using a new idempotency key.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"orchestrator_run_id": "string"},
+        "output_schema": "OrchestratorRun",
+        "handler": "targetcompass_lite.orchestrator.resume_orchestrator_run",
+    },
+    {
+        "tool_id": "orchestrator.partial_rerun",
+        "purpose": "Run a supported local partial recomputation stage through the orchestrator contract.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"partial_stage": "string"},
+        "output_schema": "OrchestratorRun",
+        "handler": "targetcompass_lite.orchestrator.partial_rerun_orchestrator",
+    },
+    {
+        "tool_id": "llm.task.prepare",
+        "purpose": "Prepare an audited LLM task packet for a specific agent role without executing statistical modules.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"role_id": "string", "prompt": "string", "input_refs": "object", "model": "string", "purpose": "string"},
+        "output_schema": "LlmTaskPacket",
+        "handler": "targetcompass_lite.llm_gateway.prepare_llm_task_packet",
+    },
+    {
+        "tool_id": "llm.task.execute",
+        "purpose": "Execute an audited LLM task packet through the configured provider and validate the role JSON output contract.",
+        "risk": "tool_write",
+        "requires_review": True,
+        "input_schema": {"packet_id": "string", "role_id": "string", "prompt": "string", "input_refs": "object", "model": "string", "purpose": "string"},
+        "output_schema": "LlmTaskExecution",
+        "handler": "targetcompass_lite.llm_gateway.execute_llm_task_packet",
+    },
+    {
+        "tool_id": "llm.audit.query",
+        "purpose": "Query prepared LLM task packet audit records by role or status.",
+        "risk": "read_only",
+        "requires_review": False,
+        "input_schema": {"role_id": "string", "status": "string", "limit": "integer"},
+        "output_schema": "LlmAuditQuery",
+        "handler": "targetcompass_lite.llm_gateway.query_llm_audit",
+    },
+    {
+        "tool_id": "mcp.auth.readiness",
+        "purpose": "Build the external MCP auth readiness report for token policy, project isolation, session headers, OIDC/Vault env contracts, and audit coverage.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "McpExternalAuthReadiness",
+        "handler": "targetcompass_lite.mcp_sessions.check_external_auth_readiness",
+    },
+    {
+        "tool_id": "observability.manifest",
+        "purpose": "Build local observability manifest and runbook for service audit, MCP audit, orchestrator runs, OpenTelemetry, Prometheus, and Loki contracts.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "ObservabilityManifest",
+        "handler": "targetcompass_lite.observability.build_observability_manifest",
+    },
+    {
+        "tool_id": "service.topology.build",
+        "purpose": "Build the service topology contract for Project, Evidence, Registry, Report, Agent, Engineering, Orchestrator, and MCP boundaries.",
+        "risk": "project_metadata_write",
+        "requires_review": False,
+        "input_schema": {},
+        "output_schema": "ServiceTopology",
+        "handler": "targetcompass_lite.service_topology.build_service_topology",
     },
 ]
 
@@ -393,38 +609,70 @@ def _dispatch_tool(project_dir: Path, tool_id: str, arguments: dict[str, Any], c
         return _service_result(project_dir, "project_api", "review_queue_build", caller=caller)
     if tool_id == "evidence.index.build":
         return _service_result(project_dir, "evidence_service", "trace_index", caller=caller)
+    if tool_id == "evidence.db.migrate":
+        return _service_result(project_dir, "evidence_service", "migrate", caller=caller)
+    if tool_id == "evidence.db.snapshot":
+        return _service_result(project_dir, "evidence_service", "snapshot", caller=caller)
+    if tool_id == "evidence.db.query":
+        return _service_result(project_dir, "evidence_service", "query", arguments, caller=caller)
+    if tool_id == "evidence.storage.manifest":
+        return _service_result(project_dir, "evidence_service", "storage_manifest", caller=caller)
+    if tool_id == "evidence.storage.readiness":
+        return _service_result(project_dir, "evidence_service", "production_storage_readiness", caller=caller)
+    if tool_id == "evidence.local_backends.prepare":
+        return _service_result(project_dir, "evidence_service", "local_backends_prepare", caller=caller)
+    if tool_id == "evidence.local_backends.check":
+        return _service_result(project_dir, "evidence_service", "local_backends_check", arguments, caller=caller)
+    if tool_id == "evidence.local_backends.sync":
+        return _service_result(project_dir, "evidence_service", "local_backends_sync", arguments, caller=caller)
     if tool_id == "evidence.trace.query":
         return _service_result(project_dir, "evidence_service", "trace_query", arguments, caller=caller)
     if tool_id == "knowledge.adapt_resources":
-        from .knowledge import adapt_resources
-
-        return adapt_resources(project_dir)
+        return _service_result(project_dir, "registry_service", "knowledge_adapt_resources", caller=caller)
     if tool_id == "codex.task_packet.inspect":
-        return inspect_codex_task_packet(project_dir, arguments["work_order_id"])
+        return _service_result(project_dir, "engineering_service", "codex_task_packet_inspect", arguments, caller=caller)
+    if tool_id == "codex.engineering.closure":
+        return _service_result(project_dir, "engineering_service", "closure_refresh", caller=caller)
+    if tool_id == "codex.engineering.release_gate":
+        return _service_result(project_dir, "engineering_service", "release_gate", caller=caller)
+    if tool_id == "codex.engineering.sbom":
+        return _service_result(project_dir, "engineering_service", "sbom_manifest", caller=caller)
     if tool_id == "method.registry.list":
         return _service_result(project_dir, "registry_service", "method_registry_list", caller=caller)
     if tool_id == "method.config.read":
-        from .methods.registry import load_method_config
-
-        return {
-            "schema_version": "v4.method_config/0.1",
-            "project_id": project_dir.name,
-            "config": load_method_config(project_dir),
-        }
+        return _service_result(project_dir, "registry_service", "method_config_read", caller=caller)
     if tool_id == "method.config.update":
-        from .methods.registry import save_method_config
-
-        return {
-            "schema_version": "v4.method_config/0.1",
-            "project_id": project_dir.name,
-            "config": save_method_config(project_dir, arguments.get("config", {})),
-        }
+        return _service_result(project_dir, "registry_service", "method_config_update", arguments, caller=caller)
     if tool_id == "role.runs.list":
-        from .role_runner import load_role_runs
-
-        return load_role_runs(project_dir)
+        return _service_result(project_dir, "agent_service", "role_runs_list", caller=caller)
     if tool_id == "role.run.inspect":
-        return inspect_role_run(project_dir, arguments["role_run_id"])
+        return _service_result(project_dir, "agent_service", "role_run_inspect", arguments, caller=caller)
+    if tool_id == "orchestration.graph.build":
+        return _service_result(project_dir, "agent_service", "orchestration_graph", caller=caller)
+    if tool_id == "orchestration.run":
+        return _service_result(project_dir, "agent_service", "orchestration_run", arguments, caller=caller)
+    if tool_id == "orchestrator.submit":
+        return _service_result(project_dir, "orchestrator_service", "submit", arguments, caller=caller)
+    if tool_id == "orchestrator.status":
+        return _service_result(project_dir, "orchestrator_service", "status", arguments, caller=caller)
+    if tool_id == "orchestrator.cancel":
+        return _service_result(project_dir, "orchestrator_service", "cancel", arguments, caller=caller)
+    if tool_id == "orchestrator.resume":
+        return _service_result(project_dir, "orchestrator_service", "resume", arguments, caller=caller)
+    if tool_id == "orchestrator.partial_rerun":
+        return _service_result(project_dir, "orchestrator_service", "partial_rerun", arguments, caller=caller)
+    if tool_id == "llm.task.prepare":
+        return _service_result(project_dir, "agent_service", "llm_task_prepare", arguments, caller=caller)
+    if tool_id == "llm.task.execute":
+        return _service_result(project_dir, "agent_service", "llm_task_execute", arguments, caller=caller)
+    if tool_id == "llm.audit.query":
+        return _service_result(project_dir, "agent_service", "llm_audit_query", arguments, caller=caller)
+    if tool_id == "mcp.auth.readiness":
+        return _service_result(project_dir, "project_api", "mcp_auth_readiness", caller=caller)
+    if tool_id == "observability.manifest":
+        return _service_result(project_dir, "project_api", "observability_manifest", caller=caller)
+    if tool_id == "service.topology.build":
+        return _service_result(project_dir, "project_api", "service_topology", caller=caller)
     raise ValueError(f"unsupported tool: {tool_id}")
 
 

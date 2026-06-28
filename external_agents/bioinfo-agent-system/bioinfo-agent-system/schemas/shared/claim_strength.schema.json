@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClaimStrength",
+  "type": "string",
+  "enum": [
+    "descriptive",
+    "association",
+    "correlation",
+    "co_expression",
+    "cell_state_marker",
+    "candidate_biomarker",
+    "mechanistic_hypothesis",
+    "causal_support",
+    "therapeutic_target_hypothesis",
+    "experimentally_validated_target"
+  ]
+}

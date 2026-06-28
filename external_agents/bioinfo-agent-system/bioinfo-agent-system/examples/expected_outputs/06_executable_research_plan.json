@@ -1,0 +1,461 @@
+{
+  "agent_id": "06_research_plan_compiler",
+  "schema_version": "1.0.0",
+  "created_at": "2026-06-21T02:02:36Z",
+  "provenance": [
+    {
+      "source_type": "mock",
+      "source_id": "06_research_plan_compiler",
+      "note": "Deterministic mock output for pipeline testing; not a verified public accession."
+    }
+  ],
+  "warnings": [],
+  "blocking_failures": [],
+  "claim_ceiling": {
+    "max_allowed_claim": "co_expression",
+    "reason": "The executable plan remains at candidate association and co-expression level."
+  },
+  "plan_id": "mock-t2d-adipose-inflammatory-plan",
+  "normalized_research_question": "Find secreted or surface molecules in type 2 diabetes adipose tissue that are associated with inflammatory gene upregulation.",
+  "answerable_scope": [
+    "Rank candidate secreted or surface molecules associated with inflammatory activation in T2D adipose tissue.",
+    "Use fallback single-cell evidence to localize candidate expression by cell type.",
+    "Summarize which claims remain candidate-level only."
+  ],
+  "unanswerable_scope": [
+    "Causal driver status for insulin resistance or inflammation.",
+    "Experimentally confirmed secretion or true extracellular accessibility.",
+    "Validated therapeutic target readiness."
+  ],
+  "selected_datasets": [
+    "MOCK-GSE-T2D-ADIPOSE-001",
+    "MOCK-CELLXGENE-ADIPOSE-002"
+  ],
+  "selected_method_contracts": [
+    "dataset_metadata_audit",
+    "bulk_expression_qc",
+    "inflammatory_program_scoring",
+    "molecule_program_association",
+    "surface_secretome_annotation",
+    "candidate_ranking",
+    "bulk_to_single_cell_localization",
+    "evidence_report_compilation"
+  ],
+  "evidence_dag": [
+    {
+      "edge_id": "E1",
+      "from": "normalized_question",
+      "to": "MOCK-GSE-T2D-ADIPOSE-001",
+      "rationale": "Primary bulk dataset supports tissue-level association screening."
+    },
+    {
+      "edge_id": "E2",
+      "from": "normalized_question",
+      "to": "MOCK-CELLXGENE-ADIPOSE-002",
+      "rationale": "Fallback single-cell dataset supports localization review."
+    },
+    {
+      "edge_id": "E3",
+      "from": "MOCK-GSE-T2D-ADIPOSE-001",
+      "to": "expression_program_association_screening",
+      "rationale": "Primary dataset feeds association scoring and ranking."
+    },
+    {
+      "edge_id": "E4",
+      "from": "expression_program_association_screening",
+      "to": "surface_secretome_candidate_filtering",
+      "rationale": "Candidate ranking is filtered by annotation after association scoring."
+    },
+    {
+      "edge_id": "E5",
+      "from": "MOCK-CELLXGENE-ADIPOSE-002",
+      "to": "bulk_to_single_cell_localization",
+      "rationale": "Fallback localization uses the single-cell dataset only."
+    },
+    {
+      "edge_id": "E6",
+      "from": "task_dag",
+      "to": "claim_boundaries",
+      "rationale": "Final reporting must honor the claim ceiling from upstream agents."
+    }
+  ],
+  "task_dag": [
+    {
+      "task_id": "T1",
+      "name": "dataset intake and metadata audit",
+      "purpose": "Confirm the selected mock datasets match disease, tissue, and metadata expectations.",
+      "input_artifacts": [
+        "MOCK-GSE-T2D-ADIPOSE-001 metadata",
+        "MOCK-CELLXGENE-ADIPOSE-002 metadata"
+      ],
+      "output_artifacts": [
+        "dataset_audit_report.json"
+      ],
+      "dependencies": [],
+      "method_contract_id": "dataset_metadata_audit",
+      "acceptance_criteria": [
+        "Disease labels and adipose tissue scope are present.",
+        "Fallback dataset availability is documented."
+      ],
+      "failure_condition": "Required phenotype or tissue metadata are missing."
+    },
+    {
+      "task_id": "T2",
+      "name": "expression matrix QC",
+      "purpose": "Apply deterministic QC to the primary bulk expression matrix.",
+      "input_artifacts": [
+        "dataset_audit_report.json",
+        "MOCK-GSE-T2D-ADIPOSE-001 matrix"
+      ],
+      "output_artifacts": [
+        "qc_expression_matrix.tsv"
+      ],
+      "dependencies": [
+        "T1"
+      ],
+      "method_contract_id": "bulk_expression_qc",
+      "acceptance_criteria": [
+        "Primary matrix passes basic completeness checks.",
+        "Case and control samples remain represented after QC."
+      ],
+      "failure_condition": "QC removes the disease or control branch entirely."
+    },
+    {
+      "task_id": "T3",
+      "name": "inflammatory gene program scoring",
+      "purpose": "Score inflammatory activation in the QC-filtered bulk dataset.",
+      "input_artifacts": [
+        "qc_expression_matrix.tsv",
+        "inflammatory gene set"
+      ],
+      "output_artifacts": [
+        "inflammatory_program_scores.tsv"
+      ],
+      "dependencies": [
+        "T2"
+      ],
+      "method_contract_id": "inflammatory_program_scoring",
+      "acceptance_criteria": [
+        "Every retained sample receives a program score.",
+        "Scoring remains tied to the predefined inflammatory gene set."
+      ],
+      "failure_condition": "Program scores cannot be computed consistently for retained samples."
+    },
+    {
+      "task_id": "T4",
+      "name": "molecule-program association test",
+      "purpose": "Rank candidate molecules by association with inflammatory activation.",
+      "input_artifacts": [
+        "qc_expression_matrix.tsv",
+        "inflammatory_program_scores.tsv"
+      ],
+      "output_artifacts": [
+        "candidate_association_table.tsv"
+      ],
+      "dependencies": [
+        "T3"
+      ],
+      "method_contract_id": "molecule_program_association",
+      "acceptance_criteria": [
+        "Candidate association table records direction and relative strength.",
+        "Results remain framed as association or co-expression only."
+      ],
+      "failure_condition": "No candidate association table can be produced from the selected data."
+    },
+    {
+      "task_id": "T5",
+      "name": "surface or secretome annotation",
+      "purpose": "Apply candidate-level surface or secretome annotation filters.",
+      "input_artifacts": [
+        "candidate_association_table.tsv",
+        "annotation table"
+      ],
+      "output_artifacts": [
+        "candidate_annotation_table.tsv"
+      ],
+      "dependencies": [
+        "T4"
+      ],
+      "method_contract_id": "surface_secretome_annotation",
+      "acceptance_criteria": [
+        "Annotated candidates retain their original association evidence.",
+        "Annotation status is preserved as candidate-level metadata."
+      ],
+      "failure_condition": "Required annotation table is unavailable."
+    },
+    {
+      "task_id": "T6",
+      "name": "candidate ranking",
+      "purpose": "Produce a conservative ranked list of candidate molecules.",
+      "input_artifacts": [
+        "candidate_annotation_table.tsv"
+      ],
+      "output_artifacts": [
+        "ranked_candidates.tsv"
+      ],
+      "dependencies": [
+        "T5"
+      ],
+      "method_contract_id": "candidate_ranking",
+      "acceptance_criteria": [
+        "Ranking preserves association-level language.",
+        "Candidates outside the secreted or surface filter are excluded."
+      ],
+      "failure_condition": "No candidates remain after annotation filtering."
+    },
+    {
+      "task_id": "T7",
+      "name": "fallback cell-type localization",
+      "purpose": "Review whether ranked candidates localize to interpretable adipose cell populations.",
+      "input_artifacts": [
+        "ranked_candidates.tsv",
+        "MOCK-CELLXGENE-ADIPOSE-002 matrix"
+      ],
+      "output_artifacts": [
+        "candidate_localization_notes.md"
+      ],
+      "dependencies": [
+        "T5"
+      ],
+      "method_contract_id": "bulk_to_single_cell_localization",
+      "acceptance_criteria": [
+        "Localization notes keep the fallback nature explicit.",
+        "No cell-type-specific causal claim is introduced."
+      ],
+      "failure_condition": "Fallback single-cell metadata are insufficient for localization review."
+    },
+    {
+      "task_id": "T8",
+      "name": "evidence summary and report drafting",
+      "purpose": "Compile the final report with claim boundaries, caveats, and next steps.",
+      "input_artifacts": [
+        "ranked_candidates.tsv",
+        "candidate_localization_notes.md",
+        "claim boundary specification"
+      ],
+      "output_artifacts": [
+        "final_report_outline.md"
+      ],
+      "dependencies": [
+        "T6",
+        "T7"
+      ],
+      "method_contract_id": "evidence_report_compilation",
+      "acceptance_criteria": [
+        "Report states answerable and unanswerable scope.",
+        "Report repeats allowed and forbidden claims explicitly."
+      ],
+      "failure_condition": "The report attempts to exceed the claim ceiling."
+    }
+  ],
+  "fallback_paths": [
+    "If the fallback single-cell dataset lacks disease labels, use it for localization only and keep ranking anchored to bulk tissue association.",
+    "If adipose depot metadata are incomplete, report combined adipose scope and preserve the ambiguity."
+  ],
+  "stop_conditions": [
+    "Stop if only rejected datasets remain after feasibility review.",
+    "Stop if a selected method contract is not in the ready set.",
+    "Stop if any downstream conclusion would require a causal claim upgrade."
+  ],
+  "claim_boundaries": {
+    "allowed_claims": [
+      "Candidate secreted or surface molecules associated with inflammatory activation in type 2 diabetes adipose tissue."
+    ],
+    "forbidden_claims": [
+      "Causal drivers of insulin resistance.",
+      "Validated therapeutic targets.",
+      "Vaccine-ready antigens.",
+      "Experimentally confirmed secreted or surface proteins."
+    ],
+    "caveats": [
+      "Primary evidence is tissue-level association only.",
+      "Fallback localization does not resolve causality.",
+      "Annotation-based accessibility remains candidate-level only."
+    ]
+  },
+  "report_outline": [
+    "Normalized question and scope",
+    "Mock datasets and feasibility decisions",
+    "Method motifs and selected contracts",
+    "Task DAG and acceptance criteria",
+    "Candidate ranking with claim boundaries",
+    "Limitations and next validation steps"
+  ],
+  "codex_task_packets": [
+    {
+      "task_id": "T1",
+      "name": "dataset intake and metadata audit",
+      "purpose": "Confirm the selected mock datasets match disease, tissue, and metadata expectations.",
+      "input_artifacts": [
+        "MOCK-GSE-T2D-ADIPOSE-001 metadata",
+        "MOCK-CELLXGENE-ADIPOSE-002 metadata"
+      ],
+      "output_artifacts": [
+        "dataset_audit_report.json"
+      ],
+      "dependencies": [],
+      "method_contract_id": "dataset_metadata_audit",
+      "acceptance_criteria": [
+        "Disease labels and adipose tissue scope are present.",
+        "Fallback dataset availability is documented."
+      ],
+      "failure_condition": "Required phenotype or tissue metadata are missing.",
+      "notes": "Gate the run before any analysis step."
+    },
+    {
+      "task_id": "T2",
+      "name": "expression matrix QC",
+      "purpose": "Apply deterministic QC to the primary bulk expression matrix.",
+      "input_artifacts": [
+        "dataset_audit_report.json",
+        "MOCK-GSE-T2D-ADIPOSE-001 matrix"
+      ],
+      "output_artifacts": [
+        "qc_expression_matrix.tsv"
+      ],
+      "dependencies": [
+        "T1"
+      ],
+      "method_contract_id": "bulk_expression_qc",
+      "acceptance_criteria": [
+        "Primary matrix passes basic completeness checks.",
+        "Case and control samples remain represented after QC."
+      ],
+      "failure_condition": "QC removes the disease or control branch entirely.",
+      "notes": "Keep QC deterministic and metadata-aware."
+    },
+    {
+      "task_id": "T3",
+      "name": "inflammatory gene program scoring",
+      "purpose": "Score inflammatory activation in the QC-filtered bulk dataset.",
+      "input_artifacts": [
+        "qc_expression_matrix.tsv",
+        "inflammatory gene set"
+      ],
+      "output_artifacts": [
+        "inflammatory_program_scores.tsv"
+      ],
+      "dependencies": [
+        "T2"
+      ],
+      "method_contract_id": "inflammatory_program_scoring",
+      "acceptance_criteria": [
+        "Every retained sample receives a program score.",
+        "Scoring remains tied to the predefined inflammatory gene set."
+      ],
+      "failure_condition": "Program scores cannot be computed consistently for retained samples.",
+      "notes": "This produces association-ready covariates only."
+    },
+    {
+      "task_id": "T4",
+      "name": "molecule-program association test",
+      "purpose": "Rank candidate molecules by association with inflammatory activation.",
+      "input_artifacts": [
+        "qc_expression_matrix.tsv",
+        "inflammatory_program_scores.tsv"
+      ],
+      "output_artifacts": [
+        "candidate_association_table.tsv"
+      ],
+      "dependencies": [
+        "T3"
+      ],
+      "method_contract_id": "molecule_program_association",
+      "acceptance_criteria": [
+        "Candidate association table records direction and relative strength.",
+        "Results remain framed as association or co-expression only."
+      ],
+      "failure_condition": "No candidate association table can be produced from the selected data.",
+      "notes": "Do not reinterpret association as mechanism."
+    },
+    {
+      "task_id": "T5",
+      "name": "surface or secretome annotation",
+      "purpose": "Apply candidate-level surface or secretome annotation filters.",
+      "input_artifacts": [
+        "candidate_association_table.tsv",
+        "annotation table"
+      ],
+      "output_artifacts": [
+        "candidate_annotation_table.tsv"
+      ],
+      "dependencies": [
+        "T4"
+      ],
+      "method_contract_id": "surface_secretome_annotation",
+      "acceptance_criteria": [
+        "Annotated candidates retain their original association evidence.",
+        "Annotation status is preserved as candidate-level metadata."
+      ],
+      "failure_condition": "Required annotation table is unavailable.",
+      "notes": "Annotation does not prove true accessibility."
+    },
+    {
+      "task_id": "T6",
+      "name": "candidate ranking",
+      "purpose": "Produce a conservative ranked list of candidate molecules.",
+      "input_artifacts": [
+        "candidate_annotation_table.tsv"
+      ],
+      "output_artifacts": [
+        "ranked_candidates.tsv"
+      ],
+      "dependencies": [
+        "T5"
+      ],
+      "method_contract_id": "candidate_ranking",
+      "acceptance_criteria": [
+        "Ranking preserves association-level language.",
+        "Candidates outside the secreted or surface filter are excluded."
+      ],
+      "failure_condition": "No candidates remain after annotation filtering.",
+      "notes": "Ranking is the primary answerable deliverable."
+    },
+    {
+      "task_id": "T7",
+      "name": "fallback cell-type localization",
+      "purpose": "Review whether ranked candidates localize to interpretable adipose cell populations.",
+      "input_artifacts": [
+        "ranked_candidates.tsv",
+        "MOCK-CELLXGENE-ADIPOSE-002 matrix"
+      ],
+      "output_artifacts": [
+        "candidate_localization_notes.md"
+      ],
+      "dependencies": [
+        "T5"
+      ],
+      "method_contract_id": "bulk_to_single_cell_localization",
+      "acceptance_criteria": [
+        "Localization notes keep the fallback nature explicit.",
+        "No cell-type-specific causal claim is introduced."
+      ],
+      "failure_condition": "Fallback single-cell metadata are insufficient for localization review.",
+      "notes": "This is optional support, not a required ranking input."
+    },
+    {
+      "task_id": "T8",
+      "name": "evidence summary and report drafting",
+      "purpose": "Compile the final report with claim boundaries, caveats, and next steps.",
+      "input_artifacts": [
+        "ranked_candidates.tsv",
+        "candidate_localization_notes.md",
+        "claim boundary specification"
+      ],
+      "output_artifacts": [
+        "final_report_outline.md"
+      ],
+      "dependencies": [
+        "T6",
+        "T7"
+      ],
+      "method_contract_id": "evidence_report_compilation",
+      "acceptance_criteria": [
+        "Report states answerable and unanswerable scope.",
+        "Report repeats allowed and forbidden claims explicitly."
+      ],
+      "failure_condition": "The report attempts to exceed the claim ceiling.",
+      "notes": "The final report remains mock-only and non-causal."
+    }
+  ]
+}

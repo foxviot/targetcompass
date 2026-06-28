@@ -1,0 +1,1 @@
+{"case_id":"a4_eval_t2d","input_ref":"a3_eval_t2d","assertions":{"all_steps_have_status":true,"allowed_statuses":["extracted","inferred","missing"]}}

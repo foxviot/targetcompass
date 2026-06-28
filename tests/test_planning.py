@@ -92,7 +92,61 @@ def _write_project(tmp: str) -> Path:
     return project
 
 
+def _write_evidence_project(tmp: str) -> Path:
+    project = Path(tmp) / "evidence_demo"
+    cards = project / "dataset_cards"
+    data = project / "data" / "ds_bulk"
+    cards.mkdir(parents=True)
+    data.mkdir(parents=True)
+    (project / "research_spec.json").write_text(
+        json.dumps(
+            {
+                "project_id": "evidence_demo",
+                "goal": "target_prioritization",
+                "research_theme": "aging muscle SASP surface marker discovery",
+                "disease_scope": {"canonical": "sarcopenia"},
+                "organisms": ["human"],
+                "priority_tissues": ["skeletal muscle"],
+                "priority_cells": ["stromal cell"],
+                "target_routes": ["surface", "secreted"],
+                "modalities_mvp": {"required": ["bulk_expression"], "optional": ["single_cell"]},
+                "constraints": {"causal_requirement": "preferred_not_mandatory"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (data / "expression_matrix.tsv").write_text(
+        "gene_symbol\tS1\tS2\tS3\tS4\tS5\tS6\nIL6\t10\t11\t12\t2\t3\t2\nCXCL8\t8\t9\t8\t1\t1\t2\n",
+        encoding="utf-8",
+    )
+    (data / "metadata.tsv").write_text(
+        "sample_id\tgroup\tbatch\tdonor_id\nS1\taged\tA\tD1\nS2\taged\tA\tD2\nS3\taged\tB\tD3\nS4\tyoung\tA\tD4\nS5\tyoung\tB\tD5\nS6\tyoung\tB\tD6\n",
+        encoding="utf-8",
+    )
+    (cards / "ds_bulk.yaml").write_text(BULK_CARD.replace("dataset_id: ds_bulk", "dataset_id: ds_bulk"), encoding="utf-8")
+    return project
+
+
 class PlanningTest(unittest.TestCase):
+    def test_plan_uses_evidence_driven_routes_and_task_packets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = _write_evidence_project(tmp)
+            plan = build_plan(project)
+            self.assertEqual(plan["route_strategy"], "evidence_plan_plus_dataset_method_compatibility")
+            self.assertTrue(plan["routes"])
+            self.assertIn("compatibility_decisions_ref", plan)
+            bulk = next(module for module in plan["modules"] if module["method_id"] == "bulk_deg_limma_or_countlike_v1")
+            self.assertEqual(bulk["module"], "bulk_deg")
+            self.assertEqual(bulk["compatibility"]["decision"], "pass")
+            packets = plan["codex_task_packets"]
+            self.assertTrue(packets)
+            packet = next(row for row in packets if row["method_contract_id"] == "bulk_deg_limma_or_countlike_v1")
+            self.assertIn("forbidden_actions", packet)
+            self.assertIn("method", packet)
+            self.assertEqual(packet["dataset"]["dataset_id"], "ds_bulk")
+            self.assertTrue((project / "results" / "evidence_planning" / "codex_task_packets.json").exists())
+            self.assertTrue((project / "v4" / "work_orders.json").exists())
+
     def test_plan_contains_executable_bulk_work_order_fields(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = _write_project(tmp)

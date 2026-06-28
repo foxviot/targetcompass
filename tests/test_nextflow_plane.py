@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 
 from targetcompass_lite.nextflow_plane import build_nextflow_execution_plane, validate_nextflow_execution_plane
+from targetcompass_lite.nextflow_profiles import build_nextflow_profile_matrix, validate_nextflow_resource_policy
 from targetcompass_lite.nextflow_runner import build_nextflow_tasks, run_nextflow_local
 from targetcompass_lite.container_plane import build_container_mount_policy, build_docker_image, inspect_image_digest, resolve_docker_bin, write_apptainer_recipe
 from targetcompass_lite.v4 import compile_v4_work_orders, read_work_order_attempts
@@ -18,6 +19,7 @@ class NextflowPlaneTest(unittest.TestCase):
             self.assertEqual(manifest["schema_version"], "v4.nextflow_execution_plane/0.1")
             self.assertIn("local", manifest["profiles"])
             self.assertIn("slurm", manifest["profiles"])
+            self.assertEqual(manifest["profile_matrix"], "workflows/target_discovery/execution_profile_matrix.json")
             self.assertGreaterEqual(manifest["module_count"], 5)
             self.assertTrue((project / "workflows" / "target_discovery" / "main.nf").exists())
             self.assertTrue((project / "workflows" / "target_discovery" / "nextflow.config").exists())
@@ -37,7 +39,10 @@ class NextflowPlaneTest(unittest.TestCase):
 
             validation = validate_nextflow_execution_plane(project)
             self.assertEqual(validation["status"], "pass")
+            self.assertEqual(validation["resource_policy_status"], "review")
             self.assertTrue((project / "workflows" / "target_discovery" / "nextflow_validation.json").exists())
+            self.assertTrue((project / "workflows" / "target_discovery" / "execution_profile_matrix.json").exists())
+            self.assertTrue((project / "workflows" / "target_discovery" / "resource_policy_validation.json").exists())
 
     def test_builds_tasks_and_runs_nextflow_with_attempt_artifacts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -62,6 +67,10 @@ class NextflowPlaneTest(unittest.TestCase):
             self.assertEqual(tasks["tasks"][0]["module_id"], "bulk_deg_v1")
             self.assertEqual(tasks["tasks"][0]["resources"]["cpus"], 3)
             self.assertTrue((project / "workflows" / "target_discovery" / "tasks.json").exists())
+            matrix = build_nextflow_profile_matrix(project)
+            validation = validate_nextflow_resource_policy(project, tasks)
+            self.assertIn("docker", matrix["profiles"])
+            self.assertEqual(validation["status"], "review")
 
             def fake_runner(command, cwd):
                 self.assertIn("nextflow", command[0])
@@ -80,6 +89,8 @@ class NextflowPlaneTest(unittest.TestCase):
 
             manifest = run_nextflow_local(project, resume=True, runner=fake_runner)
             self.assertEqual(manifest["status"], "success")
+            self.assertEqual(manifest["profile_policy"]["executor"], "local")
+            self.assertEqual(manifest["resource_policy_status"], "review")
             self.assertTrue(manifest["resume"])
             self.assertIn("workflows/target_discovery/runs/", manifest["artifacts"][0])
             attempts = read_work_order_attempts(project)["attempts"]

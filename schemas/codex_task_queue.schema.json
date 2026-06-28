@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "task_count",
+    "tasks"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "task_count": {"type": "integer", "minimum": 0},
+    "status_summary": {"type": "object"},
+    "tasks": {"type": "array", "items": {"type": "object"}},
+    "updated_at": {"type": "string"}
+  }
+}

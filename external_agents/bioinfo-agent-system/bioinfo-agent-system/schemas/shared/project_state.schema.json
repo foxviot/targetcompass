@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResearchProjectState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "raw_user_question",
+    "current_step",
+    "agent_outputs",
+    "handoffs",
+    "claim_ceiling_history",
+    "locked_datasets",
+    "ready_contracts",
+    "blocked_contracts",
+    "audit_log"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "raw_user_question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_step": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent_outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_normalization",
+        "ontology_scope",
+        "evidence_dataset_scout",
+        "method_extraction",
+        "method_motif_feasibility",
+        "executable_research_plan"
+      ],
+      "properties": {
+        "question_normalization": {"type": "object"},
+        "ontology_scope": {"type": "object"},
+        "evidence_dataset_scout": {"type": "object"},
+        "method_extraction": {"type": "object"},
+        "method_motif_feasibility": {"type": "object"},
+        "executable_research_plan": {"type": "object"}
+      }
+    },
+    "handoffs": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "agent_id",
+          "agent_name",
+          "step_index",
+          "input_refs",
+          "output_schema",
+          "output",
+          "warnings",
+          "blocking_failures",
+          "claim_ceiling",
+          "provenance",
+          "created_at"
+        ],
+        "properties": {
+          "run_id": {"type": "string"},
+          "agent_id": {"type": "string"},
+          "agent_name": {"type": "string"},
+          "step_index": {"type": "integer", "minimum": 1},
+          "input_refs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "output_schema": {"type": "string"},
+          "output": {"type": "object"},
+          "warnings": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "blocking_failures": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "claim_ceiling": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["max_allowed_claim", "reason"],
+            "properties": {
+              "max_allowed_claim": {
+                "type": "string",
+                "enum": [
+                  "descriptive",
+                  "association",
+                  "correlation",
+                  "co_expression",
+                  "cell_state_marker",
+                  "candidate_biomarker",
+                  "mechanistic_hypothesis",
+                  "causal_support",
+                  "therapeutic_target_hypothesis",
+                  "experimentally_validated_target"
+                ]
+              },
+              "reason": {"type": "string"}
+            }
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source_type", "source_id", "note"],
+              "properties": {
+                "source_type": {
+                  "type": "string",
+                  "enum": ["mock", "paper", "dataset", "manual"]
+                },
+                "source_id": {"type": "string"},
+                "note": {"type": "string"}
+              }
+            }
+          },
+          "created_at": {"type": "string"}
+        }
+      }
+    },
+    "claim_ceiling_history": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["agent_id", "max_allowed_claim", "reason"],
+        "properties": {
+          "agent_id": {"type": "string"},
+          "max_allowed_claim": {
+            "type": "string",
+            "enum": [
+              "descriptive",
+              "association",
+              "correlation",
+              "co_expression",
+              "cell_state_marker",
+              "candidate_biomarker",
+              "mechanistic_hypothesis",
+              "causal_support",
+              "therapeutic_target_hypothesis",
+              "experimentally_validated_target"
+            ]
+          },
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "locked_datasets": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "ready_contracts": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "blocked_contracts": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "audit_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event", "status", "detail"],
+        "properties": {
+          "event": {"type": "string"},
+          "status": {
+            "type": "string",
+            "enum": ["ok", "warning", "error"]
+          },
+          "detail": {"type": "string"}
+        }
+      }
+    }
+  }
+}

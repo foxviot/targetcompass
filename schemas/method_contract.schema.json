@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "method_id",
+    "method_name",
+    "data_modality",
+    "purpose",
+    "requires",
+    "reject_if",
+    "outputs",
+    "qc_checks"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "method_id": {"type": "string", "minLength": 1},
+    "method_name": {"type": "string", "minLength": 1},
+    "data_modality": {"type": "string", "minLength": 1},
+    "purpose": {"type": "string", "minLength": 1},
+    "requires": {"type": "object"},
+    "reject_if": {"type": "array", "items": {"type": "string"}},
+    "outputs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "qc_checks": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "evidence_type": {"type": "string"},
+    "claim_limit": {"type": "string"},
+    "runner": {"type": "string"}
+  }
+}

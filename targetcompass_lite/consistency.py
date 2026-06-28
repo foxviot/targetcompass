@@ -8,11 +8,18 @@ from typing import Any
 def run_consistency_check(project_dir: Path) -> dict[str, Any]:
     report = _read_json(project_dir / "reports" / "target_report_structured.json", {})
     evidence_index = _read_json(project_dir / "v4" / "evidence_review_report_index.json", {})
+    evidence_snapshot = _read_json(project_dir / "v4" / "evidence_db_snapshot.json", {})
     approval = _read_json(project_dir / "results" / "approval_state.json", {})
     dag = _read_json(project_dir / "v4" / "work_order_dag.json", {})
     review_queue = _read_json(project_dir / "results" / "review_queue.json", {"items": [], "queue_count": 0})
+    engineering_closure = _read_json(project_dir / "v4" / "codex_engineering" / "engineering_closure.json", {})
+    storage = _read_json(project_dir / "v4" / "storage_backend_manifest.json", {})
     checks = [
         _check_report_uses_current_index(project_dir, report, evidence_index),
+        _check_evidence_snapshot_matches_index(evidence_snapshot, evidence_index),
+        _check_evidence_db_indexes(evidence_snapshot),
+        _check_storage_backend_contract(storage, evidence_snapshot),
+        _check_codex_engineering_closure(engineering_closure),
         _check_signoff_trace_hashes(project_dir, approval),
         _check_dag_evidence_writes(dag),
         _check_review_queue(review_queue),
@@ -73,6 +80,90 @@ def _check_signoff_trace_hashes(project_dir: Path, approval: dict[str, Any]) -> 
         "status": "PASS" if ok else "REVIEW",
         "detail": "signed-off traceability hashes match current artifacts" if ok else "signed-off traceability hashes are missing or stale",
         "mismatches": mismatches,
+    }
+
+
+def _check_evidence_snapshot_matches_index(evidence_snapshot: dict[str, Any], evidence_index: dict[str, Any]) -> dict[str, Any]:
+    snapshot_count = evidence_snapshot.get("row_count")
+    index_count = evidence_index.get("evidence_count")
+    ok = isinstance(snapshot_count, int) and snapshot_count == index_count
+    return {
+        "check": "evidence_snapshot_matches_trace_index",
+        "status": "PASS" if ok else "REVIEW",
+        "detail": "Evidence DB snapshot row count matches trace index evidence count" if ok else "Evidence DB snapshot is missing or does not match trace index",
+        "expected": {"evidence_count": index_count},
+        "observed": {"row_count": snapshot_count, "snapshot_hash": evidence_snapshot.get("snapshot_hash", "")},
+    }
+
+
+def _check_evidence_db_indexes(evidence_snapshot: dict[str, Any]) -> dict[str, Any]:
+    index_names = {row.get("name", "") for row in evidence_snapshot.get("indexes", [])}
+    required = {
+        "idx_evidence_entity_symbol",
+        "idx_evidence_type",
+        "idx_evidence_dataset",
+        "idx_evidence_review_status",
+        "idx_evidence_artifact",
+        "idx_evidence_run",
+        "idx_evidence_gene_type",
+    }
+    missing = sorted(required - index_names)
+    ok = not missing and evidence_snapshot.get("evidence_schema_version")
+    return {
+        "check": "evidence_db_has_required_indexes",
+        "status": "PASS" if ok else "REVIEW",
+        "detail": "Evidence DB production indexes are present" if ok else "Evidence DB migration/index snapshot is incomplete",
+        "missing_indexes": missing,
+        "schema_version": evidence_snapshot.get("evidence_schema_version", ""),
+    }
+
+
+def _check_storage_backend_contract(storage: dict[str, Any], evidence_snapshot: dict[str, Any]) -> dict[str, Any]:
+    active = storage.get("active_backends", {}) if isinstance(storage, dict) else {}
+    sqlite_fallback_ok = bool(storage.get("sqlite_local", {}).get("exists"))
+    sqlite_ok = active.get("evidence_db") == "sqlite_local" and sqlite_fallback_ok
+    postgres = storage.get("postgres_contract", {}) if isinstance(storage, dict) else {}
+    postgres_ok = (
+        active.get("evidence_db") == "postgres_local"
+        and postgres.get("enabled") is True
+        and postgres.get("migration_mode") == "active_local_docker"
+        and sqlite_fallback_ok
+    )
+    snapshot_ref_ok = evidence_snapshot.get("storage_backend_ref") == "v4/storage_backend_manifest.json"
+    ok = bool((sqlite_ok or postgres_ok) and snapshot_ref_ok)
+    return {
+        "check": "storage_backend_manifest_is_current",
+        "status": "PASS" if ok else "REVIEW",
+        "detail": "Evidence/Report storage backend manifest is present and referenced by Evidence DB snapshot" if ok else "storage backend manifest is missing or not referenced by Evidence DB snapshot",
+        "active_backends": active,
+        "sqlite_fallback_exists": sqlite_fallback_ok,
+        "postgres_contract_enabled": postgres.get("enabled", False),
+        "postgres_migration_mode": postgres.get("migration_mode", ""),
+        "snapshot_storage_ref": evidence_snapshot.get("storage_backend_ref", ""),
+    }
+
+
+def _check_codex_engineering_closure(closure: dict[str, Any]) -> dict[str, Any]:
+    if not closure:
+        return {
+            "check": "codex_engineering_results_have_closure",
+            "status": "PASS",
+            "detail": "no Codex engineering result closure required yet",
+            "result_count": 0,
+        }
+    missing = [
+        row
+        for row in closure.get("results", [])
+        if not row.get("linked_attempt_ids") or not row.get("evidence_snapshot_id")
+    ]
+    ok = not missing
+    return {
+        "check": "codex_engineering_results_have_closure",
+        "status": "PASS" if ok else "REVIEW",
+        "detail": "Codex engineering results are linked to WorkOrder attempts and Evidence snapshot" if ok else "some Codex engineering results lack attempt or Evidence snapshot links",
+        "result_count": closure.get("result_count", 0),
+        "missing_count": len(missing),
+        "missing": missing[:20],
     }
 
 

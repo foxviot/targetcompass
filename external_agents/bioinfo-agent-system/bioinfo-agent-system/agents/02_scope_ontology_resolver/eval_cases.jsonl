@@ -1,0 +1,1 @@
+{"case_id":"a2_eval_t2d","input_ref":"a1_eval_t2d","assertions":{"recommended_scope_disease":"type 2 diabetes mellitus","molecular_constraint":"secreted_or_surface","species":"human_priority_with_mouse_fallback"}}

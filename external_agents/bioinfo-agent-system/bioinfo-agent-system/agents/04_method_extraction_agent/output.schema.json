@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MethodExtractionAgentOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent_id",
+    "schema_version",
+    "created_at",
+    "provenance",
+    "warnings",
+    "blocking_failures",
+    "claim_ceiling",
+    "study_method_extractions",
+    "transferable_components",
+    "non_transferable_components",
+    "quality_concerns",
+    "statistical_controls",
+    "validation_strategy",
+    "extraction_confidence"
+  ],
+  "properties": {
+    "agent_id": {"type": "string", "const": "04_method_extraction_agent"},
+    "schema_version": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "provenance": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["source_type", "source_id", "note"], "properties": {"source_type": {"type": "string", "enum": ["mock", "paper", "dataset", "manual"]}, "source_id": {"type": "string", "minLength": 1}, "note": {"type": "string", "minLength": 1}}}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "blocking_failures": {"type": "array", "items": {"type": "string"}},
+    "claim_ceiling": {"type": "object", "additionalProperties": false, "required": ["max_allowed_claim", "reason"], "properties": {"max_allowed_claim": {"type": "string", "enum": ["descriptive", "association", "correlation", "co_expression", "cell_state_marker", "candidate_biomarker", "mechanistic_hypothesis", "causal_support", "therapeutic_target_hypothesis", "experimentally_validated_target"]}, "reason": {"type": "string", "minLength": 1}}},
+    "study_method_extractions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["study_id", "method_steps"],
+        "properties": {
+          "study_id": {"type": "string", "minLength": 1},
+          "method_steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["step_id", "step_name", "input", "output", "tool", "parameters", "evidence_source_location", "source_status"],
+              "properties": {
+                "step_id": {"type": "string", "minLength": 1},
+                "step_name": {"type": "string", "minLength": 1},
+                "input": {"type": "string", "minLength": 1},
+                "output": {"type": "string", "minLength": 1},
+                "tool": {"type": "string", "minLength": 1},
+                "parameters": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                "evidence_source_location": {"type": "string", "minLength": 1},
+                "source_status": {"type": "string", "enum": ["extracted", "inferred", "missing"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    "transferable_components": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "non_transferable_components": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "quality_concerns": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "statistical_controls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "validation_strategy": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "extraction_confidence": {"type": "string", "enum": ["low", "medium", "high"]}
+  }
+}

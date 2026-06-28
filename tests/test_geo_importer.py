@@ -10,10 +10,13 @@ from targetcompass_lite.geo_importer import (
     GeoImportError,
     build_metadata,
     download_file,
+    geo_platform_annotation_url,
     extract_sample_metadata_table,
     geo_status_path,
     import_geo_series_auto,
+    infer_platform_id,
     infer_grouping,
+    infer_grouping_from_column,
     import_geo_series,
     parse_series_matrix,
 )
@@ -44,6 +47,7 @@ VCAM1\t2\t5
 
 PROBE_SERIES = """!Sample_title\t"young rep1"\t"young rep2"\t"senescent rep1"\t"senescent rep2"
 !Sample_geo_accession\t"GSM1"\t"GSM2"\t"GSM3"\t"GSM4"
+!Sample_platform_id\t"GPL1234"\t"GPL1234"\t"GPL1234"\t"GPL1234"
 !Sample_characteristics_ch1\t"condition: young"\t"condition: young"\t"condition: senescent"\t"condition: senescent"
 !series_matrix_table_begin
 ID_REF\tGSM1\tGSM2\tGSM3\tGSM4
@@ -63,6 +67,20 @@ class GeoImporterTest(unittest.TestCase):
             self.assertEqual(samples, ["GSM1", "GSM2", "GSM3", "GSM4"])
             self.assertIn("!Sample_title", meta)
             self.assertEqual(matrix["IL6"]["GSM3"], 4.0)
+
+    def test_manual_grouping_from_locked_column(self):
+        rows = [
+            {"sample_id": "S1", "condition": "case"},
+            {"sample_id": "S2", "condition": "case"},
+            {"sample_id": "S3", "condition": "control"},
+            {"sample_id": "S4", "condition": "control"},
+        ]
+        inference = infer_grouping_from_column(rows, "condition", case_label="case", control_label="control")
+        self.assertEqual(inference.group_column, "condition")
+        self.assertEqual(inference.case_label, "case")
+        self.assertEqual(inference.control_label, "control")
+        self.assertEqual(inference.sample_groups["S1"], "case")
+        self.assertEqual(inference.sample_groups["S4"], "control")
 
     def test_download_failure_is_structured_and_retryable(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -191,6 +209,19 @@ class GeoImporterTest(unittest.TestCase):
             status = geo_status_path(project, "GSE999991").read_text(encoding="utf-8")
             self.assertIn("sample_preview", status)
             self.assertIn("case/control", status)
+
+    def test_platform_id_and_annotation_url_are_inferred(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "GSETEST_series_matrix.txt.gz"
+            with gzip.open(path, "wt", encoding="utf-8") as f:
+                f.write(PROBE_SERIES)
+            sample_meta, _, _ = parse_series_matrix(path)
+
+            self.assertEqual(infer_platform_id(sample_meta), "GPL1234")
+            self.assertEqual(
+                geo_platform_annotation_url("GPL1234"),
+                "https://ftp.ncbi.nlm.nih.gov/geo/platforms/GPL1nnn/GPL1234/annot/GPL1234.annot.gz",
+            )
 
     def test_sample_size_failure_is_structured(self):
         with tempfile.TemporaryDirectory() as tmp:

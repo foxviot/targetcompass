@@ -11,6 +11,8 @@ from .v4 import content_hash, v4_dir
 
 SESSION_SCHEMA = "v4.mcp_sessions/0.1"
 TOKEN_REGISTRY_SCHEMA = "v4.mcp_token_registry/0.1"
+EXTERNAL_AUTH_SCHEMA = "v4.mcp_external_auth_manifest/0.1"
+EXTERNAL_AUTH_READINESS_SCHEMA = "v4.mcp_external_auth_readiness/0.1"
 
 
 def session_registry_path(project_dir: Path) -> Path:
@@ -19,6 +21,14 @@ def session_registry_path(project_dir: Path) -> Path:
 
 def token_registry_path(project_dir: Path) -> Path:
     return v4_dir(project_dir) / "mcp_tokens.json"
+
+
+def external_auth_manifest_path(project_dir: Path) -> Path:
+    return v4_dir(project_dir) / "mcp_external_auth_manifest.json"
+
+
+def external_auth_readiness_path(project_dir: Path) -> Path:
+    return v4_dir(project_dir) / "mcp_external_auth_readiness.json"
 
 
 def load_token_from_sources(token_json: str = "", token_file: str = "", env_var: str = "TARGETCOMPASS_MCP_TOKEN") -> str:
@@ -161,6 +171,7 @@ def query_mcp_audit(project_dir: Path, principal: str = "", tool_id: str = "", s
 
 def build_mcp_server_config(project_dir: Path, token_file: str = "", env_var: str = "TARGETCOMPASS_MCP_TOKEN") -> dict[str, Any]:
     policy = write_default_policy(project_dir)
+    auth = build_external_auth_manifest(project_dir)
     return {
         "schema_version": "v4.mcp_server_config/0.1",
         "project_id": project_dir.name,
@@ -179,6 +190,8 @@ def build_mcp_server_config(project_dir: Path, token_file: str = "", env_var: st
         "token_registry": str(token_registry_path(project_dir).relative_to(project_dir)),
         "audit_log": "v4/mcp_call_audit.jsonl",
         "policy_decisions": "v4/mcp_policy_decisions.jsonl",
+        "external_auth_manifest": "v4/mcp_external_auth_manifest.json",
+        "auth_mode": auth.get("active_auth_mode", "local_project_token"),
     }
 
 
@@ -210,9 +223,177 @@ def build_mcp_client_config(project_dir: Path, base_url: str = "", token_env: st
         "security": {
             "token_source": token_env,
             "project_bound_tokens": True,
+            "session_header": "X-MCP-Session-ID",
+            "client_id_header": "X-MCP-Client-ID",
             "recommended_role_for_read_only_agents": "agent_reader",
             "recommended_role_for_operators": "agent_operator",
         },
+    }
+
+
+def build_external_auth_manifest(project_dir: Path) -> dict[str, Any]:
+    policy = write_default_policy(project_dir)
+    sessions = load_sessions(project_dir)
+    tokens = load_token_registry(project_dir)
+    oidc_enabled = bool(os.environ.get("TARGETCOMPASS_OIDC_ISSUER") and os.environ.get("TARGETCOMPASS_OIDC_AUDIENCE"))
+    vault_enabled = bool(os.environ.get("TARGETCOMPASS_VAULT_ADDR") and os.environ.get("TARGETCOMPASS_VAULT_TOKEN"))
+    payload = {
+        "schema_version": EXTERNAL_AUTH_SCHEMA,
+        "project_id": project_dir.name,
+        "active_auth_mode": "oidc" if oidc_enabled else "local_project_token",
+        "project_isolation": {
+            "project_bound_tokens": True,
+            "token_project_claim_required": True,
+            "cross_project_token_rejected": True,
+            "artifact_paths_do_not_grant_authorization": True,
+        },
+        "multi_client_sessions": {
+            "session_registry": "v4/mcp_sessions.json",
+            "active_session_count": len([row for row in sessions.get("sessions", []) if row.get("status") == "active"]),
+            "session_header": "X-MCP-Session-ID",
+            "client_id_header": "X-MCP-Client-ID",
+        },
+        "token_auth": {
+            "enabled": True,
+            "require_token_for_external_clients": policy.get("require_token_for_external_clients", False),
+            "token_registry": "v4/mcp_tokens.json",
+            "registered_token_count": len(tokens.get("tokens", [])),
+            "token_file_env": "TARGETCOMPASS_MCP_TOKEN_FILE",
+            "token_json_env": "TARGETCOMPASS_MCP_TOKEN",
+        },
+        "oidc_contract": {
+            "enabled": oidc_enabled,
+            "issuer_env": "TARGETCOMPASS_OIDC_ISSUER",
+            "audience_env": "TARGETCOMPASS_OIDC_AUDIENCE",
+            "jwks_cache": "v4/oidc_jwks_cache.json",
+            "status": "configured" if oidc_enabled else "not_configured",
+        },
+        "vault_contract": {
+            "enabled": vault_enabled,
+            "address_env": "TARGETCOMPASS_VAULT_ADDR",
+            "token_env": "TARGETCOMPASS_VAULT_TOKEN",
+            "secret_mount": f"targetcompass/{project_dir.name}/",
+            "status": "configured" if vault_enabled else "not_configured",
+        },
+        "generated_at": _now(),
+    }
+    payload["auth_hash"] = content_hash(payload)
+    _write_json(external_auth_manifest_path(project_dir), payload)
+    return payload
+
+
+def check_external_auth_readiness(project_dir: Path) -> dict[str, Any]:
+    manifest = build_external_auth_manifest(project_dir)
+    policy = write_default_policy(project_dir)
+    tokens = load_token_registry(project_dir)
+    sessions = load_sessions(project_dir)
+    audit = summarize_call_audit(project_dir)
+    decisions = load_policy_decisions(project_dir)
+    checks = [
+        _readiness_check(
+            "project_bound_tokens",
+            bool(manifest.get("project_isolation", {}).get("project_bound_tokens")),
+            "Tokens include the project claim and are parsed against the current project.",
+            "Keep project-bound token parsing enabled before exposing MCP to external clients.",
+        ),
+        _readiness_check(
+            "cross_project_token_rejection",
+            bool(manifest.get("project_isolation", {}).get("cross_project_token_rejected")),
+            "Cross-project tokens are rejected by the local policy contract.",
+            "Reject tokens whose project claim does not match the requested project.",
+        ),
+        _readiness_check(
+            "external_token_required",
+            bool(policy.get("require_token_for_external_clients")),
+            "External clients must provide a token.",
+            "Enable 'Require token for external clients' before multi-client or remote use.",
+            severity="warning",
+        ),
+        _readiness_check(
+            "registered_token_available",
+            len(tokens.get("tokens", [])) > 0,
+            "At least one project-scoped token descriptor is registered.",
+            "Create a project token for each external client or service account.",
+            severity="warning",
+        ),
+        _readiness_check(
+            "session_headers_declared",
+            bool(manifest.get("multi_client_sessions", {}).get("session_header"))
+            and bool(manifest.get("multi_client_sessions", {}).get("client_id_header")),
+            "Session and client-id headers are declared for HTTP/SSE clients.",
+            "Declare X-MCP-Session-ID and X-MCP-Client-ID headers in client templates.",
+        ),
+        _readiness_check(
+            "mcp_audit_available",
+            audit.get("call_count", 0) > 0 or bool(decisions),
+            "MCP calls or policy decisions have been audited.",
+            "Exercise at least one tool/resource call so audit files prove the gateway path.",
+            severity="warning",
+        ),
+    ]
+    oidc_issuer = bool(os.environ.get("TARGETCOMPASS_OIDC_ISSUER"))
+    oidc_audience = bool(os.environ.get("TARGETCOMPASS_OIDC_AUDIENCE"))
+    checks.append(
+        _readiness_check(
+            "oidc_env_complete",
+            (oidc_issuer and oidc_audience) or (not oidc_issuer and not oidc_audience),
+            "OIDC env contract is either fully configured or intentionally disabled.",
+            "Set both TARGETCOMPASS_OIDC_ISSUER and TARGETCOMPASS_OIDC_AUDIENCE, or unset both.",
+            severity="warning",
+        )
+    )
+    vault_addr = bool(os.environ.get("TARGETCOMPASS_VAULT_ADDR"))
+    vault_token = bool(os.environ.get("TARGETCOMPASS_VAULT_TOKEN"))
+    checks.append(
+        _readiness_check(
+            "vault_env_complete",
+            (vault_addr and vault_token) or (not vault_addr and not vault_token),
+            "Vault env contract is either fully configured or intentionally disabled.",
+            "Set both TARGETCOMPASS_VAULT_ADDR and TARGETCOMPASS_VAULT_TOKEN, or unset both.",
+            severity="warning",
+        )
+    )
+    hard_failed = [row for row in checks if row["status"] == "FAIL" and row["severity"] == "error"]
+    warnings = [row for row in checks if row["status"] == "WARN" or (row["status"] == "FAIL" and row["severity"] == "warning")]
+    payload = {
+        "schema_version": EXTERNAL_AUTH_READINESS_SCHEMA,
+        "project_id": project_dir.name,
+        "status": "BLOCKED" if hard_failed else ("READY_WITH_WARNINGS" if warnings else "READY"),
+        "active_auth_mode": manifest.get("active_auth_mode", "local_project_token"),
+        "summary": {
+            "check_count": len(checks),
+            "pass_count": len([row for row in checks if row["status"] == "PASS"]),
+            "warning_count": len(warnings),
+            "failure_count": len(hard_failed),
+            "registered_token_count": len(tokens.get("tokens", [])),
+            "active_session_count": len([row for row in sessions.get("sessions", []) if row.get("status") == "active"]),
+            "audit_call_count": audit.get("call_count", 0),
+            "policy_decision_count": len(decisions),
+        },
+        "checks": checks,
+        "artifact_refs": {
+            "external_auth_manifest": "v4/mcp_external_auth_manifest.json",
+            "policy": "v4/mcp_policy.json",
+            "token_registry": "v4/mcp_tokens.json",
+            "session_registry": "v4/mcp_sessions.json",
+            "call_audit": "v4/mcp_call_audit.jsonl",
+            "policy_decisions": "v4/mcp_policy_decisions.jsonl",
+        },
+        "generated_at": _now(),
+    }
+    payload["readiness_hash"] = content_hash(payload)
+    _write_json(external_auth_readiness_path(project_dir), payload)
+    return payload
+
+
+def _readiness_check(check_id: str, passed: bool, ok: str, remediation: str, severity: str = "error") -> dict[str, Any]:
+    status = "PASS" if passed else ("WARN" if severity == "warning" else "FAIL")
+    return {
+        "check_id": check_id,
+        "status": status,
+        "severity": severity,
+        "message": ok if passed else remediation,
+        "remediation": "" if passed else remediation,
     }
 
 

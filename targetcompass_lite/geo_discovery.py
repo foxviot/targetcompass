@@ -95,30 +95,157 @@ def discover_geo_datasets(
     spec = _read_json(project_dir / "research_spec.json", {})
     search_query = build_geo_query(spec, query)
     warnings = []
+    query_attempts = []
     recommendations: list[GeoRecommendation]
     mode = "online"
     try:
         if not online:
             raise RuntimeError("online GEO discovery disabled")
         recommendations = _discover_online(search_query, spec, limit, timeout)
+        query_attempts.append(_query_attempt(search_query, "online", len(recommendations), "initial_query"))
         if not recommendations:
-            warnings.append("NCBI GEO search returned no usable GSE recommendations; using local registered GEO fallback.")
-            recommendations = _discover_local(project_dir, spec, limit)
-            mode = "local_fallback"
+            recovered = _retry_relaxed_geo_queries(search_query, spec, limit, timeout)
+            query_attempts.extend(recovered["attempts"])
+            recommendations = recovered["recommendations"]
+            if recommendations:
+                warnings.append("Initial NCBI GEO query returned no usable GSE recommendations; Dataset Scout recovered by relaxing overly specific terms.")
+            else:
+                warnings.append("NCBI GEO search returned no usable GSE recommendations after relaxed retry; using local registered GEO fallback.")
+                recommendations = _discover_local(project_dir, spec, limit)
+                mode = "local_fallback"
     except Exception as exc:
         warnings.append(f"NCBI GEO discovery unavailable: {exc}")
+        query_attempts.append(_query_attempt(search_query, "failed", 0, str(exc)))
         recommendations = _discover_local(project_dir, spec, limit)
         mode = "local_fallback"
     payload = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "mode": mode,
         "query": search_query,
+        "query_attempts": query_attempts,
+        "query_recovery": _query_recovery_summary(query_attempts, mode),
         "recommendations": [item.to_dict() for item in recommendations[:limit]],
         "warnings": warnings,
     }
     if write:
         _write_outputs(project_dir, payload)
     return payload
+
+
+def _retry_relaxed_geo_queries(query: str, spec: dict[str, Any], limit: int, timeout: int) -> dict[str, Any]:
+    attempts = []
+    for relaxed_query in build_relaxed_geo_queries(query, spec):
+        try:
+            recommendations = _discover_online(relaxed_query, spec, limit, timeout)
+            attempts.append(_query_attempt(relaxed_query, "online", len(recommendations), "relaxed_query"))
+            if recommendations:
+                return {"recommendations": recommendations, "attempts": attempts}
+        except Exception as exc:
+            attempts.append(_query_attempt(relaxed_query, "failed", 0, str(exc)))
+    return {"recommendations": [], "attempts": attempts}
+
+
+def build_relaxed_geo_queries(query: str, spec: dict[str, Any]) -> list[str]:
+    relaxed_terms = _relaxed_biology_terms(query, spec)
+    organism_query = _organism_query(spec)
+    modality_query = '"expression profiling by array" OR "high throughput sequencing" OR "RNA-seq" OR transcriptome'
+    queries = []
+    if relaxed_terms:
+        queries.append(f"({_or_query(relaxed_terms[:6])}) AND ({organism_query}) AND ({modality_query})")
+    broad_terms = _broad_context_terms(relaxed_terms, spec)
+    if broad_terms:
+        queries.append(f"({_or_query(broad_terms[:6])}) AND ({organism_query}) AND ({modality_query})")
+    seen = set()
+    return [item for item in queries if item not in seen and not seen.add(item)]
+
+
+def _relaxed_biology_terms(query: str, spec: dict[str, Any]) -> list[str]:
+    stop_terms = {
+        "sasp",
+        "surface",
+        "surfaceome",
+        "secreted",
+        "secretome",
+        "marker",
+        "markers",
+        "molecule",
+        "molecules",
+        "target",
+        "targets",
+        "cell",
+        "cells",
+        "accessible",
+        "accessibility",
+        "factor",
+        "factors",
+        "cytokine",
+        "cytokines",
+    }
+    candidates = []
+    candidates.extend(_extract_plain_terms(query))
+    candidates.extend([spec.get("disease_scope", {}).get("canonical", ""), spec.get("research_theme", "")])
+    candidates.extend(spec.get("priority_tissues", [])[:3])
+    candidates.extend(spec.get("priority_cells", [])[:3])
+    out = []
+    for term in candidates:
+        cleaned = _clean_relaxed_term(term, stop_terms)
+        if cleaned and cleaned.lower() not in {item.lower() for item in out}:
+            out.append(cleaned)
+    return out
+
+
+def _broad_context_terms(relaxed_terms: list[str], spec: dict[str, Any]) -> list[str]:
+    broad = list(relaxed_terms)
+    broad.extend(["senescence", "aging", "inflammation"])
+    disease = spec.get("disease_scope", {}).get("canonical", "")
+    if disease and disease != "unknown":
+        broad.insert(0, disease)
+    out = []
+    for term in broad:
+        if term and term.lower() not in {item.lower() for item in out}:
+            out.append(term)
+    return out
+
+
+def _extract_plain_terms(query: str) -> list[str]:
+    text = re.sub(r"\bAND\b|\bOR\b|\bNOT\b", " ", query, flags=re.IGNORECASE)
+    text = re.sub(r"RNA-seq|transcriptome|expression profiling|high throughput sequencing|Homo sapiens|human", " ", text, flags=re.IGNORECASE)
+    parts = re.findall(r'"([^"]+)"|([A-Za-z][A-Za-z0-9 -]{2,})', text)
+    return [" ".join(item for item in group if item).strip(" ()") for group in parts]
+
+
+def _clean_relaxed_term(term: str, stop_terms: set[str]) -> str:
+    words = [word for word in re.sub(r"[^A-Za-z0-9 ]", " ", str(term)).split() if word.lower() not in stop_terms]
+    return " ".join(words[:6]).strip()
+
+
+def _organism_query(spec: dict[str, Any]) -> str:
+    organisms = spec.get("organisms", [])
+    return " OR ".join(_quote(item) for item in organisms[:2]) or "human"
+
+
+def _or_query(terms: list[str]) -> str:
+    return " OR ".join(_quote(item) for item in terms if item)
+
+
+def _query_attempt(query: str, status: str, recommendation_count: int, reason: str) -> dict[str, Any]:
+    return {
+        "query": query,
+        "status": status,
+        "recommendation_count": recommendation_count,
+        "reason": reason,
+    }
+
+
+def _query_recovery_summary(query_attempts: list[dict[str, Any]], mode: str) -> dict[str, Any]:
+    recovered = len(query_attempts) > 1 and any(item.get("recommendation_count", 0) for item in query_attempts[1:])
+    return {
+        "attempt_count": len(query_attempts),
+        "recovered": recovered,
+        "final_mode": mode,
+        "final_query": next((item.get("query", "") for item in reversed(query_attempts) if item.get("recommendation_count", 0)), query_attempts[-1].get("query", "") if query_attempts else ""),
+        "suggested_action": "" if recovered or mode != "local_fallback" else "Broaden disease/tissue terms or manually provide GEO accession.",
+    }
 
 
 def _discover_online(query: str, spec: dict[str, Any], limit: int, timeout: int) -> list[GeoRecommendation]:

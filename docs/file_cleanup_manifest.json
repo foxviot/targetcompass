@@ -1,0 +1,28 @@
+{
+  "schema_version": "targetcompass.cleanup/0.1",
+  "generated_at": "2026-06-24T16:00:00+08:00",
+  "archive_root": "D:\\TargetCompass_archive_20260624",
+  "kept_current_delivery": [
+    "dist/TargetCompassV5_Setup.exe",
+    "dist/TargetCompassV5_Windows_Installer_20260624T072954Z.zip",
+    "dist/TargetCompassV5_Windows_Installer_20260624T072954Z_manifest.json",
+    "dist/targetcompass_v5_professor_demo_bundle_20260624T072838Z.zip",
+    "dist/targetcompass_v5_professor_demo_bundle_20260624T072838Z_manifest.json"
+  ],
+  "kept_projects": [
+    "projects/vascular_aging_demo",
+    "projects/sarcopenia_muscle_sasp_demo"
+  ],
+  "archived_categories": [
+    "tmp smoke installs",
+    "old dist packages and manifests",
+    "old validation projects",
+    "sarcopenia raw data and generated results",
+    "verbose stage/audit docs"
+  ],
+  "notes": [
+    "Cleanup was recoverable: large historical outputs were moved to D drive instead of permanently deleted.",
+    "The MVP/sarcopenia demo shell remains in the workspace, but its large data/results directories were archived.",
+    "The v5 vascular_aging_demo project remains in place as the current runnable demo."
+  ]
+}

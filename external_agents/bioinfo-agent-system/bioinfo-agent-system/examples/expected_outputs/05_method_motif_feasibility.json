@@ -1,0 +1,297 @@
+{
+  "agent_id": "05_method_motif_feasibility_synthesizer",
+  "schema_version": "1.0.0",
+  "created_at": "2026-06-21T02:02:36Z",
+  "provenance": [
+    {
+      "source_type": "mock",
+      "source_id": "05_method_motif_feasibility_synthesizer",
+      "note": "Deterministic mock output for pipeline testing; not a verified public accession."
+    }
+  ],
+  "warnings": [],
+  "blocking_failures": [],
+  "claim_ceiling": {
+    "max_allowed_claim": "co_expression",
+    "reason": "Feasible local contracts remain limited to association-level evidence."
+  },
+  "method_motifs": [
+    {
+      "motif_id": "expression_program_association_screening",
+      "applicable_questions": [
+        "candidate_discovery",
+        "pathway_program_association"
+      ],
+      "required_inputs": [
+        "bulk expression matrix",
+        "inflammatory gene set"
+      ],
+      "recommended_steps": [
+        "dataset metadata audit",
+        "bulk expression QC",
+        "inflammatory program scoring",
+        "molecule-program association test"
+      ],
+      "optional_steps": [
+        "covariate sensitivity review"
+      ],
+      "not_applicable_when": [
+        "no disease-control contrast is available"
+      ],
+      "common_failure_modes": [
+        "over-interpreting correlation as causality"
+      ],
+      "evidence_type_produced": [
+        "association",
+        "co_expression"
+      ],
+      "transferability_assessment": "High for mock bulk expression datasets.",
+      "feasibility_assessment": "Ready with primary bulk RNA-seq mock data."
+    },
+    {
+      "motif_id": "surface_secretome_candidate_filtering",
+      "applicable_questions": [
+        "candidate_discovery",
+        "target_prioritization"
+      ],
+      "required_inputs": [
+        "candidate association table",
+        "annotation table"
+      ],
+      "recommended_steps": [
+        "join candidate table to annotation resource",
+        "retain secreted or surface candidates",
+        "rank candidates with annotation flags retained"
+      ],
+      "optional_steps": [
+        "manual review of ambiguous annotations"
+      ],
+      "not_applicable_when": [
+        "no candidate association table is available"
+      ],
+      "common_failure_modes": [
+        "treating annotations as proof of accessibility"
+      ],
+      "evidence_type_produced": [
+        "candidate list",
+        "annotation-aware ranking"
+      ],
+      "transferability_assessment": "High for conservative candidate filtering.",
+      "feasibility_assessment": "Ready with mock annotation joins only."
+    },
+    {
+      "motif_id": "bulk_to_single_cell_localization",
+      "applicable_questions": [
+        "candidate_discovery",
+        "cell_state_discovery"
+      ],
+      "required_inputs": [
+        "bulk-ranked candidates",
+        "single-cell expression matrix"
+      ],
+      "recommended_steps": [
+        "map ranked candidates into the fallback single-cell dataset",
+        "summarize cell-type localization patterns"
+      ],
+      "optional_steps": [
+        "compare depot-specific localization if metadata permit"
+      ],
+      "not_applicable_when": [
+        "single-cell metadata are unavailable"
+      ],
+      "common_failure_modes": [
+        "upgrading localization into cell-type-specific causality"
+      ],
+      "evidence_type_produced": [
+        "localization evidence"
+      ],
+      "transferability_assessment": "Moderate because single-cell data are fallback only.",
+      "feasibility_assessment": "Ready as a fallback review path."
+    },
+    {
+      "motif_id": "external_dataset_validation",
+      "applicable_questions": [
+        "candidate_discovery",
+        "validation_review"
+      ],
+      "required_inputs": [
+        "ranked candidates",
+        "independent fallback dataset"
+      ],
+      "recommended_steps": [
+        "check qualitative consistency across datasets",
+        "carry forward only candidate-level language"
+      ],
+      "optional_steps": [
+        "compare consistency by adipose depot"
+      ],
+      "not_applicable_when": [
+        "no independent fallback dataset is available"
+      ],
+      "common_failure_modes": [
+        "treating a secondary dataset as experimental validation"
+      ],
+      "evidence_type_produced": [
+        "consistency review"
+      ],
+      "transferability_assessment": "Moderate for mock fallback evidence.",
+      "feasibility_assessment": "Ready if used conservatively."
+    }
+  ],
+  "not_recommended_methods": [
+    "unvalidated multistage feature selection classifiers as core evidence",
+    "causal Mendelian randomization without appropriate genetic support"
+  ],
+  "method_quality_flags": [
+    "Small-sample multi-step machine learning pipelines are optional only.",
+    "Localization evidence remains indirect without orthogonal validation."
+  ],
+  "local_method_contracts": [
+    {
+      "contract_id": "dataset_metadata_audit",
+      "purpose": "Confirm phenotype and tissue metadata before ranking candidates.",
+      "status": "ready",
+      "required_inputs": [
+        "sample metadata"
+      ],
+      "notes": "Required first step for deterministic mock intake."
+    },
+    {
+      "contract_id": "bulk_expression_qc",
+      "purpose": "QC the primary bulk expression matrix.",
+      "status": "ready",
+      "required_inputs": [
+        "bulk expression matrix",
+        "sample metadata"
+      ],
+      "notes": "Supports association-level downstream analyses only."
+    },
+    {
+      "contract_id": "inflammatory_program_scoring",
+      "purpose": "Score inflammatory activity in primary bulk data.",
+      "status": "ready",
+      "required_inputs": [
+        "QC-filtered matrix",
+        "inflammatory gene set"
+      ],
+      "notes": "Produces sample-level program scores."
+    },
+    {
+      "contract_id": "molecule_program_association",
+      "purpose": "Rank molecules by association with the inflammatory program.",
+      "status": "ready",
+      "required_inputs": [
+        "program scores",
+        "candidate expression matrix"
+      ],
+      "notes": "Association-only contract."
+    },
+    {
+      "contract_id": "surface_secretome_annotation",
+      "purpose": "Apply secreted or surface annotations to ranked molecules.",
+      "status": "ready",
+      "required_inputs": [
+        "candidate association table",
+        "annotation table"
+      ],
+      "notes": "Annotation is candidate-level only."
+    },
+    {
+      "contract_id": "candidate_ranking",
+      "purpose": "Build a conservative ranked candidate list.",
+      "status": "ready",
+      "required_inputs": [
+        "annotation-aware candidate table"
+      ],
+      "notes": "Do not upgrade beyond co-expression claims."
+    },
+    {
+      "contract_id": "bulk_to_single_cell_localization",
+      "purpose": "Use fallback single-cell data for localization review.",
+      "status": "ready",
+      "required_inputs": [
+        "ranked candidates",
+        "single-cell matrix"
+      ],
+      "notes": "Fallback-only localization contract."
+    },
+    {
+      "contract_id": "external_dataset_validation",
+      "purpose": "Review qualitative consistency in a fallback dataset.",
+      "status": "ready",
+      "required_inputs": [
+        "ranked candidates",
+        "fallback dataset"
+      ],
+      "notes": "Supports consistency review, not causal validation."
+    },
+    {
+      "contract_id": "evidence_report_compilation",
+      "purpose": "Draft the final evidence summary and report outline.",
+      "status": "ready",
+      "required_inputs": [
+        "task outputs",
+        "claim boundaries"
+      ],
+      "notes": "Preserves claim ceiling and caveats in the final report."
+    },
+    {
+      "contract_id": "causal_mr_support",
+      "purpose": "Estimate causal support from genetics.",
+      "status": "blocked",
+      "required_inputs": [
+        "genetic instruments",
+        "compatible summary statistics"
+      ],
+      "notes": "Blocked because no causal data source exists in the mock pipeline."
+    },
+    {
+      "contract_id": "wetlab_validation",
+      "purpose": "Validate top candidates experimentally.",
+      "status": "blocked",
+      "required_inputs": [
+        "wet-lab assays",
+        "biological samples"
+      ],
+      "notes": "Blocked because the mock pipeline does not execute experiments."
+    },
+    {
+      "contract_id": "vaccine_antigen_validation",
+      "purpose": "Assess antigen accessibility and readiness.",
+      "status": "blocked",
+      "required_inputs": [
+        "surface validation assays",
+        "immune profiling"
+      ],
+      "notes": "Blocked because the question does not support vaccine framing."
+    },
+    {
+      "contract_id": "target_engagement_assay",
+      "purpose": "Demonstrate target engagement downstream.",
+      "status": "missing",
+      "required_inputs": [
+        "perturbation assay design"
+      ],
+      "notes": "Missing because no source-bound method contract is available."
+    }
+  ],
+  "ready_contracts": [
+    "dataset_metadata_audit",
+    "bulk_expression_qc",
+    "inflammatory_program_scoring",
+    "molecule_program_association",
+    "surface_secretome_annotation",
+    "candidate_ranking",
+    "bulk_to_single_cell_localization",
+    "external_dataset_validation",
+    "evidence_report_compilation"
+  ],
+  "blocked_contracts": [
+    "causal_mr_support",
+    "wetlab_validation",
+    "vaccine_antigen_validation"
+  ],
+  "missing_contracts": [
+    "target_engagement_assay"
+  ]
+}

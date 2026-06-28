@@ -1,4 +1,6 @@
 import json
+import os
+import shlex
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -72,6 +74,10 @@ def run_nextflow_local(
 ) -> dict[str, Any]:
     plane = build_nextflow_execution_plane(project_dir)
     tasks = build_nextflow_tasks(project_dir, module_ids)
+    from .nextflow_profiles import build_nextflow_profile_matrix, validate_nextflow_resource_policy
+
+    profile_matrix = build_nextflow_profile_matrix(project_dir)
+    resource_validation = validate_nextflow_resource_policy(project_dir, tasks)
     attempt = start_work_order_attempt(project_dir, "nextflow_target_discovery", "nextflow")
     out_dir = project_dir / "workflows" / "target_discovery" / "runs" / attempt["attempt_id"]
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -94,6 +100,10 @@ def run_nextflow_local(
         str(nextflow_tasks_path(project_dir).resolve()),
         "--outdir",
         str((out_dir / "results").resolve()),
+        "--repo_root",
+        str(Path.cwd().resolve()),
+        "--host_python",
+        "python.exe",
         "-work-dir",
         str(work_dir.resolve()),
         "-with-report",
@@ -107,9 +117,10 @@ def run_nextflow_local(
     ]
     if resume:
         command.append("-resume")
-    if runner is None and shutil.which(nextflow_bin) is None:
+    command = _resolve_command_for_backend(project_dir, command, nextflow_bin)
+    if runner is None and not _nextflow_available(project_dir, nextflow_bin):
         failure = f"Nextflow executable not found: {nextflow_bin}"
-        manifest = _write_run_manifest(project_dir, attempt, command, profile, tasks, 127, "", failure, out_dir)
+        manifest = _write_run_manifest(project_dir, attempt, command, profile, tasks, 127, "", failure, out_dir, profile_matrix, resource_validation)
         finish_work_order_attempt(
             project_dir,
             attempt["attempt_id"],
@@ -129,7 +140,7 @@ def run_nextflow_local(
         copied.write_text(completed.stderr or completed.stdout or "", encoding="utf-8")
     status = "success" if completed.returncode == 0 else "failed"
     failure_reason = "" if status == "success" else (completed.stderr or completed.stdout or f"nextflow exited with {completed.returncode}")
-    manifest = _write_run_manifest(project_dir, attempt, command, profile, tasks, completed.returncode, completed.stdout, failure_reason, out_dir)
+    manifest = _write_run_manifest(project_dir, attempt, command, profile, tasks, completed.returncode, completed.stdout, failure_reason, out_dir, profile_matrix, resource_validation)
     finish_work_order_attempt(
         project_dir,
         attempt["attempt_id"],
@@ -142,7 +153,96 @@ def run_nextflow_local(
 
 
 def _default_runner(command: list[str], cwd: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=False)
+    return subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=False, encoding="utf-8", errors="replace")
+
+
+def run_nextflow_smoke(project_dir: Path, nextflow_bin: str = "wsl", runner: CommandRunner | None = None) -> dict[str, Any]:
+    out_dir = project_dir / "workflows" / "target_discovery" / "smoke"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    smoke_nf = out_dir / "smoke.nf"
+    smoke_nf.write_text(
+        """nextflow.enable.dsl=2
+process HELLO {
+  output:
+  path 'hello.txt'
+  script:
+  \"\"\"
+  echo targetcompass-nextflow-smoke > hello.txt
+  \"\"\"
+}
+workflow { HELLO() }
+""",
+        encoding="utf-8",
+    )
+    command = [nextflow_bin, "run", str(smoke_nf.resolve()), "-work-dir", str((out_dir / "work").resolve())]
+    command = _resolve_command_for_backend(project_dir, command, nextflow_bin)
+    if runner is None and not _nextflow_available(project_dir, nextflow_bin):
+        result = {
+            "schema_version": "v4.nextflow_smoke/0.1",
+            "project_id": project_dir.name,
+            "status": "failed",
+            "returncode": 127,
+            "command": command,
+            "failure_reason": f"Nextflow executable not found: {nextflow_bin}",
+            "artifacts": [],
+            "finished_at": _now(),
+        }
+    else:
+        completed = (runner or _default_runner)(command, project_dir)
+        output = out_dir / "work"
+        result = {
+            "schema_version": "v4.nextflow_smoke/0.1",
+            "project_id": project_dir.name,
+            "status": "success" if completed.returncode == 0 else "failed",
+            "returncode": completed.returncode,
+            "command": command,
+            "stdout_tail": (completed.stdout or "")[-4000:],
+            "failure_reason": "" if completed.returncode == 0 else (completed.stderr or completed.stdout or f"nextflow exited with {completed.returncode}"),
+            "artifacts": [_rel(project_dir, smoke_nf)],
+            "finished_at": _now(),
+        }
+    (out_dir / "nextflow_smoke_manifest.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    return result
+
+
+def _nextflow_available(project_dir: Path, nextflow_bin: str) -> bool:
+    if nextflow_bin == "wsl":
+        return (project_dir / "tools" / "nextflow" / "nextflow").exists()
+    return shutil.which(nextflow_bin) is not None
+
+
+def _resolve_command_for_backend(project_dir: Path, command: list[str], nextflow_bin: str) -> list[str]:
+    if nextflow_bin != "wsl":
+        return command
+    executable = project_dir / "tools" / "nextflow" / "nextflow"
+    java_home = _nextflow_wsl_java_home(project_dir)
+    translated = [_wsl_path(arg) if _looks_like_windows_path(arg) else arg for arg in command[1:]]
+    script = (
+        f"export JAVA_HOME='{_wsl_path(java_home)}'; "
+        "export PATH=\"$JAVA_HOME/bin:$PATH\"; "
+        f"chmod +x '{_wsl_path(executable)}'; "
+        f"exec '{_wsl_path(executable)}' "
+        + " ".join(shlex.quote(arg) for arg in translated)
+    )
+    return ["wsl.exe", "-d", "Ubuntu", "--", "bash", "-lc", script]
+
+
+def _nextflow_wsl_java_home(project_dir: Path) -> Path:
+    for candidate in [project_dir / "tools" / "java17", project_dir / "tools" / "java21-linux-jre"]:
+        if (candidate / "bin" / "java").exists():
+            return candidate
+    return project_dir / "tools" / "java17"
+
+
+def _looks_like_windows_path(value: str) -> bool:
+    return len(value) >= 3 and value[1] == ":" and (value[2] == "\\" or value[2] == "/")
+
+
+def _wsl_path(value: str | Path) -> str:
+    raw = str(value).replace("\\", "/")
+    if len(raw) >= 2 and raw[1] == ":":
+        return f"/mnt/{raw[0].lower()}{raw[2:]}"
+    return raw
 
 
 def _write_run_manifest(
@@ -155,6 +255,8 @@ def _write_run_manifest(
     stdout: str,
     failure_reason: str,
     out_dir: Path,
+    profile_matrix: dict[str, Any] | None = None,
+    resource_validation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     artifacts = []
     for path in [out_dir / ".nextflow.log", out_dir / "report.html", out_dir / "timeline.html", out_dir / "trace.txt", out_dir / "dag.html"]:
@@ -167,6 +269,10 @@ def _write_run_manifest(
         "attempt_id": attempt["attempt_id"],
         "work_order_id": attempt.get("work_order_id", ""),
         "profile": profile,
+        "profile_policy": (profile_matrix or {}).get("profiles", {}).get(profile, {}),
+        "profile_matrix": "workflows/target_discovery/execution_profile_matrix.json",
+        "resource_policy_validation": "workflows/target_discovery/resource_policy_validation.json",
+        "resource_policy_status": (resource_validation or {}).get("status", ""),
         "command": command,
         "returncode": returncode,
         "status": "success" if returncode == 0 else "failed",

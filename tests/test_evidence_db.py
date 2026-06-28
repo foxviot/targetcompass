@@ -59,15 +59,16 @@ class EvidenceImportTest(unittest.TestCase):
             finally:
                 con.close()
             self.assertEqual(version, SCHEMA_VERSION)
-            self.assertEqual(count, 2)
+            self.assertEqual(count, 3)
             self.assertEqual(lineage_missing, 0)
 
             summary = json.loads((project / "results" / "evidence_import" / "import_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["schema_version"], SCHEMA_VERSION)
-            self.assertEqual(summary["inserted_rows"], 2)
+            self.assertEqual(summary["inserted_rows"], 3)
             self.assertEqual(summary["rejected_rows"], 1)
             self.assertEqual(summary["by_evidence_type"]["bulk_deg"], 1)
             self.assertEqual(summary["by_evidence_type"]["accessibility"], 1)
+            self.assertEqual(summary["by_evidence_type"]["surface_marker_annotation"], 1)
 
     def test_invalid_rows_are_written_to_rejected_log(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,6 +80,50 @@ class EvidenceImportTest(unittest.TestCase):
             self.assertEqual(rows[0]["evidence_type"], "bulk_deg")
             self.assertIn("EvidenceItem.entity_symbol: must not be empty", rows[0]["reason"])
             self.assertIn("effect_size must be numeric", rows[0]["reason"])
+
+    def test_qc_gate_does_not_pass_evidence_on_module_hint_without_artifact_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = _write_project(tmp)
+            qc_dir = project / "results" / "qc"
+            qc_dir.mkdir(parents=True, exist_ok=True)
+            report = {
+                "qc_report_id": "qc_other",
+                "work_order_id": "wo_other",
+                "module_id": "P4_bulk_other",
+                "dataset_id": "other",
+                "overall_status": "pass",
+                "artifacts": ["results/bulk_deg_other/deg_results.tsv"],
+            }
+            (qc_dir / "qc_other.json").write_text(json.dumps(report), encoding="utf-8")
+            (qc_dir / "task_qc_reports.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "v0.1.task_qc_report_index",
+                        "project_id": "demo",
+                        "reports": [
+                            {
+                                "qc_report_id": "qc_other",
+                                "work_order_id": "wo_other",
+                                "module_id": "P4_bulk_other",
+                                "dataset_id": "other",
+                                "overall_status": "pass",
+                                "path": "results/qc/qc_other.json",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            db_path = import_evidence(project)
+            con = sqlite3.connect(db_path)
+            try:
+                status = con.execute(
+                    "SELECT review_status FROM evidence_item WHERE evidence_type = 'bulk_deg' AND entity_symbol = 'IL6'"
+                ).fetchone()[0]
+            finally:
+                con.close()
+            self.assertEqual(status, "QC_REVIEW_REQUIRED")
 
 
 if __name__ == "__main__":

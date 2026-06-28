@@ -33,6 +33,10 @@ def result_registry_path(project_dir: Path) -> Path:
     return engineering_dir(project_dir) / "result_registry.json"
 
 
+def merge_registry_path(project_dir: Path) -> Path:
+    return engineering_dir(project_dir) / "merge_registry.json"
+
+
 def workspace_registry_path(project_dir: Path) -> Path:
     return engineering_dir(project_dir) / "workspace_registry.json"
 
@@ -80,14 +84,14 @@ def create_isolated_workspace(project_dir: Path, work_order_id: str, actor: str 
     return manifest
 
 
-def prepare_git_worktree(project_dir: Path, codex_job_id: str, actor: str = "codex") -> dict[str, Any]:
+def prepare_git_worktree(project_dir: Path, codex_job_id: str, actor: str = "codex", allow_unapproved_dispatch: bool = False) -> dict[str, Any]:
     found = _find_order_and_packet(project_dir, codex_job_id)
     packet = found["packet"]
-    if packet.get("release_gate") != "approved_for_codex_worker":
+    if packet.get("release_gate") != "approved_for_codex_worker" and not allow_unapproved_dispatch:
         raise ValueError("Codex task must be approved before preparing a git worktree")
     repo_root = _repo_root()
     target = git_worktree_root(project_dir) / codex_job_id
-    branch = f"codex/task-{codex_job_id}"
+    branch = f"codex/task-{codex_job_id}-{content_hash({'project': str(project_dir.resolve())})[:8]}"
     if not target.exists():
         _run_git(repo_root, ["worktree", "add", "-B", branch, str(target)])
     manifest = create_isolated_workspace(project_dir, found["order"]["work_order_id"], actor=actor)
@@ -108,13 +112,13 @@ def prepare_git_worktree(project_dir: Path, codex_job_id: str, actor: str = "cod
     return manifest
 
 
-def run_codex_task_tests(project_dir: Path, codex_job_id: str, actor: str = "codex") -> dict[str, Any]:
+def run_codex_task_tests(project_dir: Path, codex_job_id: str, actor: str = "codex", allow_unapproved_dispatch: bool = False) -> dict[str, Any]:
     found = _find_order_and_packet(project_dir, codex_job_id)
     packet = found["packet"]
     workspace = _workspace_for_job(project_dir, codex_job_id)
     worktree_path = Path(workspace.get("git_worktree_path", ""))
     if not worktree_path.exists():
-        worktree = prepare_git_worktree(project_dir, codex_job_id, actor=actor)
+        worktree = prepare_git_worktree(project_dir, codex_job_id, actor=actor, allow_unapproved_dispatch=allow_unapproved_dispatch)
         worktree_path = Path(worktree["git_worktree_path"])
     test_results = []
     artifacts = []
@@ -151,16 +155,44 @@ def run_codex_task_tests(project_dir: Path, codex_job_id: str, actor: str = "cod
             )
         )
         artifacts.extend([str(stdout_path.relative_to(project_dir)), str(stderr_path.relative_to(project_dir))])
+    patch_refs = []
+    if test_results and all(row["status"] == "passed" for row in test_results):
+        patch = collect_codex_worktree_patch(project_dir, codex_job_id, actor=actor)
+        if patch:
+            patch_refs.append(patch["patch_id"])
+            artifacts.append(patch["patch_path"])
     final_status = "success" if test_results and all(row["status"] == "passed" for row in test_results) else "failed"
     result = record_codex_result(project_dir, codex_job_id, final_status, artifacts=artifacts, failure_reason=failure_reason, actor=actor)
+    if patch_refs:
+        result["patch_refs"] = sorted(set(result.get("patch_refs", []) + patch_refs))
+        registry = _read_registry(result_registry_path(project_dir), "v4.codex_result_registry/0.1", "results")
+        _upsert(registry["results"], result, "result_id")
+        _write_registry(result_registry_path(project_dir), registry)
     result["test_results"] = test_results
     return result
 
 
+def collect_codex_worktree_patch(project_dir: Path, codex_job_id: str, actor: str = "codex") -> dict[str, Any]:
+    workspace = _workspace_for_job(project_dir, codex_job_id)
+    worktree_path = Path(workspace.get("git_worktree_path", ""))
+    if not worktree_path.exists():
+        return {}
+    completed = subprocess.run(["git", "diff", "--binary"], cwd=worktree_path, text=True, capture_output=True)
+    if completed.returncode:
+        raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
+    diff_text = completed.stdout
+    if not diff_text.strip():
+        return {}
+    out_dir = workspace_root(project_dir) / codex_job_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    patch_path = out_dir / "generated_changes.patch"
+    patch_path.write_text(diff_text, encoding="utf-8")
+    rel_patch = str(patch_path.relative_to(project_dir)).replace("\\", "/")
+    return register_codex_patch(project_dir, codex_job_id, rel_patch, summary="Generated from isolated Codex git worktree diff.", actor=actor)
+
+
 def register_codex_patch(project_dir: Path, codex_job_id: str, patch_path: str, summary: str = "", actor: str = "codex") -> dict[str, Any]:
-    path = project_dir / patch_path
-    if not path.exists():
-        raise ValueError(f"patch file not found: {patch_path}")
+    path = _resolve_project_file(project_dir, patch_path)
     result = _find_order_and_packet(project_dir, codex_job_id)
     patch = {
         "schema_version": "v4.codex_patch/0.1",
@@ -222,8 +254,18 @@ def record_codex_result(
     if status not in {"success", "failed", "cancelled", "needs_review"}:
         raise ValueError(f"unsupported Codex result status: {status}")
     found = _find_order_and_packet(project_dir, codex_job_id)
-    patches = [row for row in load_codex_engineering(project_dir).get("patches", []) if row.get("codex_job_id") == codex_job_id]
-    tests = [row for row in load_codex_engineering(project_dir).get("tests", []) if row.get("codex_job_id") == codex_job_id]
+    engineering = load_codex_engineering(project_dir)
+    patches = [row for row in engineering.get("patches", []) if row.get("codex_job_id") == codex_job_id]
+    tests = [row for row in engineering.get("tests", []) if row.get("codex_job_id") == codex_job_id]
+    artifact_set = set(artifacts or [])
+    if artifact_set:
+        scoped_tests = [
+            row
+            for row in tests
+            if row.get("stdout_ref") in artifact_set or row.get("stderr_ref") in artifact_set
+        ]
+        if scoped_tests:
+            tests = scoped_tests
     merge_status = "pending_human_approval" if status == "success" else "blocked"
     result = {
         "schema_version": "v4.codex_execution_result/0.1",
@@ -257,7 +299,101 @@ def record_codex_result(
     packet["merge_status"] = merge_status
     save_codex_task_packet(project_dir, order, packet)
     save_v4_work_order(project_dir, order)
+    try:
+        from .engineering_closure import record_engineering_attempt_update, refresh_engineering_closure
+
+        record_engineering_attempt_update(project_dir, result)
+        closure = refresh_engineering_closure(project_dir)
+        result["engineering_closure_ref"] = "v4/codex_engineering/engineering_closure.json"
+        result["evidence_snapshot_hash"] = closure.get("evidence_snapshot_hash", "")
+        _write_registry(result_registry_path(project_dir), registry)
+    except Exception as exc:
+        result["engineering_closure_error"] = str(exc)
+        _write_registry(result_registry_path(project_dir), registry)
     return result
+
+
+def apply_approved_codex_result(project_dir: Path, result_id: str, actor: str = "human", dry_run: bool = False) -> dict[str, Any]:
+    from .engineering_release import build_engineering_release_gate
+
+    engineering = load_codex_engineering(project_dir)
+    result = next((row for row in engineering["results"] if row.get("result_id") == result_id), None)
+    if not result:
+        raise ValueError(f"Codex result not found: {result_id}")
+    if result.get("status") != "success":
+        raise ValueError("only successful Codex results can be merged")
+    if result.get("merge_status") != "approved_for_merge":
+        raise ValueError("Codex result must be approved_for_merge before merge")
+    gate = build_engineering_release_gate(project_dir)
+    gate_item = next((row for row in gate.get("items", []) if row.get("result_id") == result_id), {})
+    if gate_item.get("gate_status") != "READY_TO_MERGE":
+        raise ValueError("release gate is not READY_TO_MERGE")
+    patch_ids = set(result.get("patch_refs", []))
+    patches = [
+        row
+        for row in engineering.get("patches", [])
+        if row.get("patch_id") in patch_ids or (not patch_ids and row.get("codex_job_id") == result.get("codex_job_id"))
+    ]
+    if not patches:
+        raise ValueError("no registered patch is available for merge")
+    repo_root = _repo_root()
+    resolved_patches = []
+    for patch in patches:
+        patch_path = _resolve_project_file(project_dir, patch.get("patch_path", ""))
+        _run_git(repo_root, ["apply", "--check", str(patch_path)])
+        resolved_patches.append((patch, patch_path))
+    applied = []
+    for patch, patch_path in resolved_patches:
+        if not dry_run:
+            _run_git(repo_root, ["apply", str(patch_path)])
+        applied.append(
+            {
+                "patch_id": patch.get("patch_id", ""),
+                "patch_path": patch.get("patch_path", ""),
+                "patch_hash": patch.get("patch_hash", ""),
+            }
+        )
+    merge = {
+        "schema_version": "v4.codex_merge_record/0.1",
+        "merge_id": "cmerge_" + content_hash({"result": result_id, "time": _now(), "dry_run": dry_run})[:16],
+        "result_id": result_id,
+        "codex_job_id": result.get("codex_job_id", ""),
+        "work_order_id": result.get("work_order_id", ""),
+        "status": "dry_run_passed" if dry_run else "merged_to_working_tree",
+        "applied_patches": applied,
+        "release_gate_hash": gate.get("release_gate_hash", ""),
+        "actor": actor,
+        "merged_at": _now(),
+    }
+    registry = _read_registry(merge_registry_path(project_dir), "v4.codex_merge_registry/0.1", "merges")
+    _upsert(registry["merges"], merge, "merge_id")
+    _write_registry(merge_registry_path(project_dir), registry)
+    if not dry_run:
+        result["merge_status"] = "merged"
+        result["merged_at"] = merge["merged_at"]
+        result["merge_ref"] = f"v4/codex_engineering/merge_registry.json#{merge['merge_id']}"
+        result_registry = _read_registry(result_registry_path(project_dir), "v4.codex_result_registry/0.1", "results")
+        _upsert(result_registry["results"], result, "result_id")
+        _write_registry(result_registry_path(project_dir), result_registry)
+        found = _find_order_and_packet(project_dir, result.get("codex_job_id", ""))
+        order = found["order"]
+        packet = found["packet"]
+        order["engineering_merge_status"] = "merged"
+        order["engineering_merge_ref"] = result["merge_ref"]
+        order["status"] = "engineering_merged"
+        packet["merge_status"] = "merged"
+        packet["merge_ref"] = result["merge_ref"]
+        save_codex_task_packet(project_dir, order, packet)
+        save_v4_work_order(project_dir, order)
+        try:
+            from .engineering_closure import refresh_engineering_closure
+            from .task_registry import build_task_registry
+
+            refresh_engineering_closure(project_dir)
+            build_task_registry(project_dir)
+        except Exception:
+            pass
+    return merge
 
 
 def mark_codex_result_reviewed(project_dir: Path, result_id: str, action: str, reason: str, reviewer: str = "human") -> dict[str, Any]:
@@ -283,6 +419,16 @@ def mark_codex_result_reviewed(project_dir: Path, result_id: str, action: str, r
     packet["merge_status"] = result["merge_status"]
     save_codex_task_packet(project_dir, order, packet)
     save_v4_work_order(project_dir, order)
+    try:
+        from .engineering_closure import refresh_engineering_closure
+
+        closure = refresh_engineering_closure(project_dir)
+        result["engineering_closure_ref"] = "v4/codex_engineering/engineering_closure.json"
+        result["evidence_snapshot_hash"] = closure.get("evidence_snapshot_hash", "")
+        _write_registry(result_registry_path(project_dir), registry)
+    except Exception as exc:
+        result["engineering_closure_error"] = str(exc)
+        _write_registry(result_registry_path(project_dir), registry)
     return result
 
 
@@ -292,6 +438,7 @@ def load_codex_engineering(project_dir: Path) -> dict[str, Any]:
         "patches": _read_registry(patch_registry_path(project_dir), "v4.codex_patch_registry/0.1", "patches")["patches"],
         "tests": _read_registry(test_registry_path(project_dir), "v4.codex_test_registry/0.1", "tests")["tests"],
         "results": _read_registry(result_registry_path(project_dir), "v4.codex_result_registry/0.1", "results")["results"],
+        "merges": _read_registry(merge_registry_path(project_dir), "v4.codex_merge_registry/0.1", "merges")["merges"],
     }
 
 
@@ -349,6 +496,8 @@ def _update_workspace(project_dir: Path, codex_job_id: str, updates: dict[str, A
 
 def _allowed_test_command(command: str) -> bool:
     normalized = " ".join(command.strip().split()).lower()
+    if any(token in command for token in ["&", "|", ";", ">", "<", "\n", "\r"]):
+        return False
     return normalized.startswith("python -m unittest") or normalized.startswith("py -m unittest")
 
 
@@ -360,6 +509,17 @@ def _run_git(repo_root: Path, args: list[str]) -> None:
     completed = subprocess.run(["git", *args], cwd=repo_root, text=True, capture_output=True)
     if completed.returncode:
         raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
+
+
+def _resolve_project_file(project_dir: Path, rel_path: str) -> Path:
+    path = (project_dir / rel_path).resolve()
+    try:
+        path.relative_to(project_dir.resolve())
+    except ValueError:
+        raise ValueError(f"path is outside project: {rel_path}") from None
+    if not path.exists() or not path.is_file():
+        raise ValueError(f"file not found: {rel_path}")
+    return path
 
 
 def _read_registry(path: Path, schema_version: str, key: str) -> dict[str, Any]:

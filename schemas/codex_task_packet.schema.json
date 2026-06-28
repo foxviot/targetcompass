@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "goal",
+    "dataset",
+    "inputs",
+    "method",
+    "expected_outputs",
+    "acceptance_criteria",
+    "failure_condition",
+    "forbidden_actions"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "name": {"type": "string"},
+    "purpose": {"type": "string"},
+    "goal": {"type": "string", "minLength": 1},
+    "dataset": {"type": "object"},
+    "inputs": {"type": "object"},
+    "method": {"type": "object"},
+    "expected_outputs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "acceptance_criteria": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "failure_condition": {"type": "string", "minLength": 1},
+    "forbidden_actions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "dependencies": {"type": "array", "items": {"type": "string"}},
+    "method_contract_id": {"type": "string"},
+    "input_artifacts": {"type": "array", "items": {"type": "string"}},
+    "output_artifacts": {"type": "array", "items": {"type": "string"}},
+    "notes": {"type": "string"}
+  }
+}

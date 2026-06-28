@@ -23,6 +23,48 @@ class ConsistencyCheckTest(unittest.TestCase):
             self.assertIn("Consistency check", html)
             self.assertIn("Run consistency check", html)
 
+    def test_consistency_accepts_active_postgres_with_sqlite_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            _write_project(project)
+            (project / "v4" / "evidence_db_snapshot.json").write_text(
+                json.dumps(
+                    {
+                        "row_count": 1,
+                        "evidence_schema_version": "evidence_item_v3",
+                        "indexes": [
+                            {"name": "idx_evidence_entity_symbol"},
+                            {"name": "idx_evidence_type"},
+                            {"name": "idx_evidence_dataset"},
+                            {"name": "idx_evidence_review_status"},
+                            {"name": "idx_evidence_artifact"},
+                            {"name": "idx_evidence_run"},
+                            {"name": "idx_evidence_gene_type"},
+                        ],
+                        "storage_backend_ref": "v4/storage_backend_manifest.json",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            index = json.loads((project / "v4" / "evidence_review_report_index.json").read_text(encoding="utf-8"))
+            index["evidence_count"] = 1
+            (project / "v4" / "evidence_review_report_index.json").write_text(json.dumps(index), encoding="utf-8")
+            (project / "evidence.sqlite").write_text("sqlite fallback placeholder", encoding="utf-8")
+            (project / "v4" / "storage_backend_manifest.json").write_text(
+                json.dumps(
+                    {
+                        "active_backends": {"evidence_db": "postgres_local", "object_store": "minio_local"},
+                        "sqlite_local": {"exists": True},
+                        "postgres_contract": {"enabled": True, "migration_mode": "active_local_docker"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_consistency_check(project)
+            checks = {row["check"]: row for row in result["checks"]}
+            self.assertEqual(checks["storage_backend_manifest_is_current"]["status"], "PASS")
+
 
 def _write_project(project: Path) -> None:
     project.mkdir()

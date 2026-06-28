@@ -8,7 +8,8 @@ KB = ROOT / "knowledge_base"
 
 def project_path(project: str) -> Path:
     p = Path(project)
-    if p.exists() or str(project).startswith("projects"):
+    text = str(project)
+    if p.is_absolute() or text.startswith("projects") or "/" in text or "\\" in text:
         return p
     return PROJECTS / project
 

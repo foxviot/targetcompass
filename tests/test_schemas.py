@@ -48,6 +48,15 @@ class SchemaValidationTest(unittest.TestCase):
         self.assertTrue((SCHEMAS / "research_spec.schema.json").exists())
         self.assertTrue((SCHEMAS / "dataset_card.schema.json").exists())
         self.assertTrue((SCHEMAS / "evidence_item.schema.json").exists())
+        self.assertTrue((SCHEMAS / "evidence_plan.schema.json").exists())
+        self.assertTrue((SCHEMAS / "dataset_profile.schema.json").exists())
+        self.assertTrue((SCHEMAS / "dataset_feasibility_report.schema.json").exists())
+        self.assertTrue((SCHEMAS / "method_contract.schema.json").exists())
+        self.assertTrue((SCHEMAS / "compatibility_decision.schema.json").exists())
+        self.assertTrue((SCHEMAS / "analysis_plan.schema.json").exists())
+        self.assertTrue((SCHEMAS / "codex_task_packet.schema.json").exists())
+        self.assertTrue((SCHEMAS / "task_qc_report.schema.json").exists())
+        self.assertTrue((SCHEMAS / "task_registry.schema.json").exists())
 
     def test_research_spec_schema_rejects_wrong_types(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -84,6 +93,103 @@ class SchemaValidationTest(unittest.TestCase):
     def test_schema_validator_accepts_valid_spec_object(self):
         errors = validate_object(VALID_SPEC, load_schema("research_spec.schema.json"), "ResearchSpec")
         self.assertEqual(errors, [])
+
+    def test_new_agent_evidence_objects_validate(self):
+        evidence_plan = {
+            "schema_version": "v0.1.evidence_plan",
+            "project_id": "demo",
+            "research_question": "aging muscle SASP surface markers",
+            "evidence_axes": {"SASP_annotation": True},
+            "preferred_data": ["scRNA-seq with metadata"],
+            "minimum_evidence_for_candidate": ["expression signal"],
+            "generated_by": "test",
+        }
+        profile = {
+            "schema_version": "v0.1.dataset_profile",
+            "project_id": "demo",
+            "dataset_id": "GSE_TEST",
+            "species": "human",
+            "tissue": "skeletal muscle",
+            "assay": "bulk_expression",
+            "matrix_type": "raw_or_count_like",
+            "sample_count": 6,
+            "metadata_quality": "high",
+            "download_status": "available",
+            "analysis_readiness": "ready",
+        }
+        feasibility = {
+            "schema_version": "v0.1.dataset_feasibility_report",
+            "project_id": "demo",
+            "dataset_id": "GSE_TEST",
+            "decision": "pass",
+            "matched_requirements": ["matrix available"],
+            "unmet_requirements": [],
+            "warnings": [],
+            "recommended_uses": ["bulk_deg"],
+        }
+        method = {
+            "schema_version": "v0.1.method_contract",
+            "method_id": "bulk_deg_v1",
+            "method_name": "bulk DEG",
+            "data_modality": "bulk_expression",
+            "purpose": "case-control expression testing",
+            "requires": {"matrix_available": True},
+            "reject_if": ["no metadata"],
+            "outputs": ["deg_results.tsv"],
+            "qc_checks": ["sample alignment"],
+        }
+        compatibility = {
+            "schema_version": "v0.1.compatibility_decision",
+            "project_id": "demo",
+            "dataset_id": "GSE_TEST",
+            "method_id": "bulk_deg_v1",
+            "decision": "pass",
+            "matched_requirements": ["matrix available"],
+            "unmet_requirements": [],
+            "warnings": [],
+            "recommended_parameters": {"design": "~ group"},
+        }
+        analysis_plan = {
+            "schema_version": "v0.2.evidence_driven_analysis_plan",
+            "project_id": "demo",
+            "route_strategy": "evidence_plan_plus_dataset_method_compatibility",
+            "routes": [{"route_id": "route_GSE_TEST"}],
+            "modules": [{"module_id": "ED_bulk_deg_GSE_TEST"}],
+            "execution_order": ["ED_bulk_deg_GSE_TEST"],
+        }
+        task_packet = {
+            "schema_version": "v0.2.codex_task_packet",
+            "task_id": "ctp_demo",
+            "goal": "Run bulk DEG",
+            "dataset": {"dataset_id": "GSE_TEST"},
+            "inputs": {"metadata": "metadata.tsv"},
+            "method": {"name": "bulk DEG"},
+            "expected_outputs": ["deg_results.tsv"],
+            "acceptance_criteria": ["metadata matches matrix"],
+            "failure_condition": "input missing",
+            "forbidden_actions": ["do not invent metadata"],
+        }
+        task_qc = {
+            "schema_version": "v0.1.task_qc_report",
+            "project_id": "demo",
+            "work_order_id": "wo_demo",
+            "module_id": "ED_bulk_deg_demo",
+            "overall_status": "pass",
+            "layers": [
+                {"layer": "Execution", "status": "pass"},
+                {"layer": "Data", "status": "pass"},
+                {"layer": "Statistical", "status": "pass"},
+                {"layer": "Biological", "status": "pass"},
+            ],
+        }
+        self.assertEqual(validate_object(evidence_plan, load_schema("evidence_plan.schema.json"), "EvidencePlan"), [])
+        self.assertEqual(validate_object(profile, load_schema("dataset_profile.schema.json"), "DatasetProfile"), [])
+        self.assertEqual(validate_object(feasibility, load_schema("dataset_feasibility_report.schema.json"), "DatasetFeasibilityReport"), [])
+        self.assertEqual(validate_object(method, load_schema("method_contract.schema.json"), "MethodContract"), [])
+        self.assertEqual(validate_object(compatibility, load_schema("compatibility_decision.schema.json"), "CompatibilityDecision"), [])
+        self.assertEqual(validate_object(analysis_plan, load_schema("analysis_plan.schema.json"), "AnalysisPlan"), [])
+        self.assertEqual(validate_object(task_packet, load_schema("codex_task_packet.schema.json"), "CodexTaskPacket"), [])
+        self.assertEqual(validate_object(task_qc, load_schema("task_qc_report.schema.json"), "TaskQCReport"), [])
 
 
 if __name__ == "__main__":

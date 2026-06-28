@@ -1,6 +1,5 @@
 import hashlib
 import json
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -35,6 +34,12 @@ REGISTERED_MODULE_TYPES = {
     "evidence_import",
     "scoring",
     "report",
+    "scrna_pseudobulk",
+    "meta_analysis",
+    "causal_evidence",
+    "genetic_coloc_mr",
+    "sasp_score",
+    "cell_type_evidence",
 }
 
 
@@ -112,8 +117,11 @@ def derive_disease_spec(research_spec: dict[str, Any]) -> dict[str, Any]:
 
 
 def compile_v4_work_orders(project_dir: Path, plan: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    from .registry_snapshots import bind_project_kb_snapshot
+
     plan = plan or read_json(project_dir / "analysis_plan.json", {})
     plan_hash = content_hash(plan)
+    kb_snapshot = bind_project_kb_snapshot(project_dir)
     orders: list[dict[str, Any]] = []
     work_order_dir = v4_dir(project_dir) / "work_orders"
     work_order_dir.mkdir(parents=True, exist_ok=True)
@@ -127,6 +135,7 @@ def compile_v4_work_orders(project_dir: Path, plan: dict[str, Any] | None = None
             "schema_version": "v4.work_order/0.1",
             "work_order_id": work_order_id,
             "project_id": project_dir.name,
+            "kb_snapshot_id": kb_snapshot.get("kb_snapshot_id", ""),
             "plan_hash": plan_hash,
             "work_order_type": order_type,
             "module_id": module.get("module_id", ""),
@@ -145,6 +154,8 @@ def compile_v4_work_orders(project_dir: Path, plan: dict[str, Any] | None = None
             "lineage": {
                 "analysis_plan": "analysis_plan.json",
                 "module_registry": plan.get("module_registry", "analysis_module_registry.json"),
+                "kb_snapshot": "v4/kb_snapshot.json",
+                "kb_snapshot_id": kb_snapshot.get("kb_snapshot_id", ""),
             },
             "requires_codex": order_type != "RUN_REGISTERED_MODULE",
         }
@@ -163,11 +174,30 @@ def compile_v4_work_orders(project_dir: Path, plan: dict[str, Any] | None = None
 
 
 def build_codex_task_packet(project_dir: Path, work_order: dict[str, Any]) -> dict[str, Any]:
+    inputs = work_order.get("inputs", {})
+    outputs = work_order.get("expected_artifacts", [])
+    method = {
+        "method_contract_id": work_order.get("parameters", {}).get("method_contract_id", work_order.get("module", "")),
+        "name": work_order.get("module", "unknown"),
+        "runner": work_order.get("command", "") or work_order.get("execution_backend", ""),
+        "parameters": work_order.get("parameters", {}),
+    }
     return {
         "schema_version": "v4.codex_task_packet/0.1",
         "codex_job_id": "cj_" + content_hash(work_order)[:16],
         "project_id": project_dir.name,
         "work_order_id": work_order["work_order_id"],
+        "task_id": "ctp_" + content_hash(work_order)[:16],
+        "name": work_order.get("module_id", work_order["work_order_id"]),
+        "purpose": f"Implement or repair capability for module {work_order.get('module', 'unknown')}.",
+        "goal": f"Implement or repair capability for module {work_order.get('module', 'unknown')} without changing scientific definitions.",
+        "dataset": {
+            "dataset_id": work_order.get("dataset_id", ""),
+            "source": "project",
+            "data_type": work_order.get("module", ""),
+        },
+        "inputs": inputs,
+        "method": method,
         "baseline_commit": _git_commit(project_dir),
         "task_type": work_order["work_order_type"],
         "problem_statement": f"Implement or repair capability for module {work_order.get('module', 'unknown')}.",
@@ -183,7 +213,21 @@ def build_codex_task_packet(project_dir: Path, work_order: dict[str, Any]) -> di
             "parameters": work_order.get("parameters", {}),
         },
         "tests": ["python -m unittest discover -s tests -p \"test*.py\" -v"],
-        "expected_outputs": work_order.get("expected_artifacts", []),
+        "expected_outputs": outputs or ["registered result artifact"],
+        "acceptance_criteria": work_order.get("qc_checks", []) or ["tests pass", "result registry is updated"],
+        "failure_condition": "Required fixture/input is missing, tests fail, or the generated change exceeds allowed paths.",
+        "forbidden_actions": [
+            "do not access production secrets",
+            "do not use private raw data outside the fixture",
+            "do not modify accepted scientific results",
+            "do not redefine case/control labels or method assumptions",
+            "do not bypass human review or release gates",
+        ],
+        "dependencies": [],
+        "method_contract_id": method["method_contract_id"],
+        "input_artifacts": [str(value) for value in inputs.values() if value],
+        "output_artifacts": outputs,
+        "notes": "Engineering Codex task packet aligned to the evidence-driven small-task contract while retaining patch/test/review gates.",
         "release_gate": "tests_pass_and_human_review_required",
     }
 
@@ -195,46 +239,42 @@ def build_mcp_resource_manifest(project_dir: Path, plan: dict[str, Any] | None =
 
 
 def build_evidence_snapshot(project_dir: Path) -> dict[str, Any]:
-    db = project_dir / "evidence.sqlite"
     rows = 0
     accepted_or_pending = 0
     missing_lineage = 0
     datasets: list[str] = []
-    if db.exists():
-        con = sqlite3.connect(db, timeout=30)
-        try:
-            rows = con.execute("SELECT COUNT(*) FROM evidence_item").fetchone()[0]
-            accepted_or_pending = con.execute(
-                """
-                SELECT COUNT(*)
-                FROM evidence_item
-                WHERE COALESCE(review_status, 'PENDING') IN ('PENDING', 'ACCEPT', 'ACCEPT_WITH_FLAGS', 'approve', 'accepted')
-                """
-            ).fetchone()[0]
-            columns = {row[1] for row in con.execute("PRAGMA table_info(evidence_item)").fetchall()}
-            if {"run_id", "artifact_id", "module_version"}.issubset(columns):
-                missing_lineage = con.execute(
-                    """
-                    SELECT COUNT(*)
-                    FROM evidence_item
-                    WHERE COALESCE(run_id, '') = ''
-                       OR COALESCE(artifact_id, '') = ''
-                       OR COALESCE(module_version, '') = ''
-                    """
-                ).fetchone()[0]
-            datasets = [
-                row[0]
-                for row in con.execute(
-                    "SELECT DISTINCT COALESCE(source_dataset, '') FROM evidence_item WHERE COALESCE(source_dataset, '') != '' ORDER BY 1"
-                ).fetchall()
+    backend = "none"
+    try:
+        from .evidence_repository import load_evidence_rows
+
+        repo = load_evidence_rows(project_dir, limit=100000)
+        evidence_rows = repo.get("rows", [])
+        backend = repo.get("backend", "unknown")
+    except Exception:
+        evidence_rows = []
+    if evidence_rows:
+        rows = len(evidence_rows)
+        accepted_or_pending = len(
+            [
+                row
+                for row in evidence_rows
+                if (row.get("review_status") or "PENDING") in {"PENDING", "ACCEPT", "ACCEPT_WITH_FLAGS", "approve", "accepted"}
             ]
-        finally:
-            con.close()
+        )
+        missing_lineage = len(
+            [
+                row
+                for row in evidence_rows
+                if not row.get("run_id") or not row.get("artifact_id") or not row.get("module_version")
+            ]
+        )
+        datasets = sorted({row.get("source_dataset", "") for row in evidence_rows if row.get("source_dataset")})
     snapshot = {
         "schema_version": "v4.evidence_snapshot/0.1",
         "snapshot_id": "es_" + content_hash({"project": project_dir.name, "rows": rows, "datasets": datasets, "lineage_missing": missing_lineage})[:16],
         "project_id": project_dir.name,
-        "evidence_db": "evidence.sqlite" if db.exists() else "",
+        "evidence_db": "EvidenceRepository",
+        "evidence_backend": backend,
         "evidence_rows": rows,
         "accepted_or_pending_rows": accepted_or_pending,
         "missing_lineage_rows": missing_lineage,
@@ -254,7 +294,7 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     from .evidence_index import evidence_review_report_index_path
     from .mcp_policy import policy_decisions_path, policy_path
     from .mcp_sessions import build_mcp_client_config
-    from .registry_snapshots import build_registry_snapshots
+    from .registry_snapshots import bind_project_kb_snapshot, build_registry_snapshots, project_kb_snapshot_path
     from .service_boundaries import service_boundaries_path
     from .trace_orchestrator import refresh_traceability
     from .work_order_dag import work_order_dag_path
@@ -272,12 +312,14 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
     evidence_index = traceability.get("refreshed", {}).get("evidence_review_report_index", {})
     mcp_manifest = build_mcp_resource_manifest(project_dir, plan)
     registry_snapshots = build_registry_snapshots(project_dir)
+    kb_snapshot = bind_project_kb_snapshot(project_dir)
     mcp_client_config = build_mcp_client_config(project_dir)
     mcp_client_config_path = v4_dir(project_dir) / "mcp_client_config.json"
     mcp_client_config_path.write_text(json.dumps(mcp_client_config, indent=2, ensure_ascii=False), encoding="utf-8")
     manifest = {
         "schema_version": "v4.object_manifest/0.1",
         "project_id": project_dir.name,
+        "kb_snapshot_id": kb_snapshot.get("kb_snapshot_id", ""),
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "objects": {
             "research_spec": {
@@ -353,6 +395,11 @@ def build_v4_manifest(project_dir: Path, plan: dict[str, Any] | None = None) -> 
             "registry_snapshots": {
                 "path": "v4/registry_snapshots.json",
                 "hash": registry_snapshots.get("snapshot_hash", ""),
+            },
+            "kb_snapshot": {
+                "path": str(project_kb_snapshot_path(project_dir).relative_to(project_dir)).replace("\\", "/"),
+                "kb_snapshot_id": kb_snapshot.get("kb_snapshot_id", ""),
+                "hash": content_hash(kb_snapshot) if kb_snapshot else "",
             },
             "agent_roles": {
                 "path": "v4/agent_roles.json",
@@ -442,6 +489,10 @@ def read_work_order_attempts(project_dir: Path) -> dict[str, Any]:
     if not path.exists():
         return {"schema_version": "v4.work_order_attempts/0.1", "project_id": project_dir.name, "attempts": []}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_work_order_attempts(project_dir: Path, manifest: dict[str, Any]) -> None:
+    _write_attempt_manifest(project_dir, manifest)
 
 
 def start_work_order_attempt(project_dir: Path, module_id: str, run_id: str = "") -> dict[str, Any]:

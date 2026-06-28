@@ -101,6 +101,9 @@ def build_nextflow_execution_plane(project_dir: Path, base_image: str = "python:
     container_manifest.write_text(json.dumps(_container_manifest(project_dir, base_image=base_image), indent=2, ensure_ascii=False), encoding="utf-8")
     dockerfile.write_text(_dockerfile(base_image=base_image), encoding="utf-8")
     resume_manifest.write_text(json.dumps(_resume_manifest(project_dir), indent=2, ensure_ascii=False), encoding="utf-8")
+    from .nextflow_profiles import build_nextflow_profile_matrix
+
+    profile_matrix = build_nextflow_profile_matrix(project_dir)
     written.extend([main_nf, config, params_schema, container_manifest, dockerfile, resume_manifest])
     payload = {
         "schema_version": NEXTFLOW_PLANE_SCHEMA,
@@ -112,6 +115,8 @@ def build_nextflow_execution_plane(project_dir: Path, base_image: str = "python:
         "config": str(config.relative_to(project_dir)),
         "params_schema": str(params_schema.relative_to(project_dir)),
         "profiles": ["local", "docker", "apptainer", "slurm"],
+        "profile_matrix": "workflows/target_discovery/execution_profile_matrix.json",
+        "profile_matrix_hash": profile_matrix.get("matrix_hash", ""),
         "module_count": len(MODULE_CONTRACTS),
         "modules": [_module_contract_payload(contract) for contract in MODULE_CONTRACTS.values()],
         "container_manifest": str(container_manifest.relative_to(project_dir)),
@@ -141,6 +146,11 @@ def validate_nextflow_execution_plane(project_dir: Path) -> dict[str, Any]:
             module_errors.append(f"{module.get('module_id')}: container missing")
         if not module.get("outputs"):
             module_errors.append(f"{module.get('module_id')}: outputs missing")
+    from .nextflow_profiles import validate_nextflow_resource_policy
+
+    resource_validation = validate_nextflow_resource_policy(project_dir)
+    if resource_validation.get("status") == "failed":
+        module_errors.extend(row.get("reason", "") for row in resource_validation.get("issues", []) if row.get("severity") == "failed")
     status = "pass" if not missing and not module_errors else "failed"
     result = {
         "schema_version": "v4.nextflow_execution_plane_validation/0.1",
@@ -148,6 +158,8 @@ def validate_nextflow_execution_plane(project_dir: Path) -> dict[str, Any]:
         "status": status,
         "missing_files": missing,
         "module_errors": module_errors,
+        "resource_policy_status": resource_validation.get("status", ""),
+        "resource_policy": "workflows/target_discovery/resource_policy_validation.json",
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }
     (project_dir / "workflows" / "target_discovery" / "nextflow_validation.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -190,16 +202,17 @@ def _module_id_for_process(process_name: str) -> str:
 
 
 def _module_nf(contract: dict[str, Any]) -> str:
+    command = _task_command(contract)
     return f"""process {contract['process_name']} {{
-  tag "$task.ext.label"
+  tag "${{job.label ?: job.module_id}}"
   container '{contract['container']}'
-  cpus {{ task.resources?.cpus ?: {contract['cpus']} }}
-  memory {{ task.resources?.memory ?: '{contract['memory']}' }}
-  time {{ task.resources?.time ?: '{contract['time']}' }}
+  cpus {{ job.resources?.cpus ?: {contract['cpus']} }}
+  memory {{ job.resources?.memory ?: '{contract['memory']}' }}
+  time {{ job.resources?.time ?: '{contract['time']}' }}
   publishDir "${{params.outdir}}", mode: 'copy', overwrite: true
 
   input:
-  val task
+  val job
 
   output:
   path "results", emit: results
@@ -207,16 +220,30 @@ def _module_nf(contract: dict[str, Any]) -> str:
   script:
   \"\"\"
   set -euo pipefail
-  dataset_id="${{task.dataset_id ?: ''}}"
-  count_matrix="${{task.count_matrix ?: ''}}"
-  metadata="${{task.metadata ?: ''}}"
-  gwas_summary="${{task.gwas_summary ?: ''}}"
-  qtl_summary="${{task.qtl_summary ?: ''}}"
-  ld_reference="${{task.ld_reference ?: ''}}"
-  {contract['command']}
+  mkdir -p results
+  cd "${{params.repo_root}}"
+  {command}
+  mkdir -p "${{job.process_name ?: job.module_id}}"
+  echo "completed {contract['process_name']} ${{job.dataset_id ?: 'project'}}" > "${{job.process_name ?: job.module_id}}/nextflow_process_marker.txt"
+  cp -r "${{job.process_name ?: job.module_id}}" results/
   \"\"\"
 }}
 """
+
+
+def _task_command(contract: dict[str, Any]) -> str:
+    process = contract["process_name"]
+    if process == "BULK_DEG":
+        return '"${params.host_python}" tc_lite.py run-deg --project ${params.project} --dataset ${job.dataset_id}'
+    if process == "SCRNA_PSEUDOBULK":
+        return '"${params.host_python}" tc_lite.py scrna-pseudobulk --project ${params.project} --dataset-id ${job.dataset_id} --count-matrix "${job.count_matrix}" --metadata "${job.metadata}"'
+    if process == "GENETIC_COLOC_MR":
+        return '"${params.host_python}" tc_lite.py genetic-coloc-mr --project ${params.project} --gwas-summary "${job.gwas_summary}" --qtl-summary "${job.qtl_summary}" --dataset-id "${job.dataset_id}" --ld-reference "${job.ld_reference ?: \'\'}"'
+    if process == "ENRICHMENT":
+        return '"${params.host_python}" tc_lite.py enrichment --project ${params.project}'
+    if process == "META_ANALYSIS":
+        return '"${params.host_python}" tc_lite.py meta-analysis --project ${params.project}'
+    return "echo unsupported module"
 
 
 def _target_main_nf() -> str:
@@ -235,7 +262,7 @@ workflow TARGET_DISCOVERY {{
   main:
   task_ch = Channel.fromPath(params.tasks_json)
     .splitJson(path: 'tasks')
-    .map {{ task -> task + [label: task.module_id + ':' + (task.dataset_id ?: 'project')] }}
+    .map {{ task -> task + [label: task.module_id + ':' + (task.dataset_id ?: 'project'), process_name: task.module_id] }}
 
   bulk_tasks = task_ch.filter {{ it.module_id == 'bulk_deg_v1' }}
   scrna_tasks = task_ch.filter {{ it.module_id == 'scrna_pseudobulk_v1' }}
@@ -252,7 +279,7 @@ workflow TARGET_DISCOVERY {{
   bulk = BULK_DEG.out.results
 }}
 
-workflow {{
+  workflow {{
   TARGET_DISCOVERY(Channel.empty())
 }}
 """
@@ -269,6 +296,8 @@ params {
   project = 'vascular_aging_demo'
   outdir = 'nextflow_results'
   tasks_json = 'workflows/target_discovery/tasks.example.json'
+  repo_root = '.'
+  host_python = 'python'
 }
 
 process {

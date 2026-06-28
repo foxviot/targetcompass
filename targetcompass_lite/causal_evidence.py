@@ -1,13 +1,13 @@
 import csv
 import hashlib
 import json
-import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .paths import KB
 from .v4 import content_hash, file_hash
+from .evidence_repository import load_evidence_rows
 
 
 DEFAULT_CAUSAL_RUBRIC = KB / "rubrics" / "causal_review_v0.json"
@@ -76,20 +76,10 @@ def grade_causal_evidence(project_dir: Path) -> Path:
     rubric, rubric_meta = load_causal_review_rubric(project_dir)
     evidence_type_map = rubric["recognized_evidence_types"]
     genetic_context = _load_genetic_context(project_dir)
-    db = project_dir / "evidence.sqlite"
-    if not db.exists():
-        raise ValueError("evidence.sqlite is required before causal grading")
-    con = sqlite3.connect(db, timeout=30)
-    con.row_factory = sqlite3.Row
-    placeholders = ",".join("?" for _ in evidence_type_map)
-    rows = [
-        dict(row)
-        for row in con.execute(
-            f"SELECT * FROM evidence_item WHERE evidence_type IN ({placeholders}) ORDER BY entity_symbol, evidence_type",
-            tuple(evidence_type_map),
-        ).fetchall()
-    ]
-    con.close()
+    repo = load_evidence_rows(project_dir, limit=100000)
+    rows = [row for row in repo.get("rows", []) if row.get("evidence_type") in evidence_type_map]
+    if not rows and not (project_dir / "evidence.sqlite").exists():
+        raise ValueError("EvidenceRepository has no rows and evidence.sqlite fallback is missing")
     grouped: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
         if row.get("evidence_type") in evidence_type_map:
@@ -183,7 +173,21 @@ def grade_causal_evidence(project_dir: Path) -> Path:
         "grade_policy": _grade_policy_summary(rubric),
         "review_policy": rubric.get("review_policy", "All automated causal grades require human/statistical review before scientific claims."),
     }
-    (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    run_manifest_path = out_dir / "run_manifest.json"
+    run_manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [out, bundle_out, run_manifest_path],
+            producer="causal_evidence",
+            artifact_type="causal_evidence_output",
+            task_id="causal_evidence",
+            qc_status="review",
+        )
+    except Exception:
+        pass
     return out
 
 

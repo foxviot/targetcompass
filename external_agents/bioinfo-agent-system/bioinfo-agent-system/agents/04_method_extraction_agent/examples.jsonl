@@ -1,0 +1,1 @@
+{"case_id":"a4_example_t2d","input_ref":"a3_example_t2d","expected_steps":["expression_matrix_qc","disease_control_contrast","inflammatory_program_scoring","molecule_program_association","surface_secretome_annotation","external_validation"]}

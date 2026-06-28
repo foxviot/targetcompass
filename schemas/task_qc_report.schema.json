@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "work_order_id",
+    "module_id",
+    "overall_status",
+    "layers"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "work_order_id": {"type": "string", "minLength": 1},
+    "module_id": {"type": "string", "minLength": 1},
+    "dataset_id": {"type": "string"},
+    "overall_status": {"type": "string", "enum": ["pass", "review", "fail"]},
+    "layers": {"type": "array", "minItems": 4, "items": {"type": "object"}},
+    "blocking_reasons": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "generated_at": {"type": "string"}
+  }
+}

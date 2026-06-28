@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 
-def refresh_traceability(project_dir: Path, include_review_queue: bool = True, include_work_order_dag: bool = True, include_evidence_index: bool = True) -> dict[str, Any]:
+def refresh_traceability(project_dir: Path, include_review_queue: bool = True, include_work_order_dag: bool = True, include_evidence_index: bool = True, include_task_registry: bool = True) -> dict[str, Any]:
     outputs: dict[str, Any] = {
         "schema_version": "v4.traceability_refresh/0.1",
         "project_id": project_dir.name,
@@ -16,6 +16,8 @@ def refresh_traceability(project_dir: Path, include_review_queue: bool = True, i
         _run(outputs, "review_queue", lambda: _refresh_review_queue(project_dir))
     if include_work_order_dag:
         _run(outputs, "work_order_dag", lambda: _refresh_work_order_dag(project_dir))
+    if include_task_registry:
+        _run(outputs, "task_registry", lambda: _refresh_task_registry(project_dir))
     if include_evidence_index:
         _run(outputs, "evidence_review_report_index", lambda: _refresh_evidence_index(project_dir))
     path = project_dir / "v4" / "traceability_refresh.json"
@@ -43,6 +45,17 @@ def _refresh_work_order_dag(project_dir: Path) -> dict[str, Any]:
 
     dag = build_work_order_dag(project_dir)
     return {"path": str(work_order_dag_path(project_dir).relative_to(project_dir)).replace("\\", "/"), "node_count": dag.get("node_count", 0)}
+
+
+def _refresh_task_registry(project_dir: Path) -> dict[str, Any]:
+    from .task_registry import build_task_registry, task_registry_path
+
+    registry = build_task_registry(project_dir)
+    return {
+        "path": str(task_registry_path(project_dir).relative_to(project_dir)).replace("\\", "/"),
+        "task_count": registry.get("task_count", 0),
+        "status_summary": registry.get("status_summary", {}),
+    }
 
 
 def _refresh_evidence_index(project_dir: Path) -> dict[str, Any]:

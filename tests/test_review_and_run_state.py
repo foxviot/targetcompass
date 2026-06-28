@@ -86,6 +86,36 @@ class ReviewAndRunStateTest(unittest.TestCase):
             self.assertEqual(load_approval_state(project)["signer"], "pi")
             self.assertIn("traceability_snapshot", state)
 
+    def test_final_signoff_rebuilds_stale_review_queue_before_signing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "demo"
+            project.mkdir()
+            (project / "results").mkdir()
+            (project / "results" / "review_queue.json").write_text(
+                json.dumps({"queue_count": 0, "items": []}),
+                encoding="utf-8",
+            )
+            plan = {
+                "project_id": "demo",
+                "modules": [
+                    {
+                        "module_id": "BUILD_demo_adapter",
+                        "module": "new_database_adapter",
+                        "dataset_id": "ds",
+                        "inputs": {},
+                        "parameters": {},
+                        "allowed_files": ["targetcompass_lite/db_adapters.py"],
+                        "expected_outputs": ["adapter test passes"],
+                    }
+                ],
+            }
+            compile_v4_work_orders(project, plan)
+
+            with self.assertRaises(ValueError):
+                final_signoff(project, signer="pi", reason="stale queue should not sign")
+            queue = json.loads((project / "results" / "review_queue.json").read_text(encoding="utf-8"))
+            self.assertGreater(queue["queue_count"], 0)
+
     def test_run_status_tracks_failure_reason_and_cancel(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "demo"

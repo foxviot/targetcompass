@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from .knowledge import load_registry
+from .secrets import llm_provider_summary
 
 
 def _rscript() -> str | None:
@@ -39,13 +40,14 @@ def _limma_available() -> tuple[bool, str]:
 def system_status(project_dir: Path) -> list[dict]:
     limma_ok, limma_detail = _limma_available()
     registry = load_registry(project_dir)
+    llm = llm_provider_summary(project_dir)
     return [
         {"name": "Python", "status": "PASS", "detail": sys.version.split()[0]},
         {"name": "R/limma", "status": "PASS" if limma_ok else "REVIEW", "detail": limma_detail},
         {
-            "name": "OpenAI API key",
+            "name": "LLM API key",
             "status": "PASS" if os.environ.get("OPENAI_API_KEY") else "REVIEW",
-            "detail": "configured" if os.environ.get("OPENAI_API_KEY") else "not set; local fallback available",
+            "detail": f"{llm.get('provider', 'openai')} configured" if os.environ.get("OPENAI_API_KEY") else f"{llm.get('provider', 'openai')} not set; local fallback available",
         },
         {
             "name": "Dataset cards",

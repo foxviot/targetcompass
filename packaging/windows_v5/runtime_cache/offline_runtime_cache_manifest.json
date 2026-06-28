@@ -1,0 +1,70 @@
+﻿{
+    "schema_version":  "v5.offline_runtime_cache/0.1",
+    "generated_at":  "2026-06-25T01:08:29.5486581+08:00",
+    "cache_root":  "C:/Users/ASUS/Documents/target/packaging/windows_v5/runtime_cache",
+    "policy":  {
+                   "python":  "Embedded Python and wheelhouse are bundled.",
+                   "r":  "Place R installer or portable R zip under runtime_cache/r_packages. Installer does not silently install R system-wide.",
+                   "nextflow":  "Place nextflow/nextflow.bat and a Java 17+ archive under runtime_cache/nextflow.",
+                   "docker":  "Place docker image tar/tar.gz archives under runtime_cache/docker_images. Docker Desktop itself is not redistributed."
+               },
+    "python":  {
+                   "embedded_zip":  [
+                                        {
+                                            "path":  "C:/Users/ASUS/Documents/target/packaging/windows_v5/runtime_cache/python-3.13.0-embed-amd64.zip",
+                                            "name":  "python-3.13.0-embed-amd64.zip",
+                                            "size_bytes":  12499601,
+                                            "sha256":  "01c32d0737432240adcf0bbc1d32327f0976d3a1e1427774bc8febc8f1c03111"
+                                        }
+                                    ],
+                   "get_pip":  {
+                                   "path":  "C:/Users/ASUS/Documents/target/packaging/windows_v5/runtime_cache/get-pip.py",
+                                   "name":  "get-pip.py",
+                                   "size_bytes":  2226848,
+                                   "sha256":  "a341e1a43e38001c551a1508a73ff23636a11970b61d901d9a1cad2a18f57055"
+                               },
+                   "wheelhouse":  [
+                                      {
+                                          "path":  "C:/Users/ASUS/Documents/target/packaging/windows_v5/wheelhouse/lxml-6.1.1-cp313-cp313-win_amd64.whl",
+                                          "name":  "lxml-6.1.1-cp313-cp313-win_amd64.whl",
+                                          "size_bytes":  3995869,
+                                          "sha256":  "a10bd2fd62e8ce916ececb342f348f190724a098c1faa056fdfb2a22ad5e8660"
+                                      },
+                                      {
+                                          "path":  "C:/Users/ASUS/Documents/target/packaging/windows_v5/wheelhouse/python_docx-1.2.0-py3-none-any.whl",
+                                          "name":  "python_docx-1.2.0-py3-none-any.whl",
+                                          "size_bytes":  252987,
+                                          "sha256":  "3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7"
+                                      },
+                                      {
+                                          "path":  "C:/Users/ASUS/Documents/target/packaging/windows_v5/wheelhouse/typing_extensions-4.15.0-py3-none-any.whl",
+                                          "name":  "typing_extensions-4.15.0-py3-none-any.whl",
+                                          "size_bytes":  44614,
+                                          "sha256":  "f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"
+                                      }
+                                  ]
+               },
+    "r":  {
+              "installers":  [
+
+                             ],
+              "status":  "NOT_CACHED"
+          },
+    "nextflow":  {
+                     "files":  [
+
+                               ],
+                     "nextflow_binary_present":  false,
+                     "java_archive_present":  false
+                 },
+    "docker":  {
+                   "image_archives":  [
+
+                                      ],
+                   "status":  "NOT_CACHED",
+                   "note":  "Docker Desktop installer is not bundled. Use archives with docker load after Docker Desktop is installed."
+               },
+    "copied":  [
+
+               ]
+}

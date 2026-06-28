@@ -1,0 +1,233 @@
+数据-方法适配驱动的生信 Agent 证据链自动化系统框架 v0.1
+    1. 项目定位
+    本项目目标是构建一个生信自动化 agent 系统，用于把用户提出的模糊生物医学研究问题，转化为一组可追踪、可审核、可复现的生信证据任务。
+    系统核心不是“让 agent 直接给答案”，而是：
+    自然语言问题→ 科学问题标准化→ 证据需求规划→ 数据库 / 文献 / 固定知识库检索→ 数据-方法适配判断→ 编译 Codex 小任务包→ Codex 执行→ 多层审核→ 写入 Evidence DB→ 汇总证据并生成候选结论
+    本系统强调：
+    自然语言不能直接进入代码执行。
+    数据类型、数据质量、metadata 状态反向决定可用方法。
+    Codex 只执行小任务，不负责科学判断。
+    结果不能直接变成结论，必须先经过审核并结构化为 EvidenceItem。
+    最终输出应包含证据链、限制、风险和人工审核建议。
+    2. 核心流程图
+    flowchart TDA[用户自然语言问题] --> B[Scientific Question Normalizer<br/>科学问题标准化]B --> C[ResearchSpec<br/>结构化研究问题]C --> D[Evidence Plan Builder<br/>证据需求规划]D --> E[Parallel Resource Discovery<br/>并行资源检索]E --> E1[Dataset Scout<br/>数据库检索]E --> E2[Literature Miner<br/>文献检索]E --> E3[Knowledge Mapper<br/>固定知识库映射]E1 --> F[DatasetCandidate<br/>候选数据集]F --> G[Dataset Profiling & Feasibility Screening<br/>数据集画像与可分析性筛选]G --> H[DatasetProfile<br/>数据集画像]E2 --> L1[PaperEvidence<br/>文献证据]E3 --> K1[KnowledgeAnnotation<br/>SASP / secretome / surfaceome / marker / pathway 注释]M[Method Library<br/>方法库] --> N[MethodContract<br/>方法使用合同]H --> O{Dataset-Method Compatibility<br/>数据-方法适配判断}N --> OO -->|pass| P[Analysis Route Planner<br/>分析路线规划]O -->|fail| Q[换方法 / 丢弃数据 / 人工审核]O -->|repairable| R[生成 metadata 修复或数据整理任务]P --> S[AnalysisPlan<br/>分析计划]S --> T[Task Packet Compiler<br/>任务包编译器]L1 --> TK1 --> TH --> TN --> TT --> U[CodexTaskPacket<br/>Codex 小任务包]U --> V[Task Registry / State Machine<br/>任务状态机]V --> W[Codex / Worker Execution<br/>执行层]W --> X[Execution QC<br/>执行审核]X --> Y[Data QC<br/>数据审核]Y --> Z[Statistical QC<br/>统计审核]Z --> AA[Biological QC<br/>生物学审核]AA --> AB[EvidenceItem<br/>结构化证据]AB --> AC[Evidence DB<br/>证据数据库]AC --> AD[Evidence Aggregation & Scoring<br/>证据聚合与评分]AD --> AE[Final Report<br/>最终报告]AE --> AF[Human Review<br/>人工审核]
+    3. 红线与绿线的定义
+    当前框架中有两个最重要的机制。
+    3.1 红线：数据-方法适配反馈环
+    红线表示：
+    数据库检索结果 / 数据类型 / 数据质量 / metadata 状态        ↓反向约束可用分析方法
+    正式模块名称：
+    Dataset-Method Compatibility Loop
+    中文名称：
+    数据-方法适配反馈环
+    它的核心判断是：
+    DatasetProfile × MethodContract → CompatibilityDecision
+    例如：
+    数据状态
+方法决策
+bulk RNA-seq raw count
+可用 DESeq2 / edgeR
+bulk 只有 normalized matrix
+不应使用 DESeq2，改用 limma 或描述性分析
+microarray
+使用 limma
+scRNA 有 sample_id、group、replicate
+可做 pseudobulk DEG
+scRNA 无 sample_id
+不能做 pseudobulk，只能探索性分析或人工修复 metadata
+metadata 无 case/control
+不能进入正式差异分析
+多数据集平台不一致
+不直接 merge，优先独立分析后 meta-analysis
+    红线的目标是避免 agent 随意套方法，保证：
+    什么数据能用什么方法什么数据不能用什么方法什么情况需要换方法什么情况需要人工审核
+    3.2 绿线：任务包编译环
+    绿线表示：
+    可用数据集 + 匹配方法 + metadata + 参数 + QC 标准        ↓编译成一个个 Codex 可执行小任务包
+    正式模块名称：
+    Task Packet Compiler
+    它的核心输出是：
+    CodexTaskPacket[]
+    每个 CodexTaskPacket 不是一句普通 prompt，而是一个结构化任务合同，至少包含：
+    1. task_id2. 任务目标3. 数据集来源4. 输入文件5. metadata 字段6. case/control 定义7. 使用方法8. 参数9. 预期输出10. QC 标准11. 失败条件12. 禁止 Codex 自行发挥的边界
+    4. 核心模块
+    4.1 Scientific Question Normalizer
+    作用：
+    把用户自然语言问题转成标准化 ResearchSpec。
+    输入示例：
+    帮我找老化肌肉中 SASP 分泌增加的细胞和 marker
+    输出对象：
+    ResearchSpec
+    ResearchSpec 应包含：
+    {  "species": "human / mouse / unknown",  "tissue": "skeletal muscle",  "condition": "aging",  "comparison": {    "case": "aged",    "control": "young"  },  "cell_context": {    "need_cell_type_resolution": true,    "target_cell_type": "unknown / stromal / immune / specified"  },  "molecular_target": {    "type": ["secreted factor", "surface marker", "SASP-related molecule"],    "direction": "upregulated"  },  "required_modalities": {    "single_cell": "preferred",    "bulk": "optional",    "proteomics": "optional",    "literature": "required"  },  "expected_output": [    "candidate cell types",    "candidate genes",    "supporting evidence",    "validation suggestions"  ]}
+    4.2 Evidence Plan Builder
+    作用：
+    根据 ResearchSpec 判断需要哪些证据维度。
+    输出对象：
+    EvidencePlan
+    示例：
+    {  "evidence_axes": {    "cell_type_specificity": true,    "aging_upregulation": true,    "SASP_annotation": true,    "secreted_or_surface_annotation": true,    "cross_dataset_validation": true,    "literature_support": true,    "pathway_enrichment": true,    "causal_or_genetic_support": false  },  "preferred_data": [    "scRNA-seq aged vs young target tissue",    "bulk RNA-seq aged vs young target tissue",    "proteomics if available"  ],  "minimum_evidence_for_candidate": [    "upregulated in target condition",    "linked to SASP or inflammation",    "secreted or surface-associated",    "supported by at least one usable dataset"  ]}
+    4.3 Parallel Resource Discovery
+    资源检索层分成三条并行分支：
+    1. Dataset Scout2. Literature Miner3. Knowledge Mapper
+    Dataset Scout
+    作用：
+    查找候选数据集。
+    输出对象：
+    DatasetCandidate[]
+    示例：
+    {  "dataset_id": "GSEXXXXXX",  "database": "GEO",  "species": "human",  "tissue": "skeletal muscle",  "assay": "scRNA-seq",  "condition_labels": ["young", "aged"],  "sample_count": 12,  "raw_data_available": true,  "processed_matrix_available": true,  "metadata_available": true,  "cell_annotation_available": "unknown",  "initial_relevance": "high",  "risk_flags": [    "batch information unclear",    "cell annotation not confirmed"  ]}
+    Literature Miner
+    作用：
+    从文献中提取已有机制、候选分子、已有数据集编号、别人使用的方法和验证线索。
+    输出对象：
+    PaperEvidence[]
+    示例：
+    {  "paper_id": "PMID:XXXXXX",  "main_claim": "aged muscle stromal cells show increased inflammatory SASP",  "mentioned_genes": ["IL6", "CCL2", "CXCL1"],  "mentioned_datasets": ["GSEXXXXXX"],  "methods_used": ["Seurat", "DESeq2", "GSEA"],  "evidence_type": "observational",  "relevance": "high",  "limitations": [    "small sample size",    "mRNA-level evidence only"  ]}
+    Knowledge Mapper
+    作用：
+    将候选基因、细胞类型或通路映射到固定知识库。
+    知识库类型包括：
+    SASP gene setsecretomesurfaceomecytokine / chemokinecell marker gene setpathway databaseligand-receptor databaseprotein localization databasetarget annotation database
+    输出对象：
+    KnowledgeAnnotation
+    示例：
+    {  "gene": "IL6",  "annotations": {    "SASP": true,    "secreted": true,    "surface_protein": false,    "cytokine": true,    "pathways": ["inflammatory response", "JAK-STAT signaling"],    "known_cell_sources": ["fibroblast", "macrophage"]  }}
+    4.4 Dataset Profiling & Feasibility Screening
+    作用：
+    把 DatasetCandidate 转成 DatasetProfile，并判断数据集是否真的可分析。
+    输出对象：
+    DatasetProfileDatasetFeasibilityReport
+    DatasetProfile 示例：
+    {  "dataset_id": "GSEXXXXXX",  "species": "human",  "tissue": "skeletal muscle",  "assay": "bulk RNA-seq",  "platform": "Illumina",  "matrix_type": "raw count",  "sample_count": 36,  "group_column": "age_group",  "case_label": "aged",  "control_label": "young",  "batch_column": "batch",  "sex_column": "sex",  "replicate_level": "biological replicate",  "metadata_quality": "usable",  "download_status": "available",  "analysis_readiness": "ready"}
+    Feasibility 判断结果：
+    passfailneeds_manual_reviewneeds_metadata_repairexploratory_only
+    4.5 Method Library & MethodContract
+    作用：
+    维护方法库，并为每种方法定义输入要求、禁止条件、输出文件和 QC 标准。
+    输出对象：
+    MethodContract
+    DESeq2 示例：
+    {  "method_name": "DESeq2",  "data_modality": "bulk RNA-seq",  "requires": {    "matrix_type": "raw count",    "integer_counts": true,    "biological_replicates": true,    "group_labels": true  },  "recommended_design": "~ batch + group",  "reject_if": [    "normalized matrix only",    "no group metadata",    "single sample per group"  ],  "outputs": [    "deg_results.tsv",    "normalized_counts.tsv",    "MA_plot.png",    "volcano_plot.png",    "qc_report.md",    "session_info.txt"  ],  "qc_checks": [    "sample alignment check",    "library size check",    "PCA by group and batch",    "pvalue distribution",    "number of significant genes"  ]}
+    scRNA pseudobulk DEG 示例：
+    {  "method_name": "pseudobulk_DESeq2",  "data_modality": "scRNA-seq",  "requires": {    "cell_type_annotation": true,    "sample_id": true,    "group_labels": true,    "biological_replicates": true,    "raw_counts": true  },  "unit_of_analysis": "sample-level aggregated counts per cell type",  "reject_if": [    "no sample_id",    "no biological replicate",    "only cell-level labels without sample origin",    "cell count too low in target cell type"  ],  "outputs": [    "celltype_deg_results.tsv",    "pseudobulk_count_matrix.tsv",    "cell_count_qc.tsv",    "volcano_plot.png",    "qc_report.md"  ]}
+    4.6 Dataset-Method Compatibility Loop
+    作用：
+    执行红线逻辑。
+    输入：
+    DatasetProfileMethodContract
+    输出：
+    CompatibilityDecision
+    示例：
+    {  "dataset_id": "GSEXXXXXX",  "method_name": "DESeq2",  "decision": "pass",  "matched_requirements": [    "raw count matrix available",    "group labels available",    "biological replicates available"  ],  "unmet_requirements": [],  "warnings": [    "batch column exists and should be included in design"  ],  "recommended_parameters": {    "design_formula": "~ batch + age_group",    "contrast": ["age_group", "aged", "young"]  }}
+    决策类型：
+    pass：进入分析路线规划fail：换方法或丢弃数据needs_manual_review：人工确认repairable：先生成 metadata 修复任务exploratory_only：只允许探索性分析，降低证据权重
+    4.7 Analysis Route Planner
+    作用：
+    根据通过数据-方法适配的数据和方法，生成分析路线。
+    输出对象：
+    AnalysisPlan
+    示例：
+    {  "analysis_plan_id": "aging_muscle_sasp_v1",  "routes": [    {      "route_id": "scRNA_celltype_sasp_route",      "dataset_id": "GSEYYYYYY",      "steps": [        "download_data",        "metadata_parse",        "quality_control",        "cell_annotation",        "pseudobulk_DEG_by_celltype",        "SASP_secretome_filter",        "pathway_enrichment"      ]    },    {      "route_id": "bulk_validation_route",      "dataset_id": "GSEXXXXXX",      "steps": [        "download_data",        "metadata_parse",        "DESeq2_DEG",        "SASP_secretome_filter",        "cross_dataset_validation"      ]    }  ]}
+    4.8 Task Packet Compiler
+    作用：
+    执行绿线逻辑，把数据、方法、参数和 QC 标准编译成 Codex 可执行小任务包。
+    输出对象：
+    CodexTaskPacket[]
+    标准结构：
+    {  "task_id": "sc_deg_GSEYYYYYY_fibroblast_aged_vs_young",  "goal": "Run pseudobulk DEG for fibroblasts in aged vs young skeletal muscle scRNA-seq data",  "dataset": {    "dataset_id": "GSEYYYYYY",    "source": "GEO",    "data_type": "scRNA-seq"  },  "inputs": {    "expression_matrix": "path/to/matrix",    "metadata": "path/to/metadata",    "sample_id_column": "sample_id",    "group_column": "age_group",    "cell_type_column": "cell_type",    "target_cell_type": "fibroblast",    "case_label": "aged",    "control_label": "young"  },  "method": {    "name": "pseudobulk_DESeq2",    "design_formula": "~ age_group",    "contrast": ["age_group", "aged", "young"]  },  "expected_outputs": [    "deg_results.tsv",    "pseudobulk_counts.tsv",    "cell_count_qc.tsv",    "volcano_plot.png",    "qc_report.md",    "session_info.txt"  ],  "acceptance_criteria": [    "metadata samples match expression matrix",    "case and control labels are present",    "target cell type has sufficient cells per sample",    "DEG table includes log2FC, pvalue, padj",    "no silent sample dropping",    "session info is recorded"  ],  "forbidden_actions": [    "do not redefine case/control labels",    "do not invent missing metadata",    "do not change the method without reporting incompatibility",    "do not make biological conclusions beyond the task"  ]}
+    小包粒度建议：
+    bulk：一个数据集 × 一个比较组 × 一个方法 = 一个小包scRNA：一个数据集 × 一个细胞类型 × 一个比较组 × 一个方法 = 一个小包知识库过滤：一个候选基因列表 × 一个知识库 = 一个小包聚合任务：多个结果表 × 一个聚合方法 = 一个小包
+    4.9 Task Registry / State Machine
+    作用：
+    管理所有任务包的状态，避免任务执行混乱。
+    任务状态：
+    proposedplannedreadyrunningcompletedfailedreviewingqc_passedqc_failedacceptedrejectedneeds_manual_review
+    TaskRun 示例：
+    {  "task_id": "bulk_deg_GSEXXXXXX_aged_vs_young",  "status": "qc_passed",  "dataset_id": "GSEXXXXXX",  "method": "DESeq2",  "started_at": "timestamp",  "completed_at": "timestamp",  "outputs": [    "deg_results.tsv",    "volcano_plot.png",    "qc_report.md"  ],  "logs": [    "run.log",    "error.log"  ],  "review_status": "pending_biological_review"}
+    4.10 Codex / Worker Execution Layer
+    作用：
+    执行 CodexTaskPacket。
+    Codex 应该输出：
+    1. 可运行脚本2. 运行日志3. 错误日志4. 输出表格5. 输出图6. QC 报告7. session info8. 文件清单9. 简短执行总结
+    Codex 禁止行为：
+    不能自行改变分组不能自行改变物种不能自行换方法但不报告不能 invent metadata不能 silent drop samples不能只输出解释而不输出文件不能根据单一图直接下生物学结论
+    4.11 Review Layer
+    作用：
+    对 Codex 输出结果进行多层审核。
+    审核流程：
+    Codex result→ Execution QC→ Data QC→ Statistical QC→ Biological QC→ EvidenceItem
+    Execution QC
+    检查：
+    脚本是否报错输出文件是否完整日志是否完整包版本是否记录是否有空结果是否存在 silent failure
+    Data QC
+    检查：
+    metadata 和 matrix 是否对齐样本有没有被错误丢弃case/control 是否正确batch 是否被识别细胞数是否足够样本数是否足够
+    Statistical QC
+    检查：
+    是否使用合适方法是否做多重检验校正pvalue / padj 分布是否异常logFC 是否异常设计公式是否合理是否考虑 batch / covariate
+    Biological QC
+    检查：
+    候选基因是否真的上调是否与目标细胞类型相关是否属于 SASP / secretome / surfaceome是否跨数据集一致是否有文献支持是否存在明显反证是否只是相关而非因果
+    ReviewReport 示例：
+    {  "task_id": "sc_deg_GSEYYYYYY_fibroblast_aged_vs_young",  "execution_qc": "pass",  "data_qc": "pass",  "statistical_qc": "warning",  "biological_qc": "pass",  "warnings": [    "small number of aged samples"  ],  "decision": "accept_as_moderate_evidence",  "next_action": "write_to_evidence_db"}
+    4.12 Evidence DB
+    作用：
+    保存审核后的结构化证据，而不是只保存原始结果文件。
+    EvidenceItem 示例：
+    {  "evidence_id": "EV_sc_001",  "claim": "CXCL12 is upregulated in aged muscle fibroblasts",  "evidence_type": "scRNA pseudobulk DEG",  "dataset_id": "GSEYYYYYY",  "species": "human",  "tissue": "skeletal muscle",  "cell_type": "fibroblast",  "comparison": "aged vs young",  "gene": "CXCL12",  "effect_size": {    "log2FC": 1.35,    "padj": 0.002  },  "annotations": {    "SASP_related": true,    "secreted": true,    "surface_marker": false,    "pathway": ["inflammatory response"]  },  "qc": {    "execution_qc": "pass",    "data_qc": "pass",    "statistical_qc": "pass",    "biological_qc": "pass"  },  "confidence": "moderate",  "limitations": [    "mRNA-level evidence only"  ],  "source_task_id": "sc_deg_GSEYYYYYY_fibroblast_aged_vs_young"}
+    Evidence DB 应保存：
+    正证据负证据不确定证据失败任务被拒绝结果人工审核意见
+    4.13 Evidence Aggregation & Scoring
+    作用：
+    把多个 EvidenceItem 聚合成候选细胞、候选基因或候选靶点排序。
+    CandidateScore 示例：
+    {  "candidate": "CXCL12",  "candidate_type": "secreted factor",  "source_cell_type": "fibroblast",  "score": 0.82,  "evidence_summary": {    "scRNA_support": 2,    "bulk_support": 1,    "literature_support": 3,    "secretome_support": true,    "SASP_support": true,    "cross_dataset_consistency": "moderate"  },  "risk_flags": [    "no protein-level validation"  ],  "recommendation": "high-priority candidate for validation"}
+    评分维度：
+    表达变化统计显著性跨数据集一致性细胞类型特异性SASP 相关性secreted / surface 注释文献支持蛋白层面支持安全性风险实验可验证性
+    4.14 Final Report
+    作用：
+    输出给人类审核的最终报告。
+    报告应包含：
+    1. 原始研究问题2. 标准化 ResearchSpec3. 使用的数据集4. 被排除的数据集及原因5. 使用的方法6. 主要候选细胞类型7. 主要候选分子8. 每个候选的证据链9. 反证或不确定证据10. 统计和数据限制11. 推荐验证实验12. 人工审核 checklist
+    5. 核心数据对象总表
+    对象
+作用
+ResearchSpec
+标准化科学问题
+EvidencePlan
+证据需求规划
+DatasetCandidate
+候选数据集
+DatasetProfile
+数据集画像
+DatasetFeasibilityReport
+数据是否可分析
+MethodContract
+方法使用条件
+CompatibilityDecision
+数据-方法是否匹配
+AnalysisPlan
+分析路线
+CodexTaskPacket
+Codex 执行小包
+TaskRun
+任务运行记录
+ReviewReport
+审核结果
+EvidenceItem
+单条结构化证据
+CandidateScore
+候选分子 / 细胞评分
+FinalReport
+最终报告
+    6. 当前系统的核心原则
+    1. 用户自然语言必须先标准化为 ResearchSpec。2. EvidencePlan 决定需要哪些证据，而不是直接决定方法。3. 文献检索、数据库检索、固定知识库检索应并行进行。4. Dataset Scout 只找候选数据集，不直接下结论。5. 数据集必须经过 Dataset Profiling 和 Feasibility Screening。6. 方法必须以 MethodContract 形式定义输入条件、禁止条件和输出标准。7. 红线机制：DatasetProfile 反向约束 MethodContract。8. 绿线机制：通过适配的数据集和方法被编译为 CodexTaskPacket。9. Codex 只执行小任务，不修改科学定义，不做最终判断。10. 每个任务必须进入 Task Registry / State Machine 管理。11. Codex 输出必须经过 Execution QC、Data QC、Statistical QC、Biological QC。12. 结果必须转成 EvidenceItem 后才能写入 Evidence DB。13. Evidence DB 必须保存正证据、负证据、不确定证据和失败任务。14. 最终结论来自 Evidence Aggregation & Scoring，而不是单个任务结果。15. 最终报告必须保留证据链、限制、风险和人工审核入口。
+    7. 后续补充顺序
+    建议后续按以下顺序逐个完善：
+    1. ResearchSpec JSON Schema2. EvidencePlan JSON Schema3. DatasetCandidate / DatasetProfile Schema4. DatasetFeasibilityReport 判定规则5. MethodContract Schema6. Dataset-Method Compatibility Rules7. AnalysisPlan 路线模板8. CodexTaskPacket Schema9. Task Registry / State Machine 状态转移规则10. Codex Worker 输出规范11. ReviewReport Schema12. EvidenceItem Schema13. Evidence DB 表结构14. CandidateScore 评分公式15. FinalReport 模板
+    8. 当前框架一句话总结
+    本项目是一个：
+    数据-方法适配驱动的生信 Agent 证据链自动化系统
+    核心机制是：
+    自然语言问题 → ResearchSpecResearchSpec → EvidencePlanEvidencePlan → 数据库 / 文献 / 知识库并行检索数据库结果 → DatasetProfileDatasetProfile × MethodContract → 数据-方法适配判断通过适配的数据 + 方法 + 参数 → CodexTaskPacketCodexTaskPacket → Codex 执行Codex 结果 → 多层审核 → EvidenceItemEvidenceItem → Evidence DB → 候选排序 → Final Report → 人工审核

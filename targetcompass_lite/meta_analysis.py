@@ -104,7 +104,8 @@ def run_meta_analysis(project_dir: Path) -> Path:
         "high_heterogeneity_count": sum(1 for row in results if "high_heterogeneity" in row.get("qc_flags", "")),
         "direction_conflict_count": sum(1 for row in results if "direction_conflict" in row.get("qc_flags", "")),
     }
-    (out_dir / "qc_summary.json").write_text(json.dumps(qc, indent=2, ensure_ascii=False), encoding="utf-8")
+    qc_summary = out_dir / "qc_summary.json"
+    qc_summary.write_text(json.dumps(qc, indent=2, ensure_ascii=False), encoding="utf-8")
     manifest = {
         "schema_version": "v4.meta_analysis_manifest/0.2",
         "module_id": "deg_meta_analysis_v1",
@@ -124,7 +125,21 @@ def run_meta_analysis(project_dir: Path) -> Path:
         "qc": qc,
         "status": qc["status"],
     }
-    (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    run_manifest = out_dir / "run_manifest.json"
+    run_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [out, forest_index_path, qc_summary, run_manifest],
+            producer="meta_analysis",
+            artifact_type="meta_analysis_output",
+            task_id="meta_analysis",
+            qc_status="pass" if qc["status"] == "pass" else "pending",
+        )
+    except Exception:
+        pass
     return out
 
 

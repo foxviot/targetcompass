@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScientificQuestionNormalizerInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "raw_user_question"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "raw_user_question": {"type": "string", "minLength": 1}
+  }
+}

@@ -202,8 +202,23 @@ def run_enrichment(project_dir: Path) -> Path:
             "gene_set_sources": len(source_snapshots),
         },
     }
-    (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    (out_dir / "qc_summary.json").write_text(json.dumps(manifest["qc"], indent=2, ensure_ascii=False), encoding="utf-8")
+    run_manifest = out_dir / "run_manifest.json"
+    qc_summary = out_dir / "qc_summary.json"
+    run_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    qc_summary.write_text(json.dumps(manifest["qc"], indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [out, gsea_out, snapshot_path, run_manifest, qc_summary],
+            producer="enrichment",
+            artifact_type="enrichment_output",
+            task_id="enrichment",
+            qc_status="pass" if manifest["qc"]["status"] == "pass" else "pending",
+        )
+    except Exception:
+        pass
     return out
 
 

@@ -1,10 +1,10 @@
 import json
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .v4 import content_hash, load_v4_work_orders, read_work_order_attempts, v4_dir
+from .artifact_resolver import resolve_work_order_inputs, write_artifact_resolution
 
 
 DAG_SCHEMA = "v4.work_order_dag/0.1"
@@ -23,6 +23,8 @@ def build_work_order_dag(project_dir: Path) -> dict[str, Any]:
         node_id = order["work_order_id"]
         latest = latest_attempts.get(node_id, {})
         outputs = _outputs(project_dir, order, latest)
+        input_resolution = resolve_work_order_inputs(project_dir, order)
+        resolution_ref = write_artifact_resolution(project_dir, order, input_resolution)
         node = {
             "schema_version": "v4.work_order_dag_node/0.1",
             "node_id": node_id,
@@ -33,8 +35,11 @@ def build_work_order_dag(project_dir: Path) -> dict[str, Any]:
             "node_type": order.get("work_order_type", ""),
             "status": _node_status(order, latest, outputs),
             "inputs": _inputs(order),
+            "input_resolution": input_resolution,
+            "input_resolution_ref": resolution_ref,
             "outputs": outputs,
             "qc_checks": order.get("qc_checks", []),
+            "task_qc_report": (latest.get("metadata", {}) or {}).get("task_qc_report", {}),
             "evidence_writes": _evidence_writes(project_dir, order, outputs),
             "latest_attempt": latest,
             "dependencies": _dependencies(order, orders),
@@ -122,34 +127,19 @@ def _node_status(order: dict[str, Any], latest_attempt: dict[str, Any], outputs:
 
 
 def _evidence_writes(project_dir: Path, order: dict[str, Any], outputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    db = project_dir / "evidence.sqlite"
-    if not db.exists():
-        return []
     artifact_paths = [row["path"] for row in outputs]
     dataset_id = order.get("dataset_id", "")
-    clauses = []
-    params: list[Any] = []
-    if artifact_paths:
-        clauses.append("artifact_path IN (" + ",".join("?" for _ in artifact_paths) + ")")
-        params.extend(artifact_paths)
-    if dataset_id:
-        clauses.append("source_dataset = ?")
-        params.append(dataset_id)
-    if not clauses:
+    if not artifact_paths and not dataset_id:
         return []
-    con = sqlite3.connect(db, timeout=30)
-    con.row_factory = sqlite3.Row
     try:
-        rows = con.execute(
-            f"""
-            SELECT evidence_id, entity_symbol, evidence_type, source_dataset, artifact_path, run_id, module_version
-            FROM evidence_item
-            WHERE {' OR '.join(clauses)}
-            ORDER BY evidence_type, entity_symbol, evidence_id
-            LIMIT 500
-            """,
-            params,
-        ).fetchall()
+        from .evidence_repository import load_evidence_rows
+
+        repo = load_evidence_rows(project_dir, source_dataset=dataset_id, limit=100000) if dataset_id else load_evidence_rows(project_dir, limit=100000)
+        rows = [
+            row
+            for row in repo.get("rows", [])
+            if (row.get("artifact_path") in artifact_paths) or (dataset_id and row.get("source_dataset") == dataset_id)
+        ][:500]
         trace_index = _trace_index_by_evidence(project_dir)
         out = []
         for row in rows:
@@ -159,8 +149,8 @@ def _evidence_writes(project_dir: Path, order: dict[str, Any], outputs: list[dic
             payload["report_refs"] = trace.get("report_refs", [])
             out.append(payload)
         return out
-    finally:
-        con.close()
+    except Exception:
+        return []
 
 
 def _trace_index_by_evidence(project_dir: Path) -> dict[str, dict[str, Any]]:

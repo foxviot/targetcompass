@@ -1,7 +1,10 @@
 import csv
+import json
 from pathlib import Path
 
 from .paths import KB
+
+MAX_ANNOTATION_GENES_PER_DATASET = 500
 
 
 def _read_tsv(path: Path, key: str):
@@ -19,12 +22,15 @@ def _merge_custom_tables(project_dir: Path, base: dict, kind: str) -> dict:
 def annotate_project(project_dir: Path) -> tuple[Path, Path, Path]:
     access = _merge_custom_tables(project_dir, _read_tsv(KB / "annotation_tables" / "accessibility.tsv", "gene_symbol"), "accessibility")
     safety = _merge_custom_tables(project_dir, _read_tsv(KB / "annotation_tables" / "safety.tsv", "gene_symbol"), "safety")
-    genes = []
+    priority_genes = _priority_genes(project_dir)
+    genes = set(priority_genes)
     for deg_path in sorted((project_dir / "results").glob("bulk_deg_*/deg_results.tsv")):
         with deg_path.open(encoding="utf-8") as f:
-            for row in csv.DictReader(f, delimiter="\t"):
-                genes.append(row["gene_symbol"])
-    genes = sorted(set(genes))
+            for row_number, row in enumerate(csv.DictReader(f, delimiter="\t"), 1):
+                gene = row["gene_symbol"]
+                if row_number <= MAX_ANNOTATION_GENES_PER_DATASET or gene.upper() in priority_genes or _significant(row.get("adj_p_value", "")):
+                    genes.add(gene)
+    genes = sorted(genes)
     out_dir = project_dir / "results" / "annotation"
     out_dir.mkdir(parents=True, exist_ok=True)
     access_path = out_dir / "accessibility_annotation.tsv"
@@ -70,4 +76,35 @@ def annotate_project(project_dir: Path) -> tuple[Path, Path, Path]:
                         "recommended_action": "manual curation before interpreting candidate rank",
                     }
                 )
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [access_path, safety_path, review_path],
+            producer="annotation",
+            artifact_type="annotation_output",
+            task_id="annotation",
+        )
+    except Exception:
+        pass
     return access_path, safety_path, review_path
+
+
+def _priority_genes(project_dir: Path) -> set[str]:
+    spec_path = project_dir / "research_spec.json"
+    if not spec_path.exists():
+        return set()
+    spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    genes = set()
+    for values in spec.get("candidate_gene_sets", {}).values():
+        if isinstance(values, list):
+            genes.update(str(gene).strip().upper() for gene in values if str(gene).strip())
+    return genes
+
+
+def _significant(value: str) -> bool:
+    try:
+        return float(value) < 0.05
+    except (TypeError, ValueError):
+        return False

@@ -447,4 +447,16 @@ def run_deg(project_dir: Path, dataset_id: str) -> Path:
         return result_path
 
     result_path, _ = run_local_executor(project_dir, out_dir, contract, operation)
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [result_path, out_dir / "qc_summary.json", out_dir / "qc_summary.tsv", out_dir / "run_manifest.json", out_dir / "executor_manifest.json"],
+            producer=f"bulk_deg_{dataset_id}",
+            artifact_type="bulk_deg_output",
+            task_id=f"bulk_deg_{dataset_id}",
+        )
+    except Exception:
+        pass
     return result_path

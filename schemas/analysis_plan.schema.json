@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "route_strategy",
+    "routes",
+    "modules",
+    "execution_order"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "plan_version": {"type": "string"},
+    "project_id": {"type": "string", "minLength": 1},
+    "analysis_plan_id": {"type": "string"},
+    "route_strategy": {"type": "string", "minLength": 1},
+    "evidence_plan_ref": {"type": "string"},
+    "dataset_profiles_ref": {"type": "string"},
+    "method_contracts_ref": {"type": "string"},
+    "compatibility_decisions_ref": {"type": "string"},
+    "routes": {"type": "array", "items": {"type": "object"}},
+    "repair_tasks": {"type": "array", "items": {"type": "object"}},
+    "codex_task_packets": {"type": "array", "items": {"type": "object"}},
+    "module_registry": {"type": "string"},
+    "available_modules": {"type": "array", "items": {"type": "object"}},
+    "datasets": {"type": "array", "items": {"type": "object"}},
+    "modules": {"type": "array", "items": {"type": "object"}},
+    "execution_order": {"type": "array", "items": {"type": "string"}},
+    "expected_outputs": {"type": "array", "items": {"type": "string"}},
+    "blocking_conditions": {"type": "array", "items": {"type": "string"}}
+  }
+}

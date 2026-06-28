@@ -9,7 +9,7 @@ from pathlib import Path
 
 from targetcompass_lite.mcp_http_server import McpHttpHandler
 from targetcompass_lite.mcp_server import _read_framed_message, _write_framed_message, handle_jsonrpc, run_stdio_server
-from targetcompass_lite.mcp_sessions import build_mcp_client_config, create_token, load_sessions, load_token_from_sources, query_mcp_audit, update_policy
+from targetcompass_lite.mcp_sessions import build_external_auth_manifest, build_mcp_client_config, build_mcp_server_config, check_external_auth_readiness, create_token, load_sessions, load_token_from_sources, query_mcp_audit, update_policy
 from targetcompass_lite.v4 import build_v4_manifest
 
 
@@ -103,6 +103,15 @@ class McpServerTest(unittest.TestCase):
             token = create_token(project, "reader-agent", "agent_reader", scopes=["resource:read", "tool:read"])
             token_file = project / "reader_token.json"
             token_file.write_text(json.dumps(token), encoding="utf-8")
+            auth = build_external_auth_manifest(project)
+            readiness = check_external_auth_readiness(project)
+            server_config = build_mcp_server_config(project, token_file=str(token_file))
+            self.assertEqual(auth["project_isolation"]["cross_project_token_rejected"], True)
+            self.assertEqual(readiness["schema_version"], "v4.mcp_external_auth_readiness/0.1")
+            self.assertTrue((project / "v4" / "mcp_external_auth_readiness.json").exists())
+            self.assertIn(readiness["status"], {"READY", "READY_WITH_WARNINGS"})
+            self.assertEqual(server_config["external_auth_manifest"], "v4/mcp_external_auth_manifest.json")
+            self.assertTrue((project / "v4" / "mcp_external_auth_manifest.json").exists())
 
             loaded = load_token_from_sources(token_file=str(token_file))
             self.assertEqual(json.loads(loaded)["principal"], "reader-agent")

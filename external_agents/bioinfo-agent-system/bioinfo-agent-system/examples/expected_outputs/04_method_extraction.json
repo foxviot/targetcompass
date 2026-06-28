@@ -1,0 +1,133 @@
+{
+  "agent_id": "04_method_extraction_agent",
+  "schema_version": "1.0.0",
+  "created_at": "2026-06-21T02:02:36Z",
+  "provenance": [
+    {
+      "source_type": "mock",
+      "source_id": "04_method_extraction_agent",
+      "note": "Deterministic mock output for pipeline testing; not a verified public accession."
+    }
+  ],
+  "warnings": [],
+  "blocking_failures": [],
+  "claim_ceiling": {
+    "max_allowed_claim": "co_expression",
+    "reason": "Method extraction preserves the claim ceiling from evidence review."
+  },
+  "study_method_extractions": [
+    {
+      "study_id": "MOCK-STUDY-ADIPOSE-ASSOC-001",
+      "method_steps": [
+        {
+          "step_id": "expression_matrix_qc",
+          "step_name": "expression_matrix_qc",
+          "input": "bulk expression matrix and sample metadata",
+          "output": "QC-filtered matrix",
+          "tool": "standard_bulk_qc",
+          "parameters": [
+            "remove low-quality samples",
+            "retain disease and control labels"
+          ],
+          "evidence_source_location": "mock.study.methods.1",
+          "source_status": "extracted"
+        },
+        {
+          "step_id": "disease_control_contrast",
+          "step_name": "disease_control_contrast",
+          "input": "QC-filtered matrix",
+          "output": "contrast-ready expression matrix",
+          "tool": "linear_model_contrast",
+          "parameters": [
+            "disease versus control contrast",
+            "include available batch covariate"
+          ],
+          "evidence_source_location": "mock.study.methods.2",
+          "source_status": "extracted"
+        },
+        {
+          "step_id": "inflammatory_program_scoring",
+          "step_name": "inflammatory_program_scoring",
+          "input": "contrast-ready expression matrix",
+          "output": "sample-level inflammatory program scores",
+          "tool": "gene_set_scoring",
+          "parameters": [
+            "use inflammatory response gene set"
+          ],
+          "evidence_source_location": "mock.study.methods.3",
+          "source_status": "extracted"
+        },
+        {
+          "step_id": "molecule_program_association",
+          "step_name": "molecule_program_association",
+          "input": "program scores plus candidate expression values",
+          "output": "candidate association table",
+          "tool": "association_test",
+          "parameters": [
+            "rank molecules by association magnitude and direction"
+          ],
+          "evidence_source_location": "mock.study.methods.4",
+          "source_status": "extracted"
+        },
+        {
+          "step_id": "surface_secretome_annotation",
+          "step_name": "surface_secretome_annotation",
+          "input": "candidate association table",
+          "output": "candidate annotation table",
+          "tool": "annotation_join",
+          "parameters": [
+            "retain secreted or surface annotated molecules only"
+          ],
+          "evidence_source_location": "mock.study.methods.5",
+          "source_status": "extracted"
+        },
+        {
+          "step_id": "external_validation",
+          "step_name": "external_validation",
+          "input": "candidate annotation table plus fallback dataset",
+          "output": "cross-dataset consistency notes",
+          "tool": "cross_dataset_review",
+          "parameters": [
+            "review localization consistency only"
+          ],
+          "evidence_source_location": "mock.study.methods.6",
+          "source_status": "inferred"
+        },
+        {
+          "step_id": "perturbation_validation",
+          "step_name": "perturbation_validation",
+          "input": "top ranked candidates",
+          "output": "causal validation result",
+          "tool": "not_reported",
+          "parameters": [],
+          "evidence_source_location": "mock.study.methods.7",
+          "source_status": "missing"
+        }
+      ]
+    }
+  ],
+  "transferable_components": [
+    "bulk expression QC",
+    "inflammatory program scoring",
+    "molecule-program association ranking",
+    "surface or secretome annotation filtering"
+  ],
+  "non_transferable_components": [
+    "wet-lab perturbation validation",
+    "claim upgrades beyond co-expression"
+  ],
+  "quality_concerns": [
+    "Bulk tissue averages across cell types.",
+    "Annotation filters do not prove secretion or accessibility.",
+    "Inferred validation steps remain weaker than extracted steps."
+  ],
+  "statistical_controls": [
+    "Apply multiple-testing control when ranking candidates.",
+    "Keep disease-control contrasts tied to available metadata only."
+  ],
+  "validation_strategy": [
+    "Use fallback single-cell data for localization only.",
+    "Keep final claims at candidate association level."
+  ],
+  "extraction_confidence": "medium"
+}

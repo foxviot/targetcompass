@@ -36,7 +36,9 @@ def design_experiments(project_dir: Path, max_designs: int = 5) -> list[dict]:
         )
     out_dir = project_dir / "results" / "experiments"
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "experiment_designs.json").write_text(json.dumps(designs, indent=2, ensure_ascii=False), encoding="utf-8")
+    json_path = out_dir / "experiment_designs.json"
+    md_path = out_dir / "experiment_designs.md"
+    json_path.write_text(json.dumps(designs, indent=2, ensure_ascii=False), encoding="utf-8")
     lines = ["# Experiment Design Drafts", ""]
     for design in designs:
         lines.extend(
@@ -55,5 +57,18 @@ def design_experiments(project_dir: Path, max_designs: int = 5) -> list[dict]:
         lines.append("- risks:")
         lines.extend(f"  - {risk}" for risk in design["risks"])
         lines.append("")
-    (out_dir / "experiment_designs.md").write_text("\n".join(lines), encoding="utf-8")
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [json_path, md_path],
+            producer="experiment_design",
+            artifact_type="experiment_design_output",
+            task_id="experiment_design",
+            qc_status="review",
+        )
+    except Exception:
+        pass
     return designs

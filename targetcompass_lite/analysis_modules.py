@@ -75,6 +75,18 @@ ANALYSIS_MODULES = [
         "nextflow": {"process": "META_ANALYSIS", "contract": "workflows/common/modules/meta_analysis/module_contract.json"},
     },
     {
+        "module_id": "sasp_score_v1",
+        "status": "implemented",
+        "input_modality": "bulk_deg_results",
+        "runner": "targetcompass_lite.sasp_score.run_sasp_score",
+        "outputs": [
+            "results/sasp_score/sasp_gene_scores.tsv",
+            "results/sasp_score/sasp_dataset_scores.tsv",
+            "results/sasp_score/run_manifest.json",
+        ],
+        "notes": "Scores SASP core overlap and directionality from real DEG outputs while keeping SASP phenotype evidence separate from target ranking.",
+    },
+    {
         "module_id": "genetic_coloc_mr_v1",
         "status": "implemented",
         "input_modality": "gwas_qtl_summary",

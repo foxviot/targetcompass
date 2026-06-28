@@ -5,3 +5,55 @@ __pycache__/
 *.tmp
 *.log
 ~$*
+
+# Build and delivery artifacts
+dist/
+build/
+tools/
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Local runtime outputs
+results/
+tmp_ocr_test/
+.nextflow/
+.nextflow*
+work/
+
+# Project runtime/generated artifacts
+projects/**/data/**/raw/
+projects/**/data/**/raw_extracted/
+projects/**/results/**/forest_plots/
+projects/**/exports/
+projects/**/.nextflow/
+projects/**/.nextflow*
+projects/**/tools/java*/
+projects/**/v4/role_runs/
+projects/**/v4/llm_tasks/
+projects/**/v4/*audit*.jsonl
+projects/**/v4/codex_engineering/git_worktrees/
+projects/**/v4/codex_engineering/workspaces/
+projects/**/v4/codex_engineering/integration_worktree/
+projects/**/v4/work_orders/
+projects/**/v5/
+projects/**/external_agent_runs/
+projects/**/knowledge_imports/
+projects/*_online_*/
+projects/*_isolated_*/
+projects/*_smoke_*/
+projects/**/data/**/*.gz
+projects/**/data/**/*_series_matrix.txt
+projects/**/configs/secrets.local.json
+**/secrets.local.json
+external_agents/**/outputs/mock_run/
+bulk_deg_v1/
+deg_meta_analysis_v1/
+enrichment_v2/
+
+# Local database backups and transient stores
+*.sqlite.corrupt_*
+*.sqlite.pre_*
+*.sqlite-shm
+*.sqlite-wal

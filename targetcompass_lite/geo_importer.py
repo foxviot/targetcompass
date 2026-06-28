@@ -124,6 +124,12 @@ def geo_series_matrix_url(accession: str) -> str:
     return f"{GEO_FTP}/series/{bucket}/{accession}/matrix/{accession}_series_matrix.txt.gz"
 
 
+def geo_platform_annotation_url(platform_id: str) -> str:
+    platform_id = platform_id.upper()
+    bucket = _family_bucket(platform_id)
+    return f"{GEO_FTP}/platforms/{bucket}/{platform_id}/annot/{platform_id}.annot.gz"
+
+
 def download_file(url: str, out: Path, force: bool = False) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists() and out.stat().st_size > 0 and not force:
@@ -442,6 +448,83 @@ def infer_grouping(
     )
 
 
+def infer_grouping_from_column(
+    metadata_rows: list[dict[str, str]],
+    group_column: str,
+    case_label: str = "",
+    control_label: str = "",
+) -> GroupInference:
+    if not metadata_rows:
+        raise GeoImportError(
+            "GEO_METADATA_EMPTY",
+            "manual_metadata_grouping",
+            "No sample metadata rows were available for manual grouping.",
+            ["Confirm the series matrix contains !Sample metadata rows.", "Choose another GSE or provide expression_matrix.tsv and metadata.tsv manually."],
+            retryable=False,
+        )
+    fields = sorted({field for row in metadata_rows for field in row})
+    if group_column not in fields:
+        raise GeoImportError(
+            "GEO_MANUAL_GROUP_COLUMN_MISSING",
+            "manual_metadata_grouping",
+            f"Manual group column was not found in GEO metadata: {group_column}",
+            [
+                "Open data/<GSE>/metadata_profile.json and copy an exact column name.",
+                "Use v5 Dataset Gate to correct group_column.",
+                "Retry analysis main path after saving the correction.",
+            ],
+            retryable=False,
+            details={"requested_group_column": group_column, "available_columns": fields[:120]},
+        )
+    values = [_clean_group_value(row.get(group_column, "")) for row in metadata_rows]
+    non_empty = [value for value in values if value and value != "unknown"]
+    unique = sorted(set(non_empty))
+    if len(unique) < 2:
+        raise GeoImportError(
+            "GEO_MANUAL_GROUP_COLUMN_NOT_USABLE",
+            "manual_metadata_grouping",
+            f"Manual group column has fewer than two usable values: {group_column}",
+            ["Choose a metadata column with both case and control groups.", "Inspect metadata_profile.json value_counts before locking the dataset."],
+            retryable=False,
+            details={"requested_group_column": group_column, "value_counts": {value: non_empty.count(value) for value in unique}},
+        )
+    if case_label.strip() and control_label.strip():
+        case_value = _clean_group_value(case_label)
+        control_value = _clean_group_value(control_label)
+        if case_value not in unique or control_value not in unique:
+            raise GeoImportError(
+                "GEO_MANUAL_GROUP_LABEL_MISSING",
+                "manual_metadata_grouping",
+                "Manual case/control labels were not found in the selected metadata column.",
+                [
+                    "Use exact values from data/<GSE>/metadata_profile.json.",
+                    "If labels are long free-text values, copy the exact normalized value shown in value_counts.",
+                ],
+                retryable=False,
+                details={"group_column": group_column, "case_label": case_value, "control_label": control_value, "value_counts": {value: non_empty.count(value) for value in unique}},
+            )
+    else:
+        case_value, control_value, _, _ = _choose_case_control(unique, case_label, control_label)
+    sample_groups = {}
+    for row in metadata_rows:
+        value = _clean_group_value(row.get(group_column, ""))
+        if value == case_value:
+            sample_groups[row["sample_id"]] = "case"
+        elif value == control_value:
+            sample_groups[row["sample_id"]] = "control"
+    counts = {value: non_empty.count(value) for value in unique}
+    return GroupInference(
+        group_column=group_column,
+        case_label=_safe_label(case_value),
+        control_label=_safe_label(control_value),
+        confidence=100,
+        reasons=[f"manual DATASETS_LOCKED grouping column: {group_column}"],
+        warnings=[],
+        value_counts=counts,
+        sample_groups=sample_groups,
+    )
+
+
 def build_metadata_from_inference(
     metadata_table: list[dict[str, str]],
     inference: GroupInference,
@@ -550,6 +633,32 @@ def parse_platform_annotation(path: Path, symbol_column: str | None = None) -> d
             if len(buffered) > 2000:
                 break
     return {}
+
+
+def infer_platform_id(sample_meta: dict[str, list[str]]) -> str:
+    values: list[str] = []
+    for key, items in sample_meta.items():
+        if "platform_id" not in key.lower():
+            continue
+        values.extend(str(item).strip().upper() for item in items if str(item).strip())
+    unique = sorted({item for item in values if re.match(r"^GPL\d+$", item)})
+    return unique[0] if len(unique) == 1 else ""
+
+
+def download_platform_annotation_for_series(
+    data_dir: Path,
+    sample_meta: dict[str, list[str]],
+    *,
+    force: bool = False,
+) -> Path | None:
+    platform_id = infer_platform_id(sample_meta)
+    if not platform_id:
+        return None
+    out = data_dir / f"{platform_id}.annot.gz"
+    try:
+        return download_file(geo_platform_annotation_url(platform_id), out, force)
+    except GeoImportError:
+        return None
 
 
 def collapse_to_gene_matrix(
@@ -861,6 +970,7 @@ def import_geo_series(
         control_n = sum(1 for row in metadata_rows if row["group"] == control_label)
         preview = _sample_preview(sample_meta, samples)
         _ensure_min_samples(accession, case_n, control_n, metadata_rows, warnings, preview)
+        platform_annotation = platform_annotation or download_platform_annotation_for_series(data_dir, sample_meta, force=force_download)
         probe_to_symbol = parse_platform_annotation(platform_annotation, symbol_column) if platform_annotation else {}
         expression = collapse_to_gene_matrix(probe_matrix, samples, metadata_rows, probe_to_symbol)
         if not expression:
@@ -960,6 +1070,7 @@ def import_geo_series_auto(
     control_hint: str = "",
     case_label: str = "",
     control_label: str = "",
+    group_column: str = "",
     min_confidence: int = 55,
 ) -> GeoImportResult:
     accession = accession.upper()
@@ -976,6 +1087,7 @@ def import_geo_series_auto(
                 "inputs": {
                     "case_hint": case_hint,
                     "control_hint": control_hint,
+                    "group_column": group_column,
                     "tissue": tissue,
                     "organism": organism,
                     "platform_annotation": str(platform_annotation) if platform_annotation else "",
@@ -1001,10 +1113,13 @@ def import_geo_series_auto(
             )
         metadata_table = extract_sample_metadata_table(sample_meta, samples)
         profile_path = _write_metadata_profile(data_dir, metadata_table)
-        inference = infer_grouping(metadata_table, case_hint=case_hint, control_hint=control_hint, min_confidence=min_confidence)
-        if case_label.strip():
+        if group_column.strip():
+            inference = infer_grouping_from_column(metadata_table, group_column.strip(), case_label=case_label, control_label=control_label)
+        else:
+            inference = infer_grouping(metadata_table, case_hint=case_hint, control_hint=control_hint, min_confidence=min_confidence)
+        if case_label.strip() and not group_column.strip():
             inference.case_label = _safe_label(case_label)
-        if control_label.strip():
+        if control_label.strip() and not group_column.strip():
             inference.control_label = _safe_label(control_label)
         inference_path = data_dir / "group_inference.json"
         inference_path.write_text(json.dumps(inference.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
@@ -1013,6 +1128,7 @@ def import_geo_series_auto(
         case_n = sum(1 for row in metadata_rows if row["group"] == inference.case_label)
         control_n = sum(1 for row in metadata_rows if row["group"] == inference.control_label)
         _ensure_min_samples(accession, case_n, control_n, metadata_rows, warnings, _sample_preview(sample_meta, samples))
+        platform_annotation = platform_annotation or download_platform_annotation_for_series(data_dir, sample_meta, force=force_download)
         probe_to_symbol = parse_platform_annotation(platform_annotation, symbol_column) if platform_annotation else {}
         expression = collapse_to_gene_matrix(probe_matrix, samples, metadata_rows, probe_to_symbol)
         if not expression:

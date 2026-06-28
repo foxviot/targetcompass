@@ -2,15 +2,20 @@ import json
 from pathlib import Path
 
 
-SUPPORTED_LANGUAGES = {"zh", "en"}
+SUPPORTED_LANGUAGES = {"zh", "en", "ja"}
+LANGUAGE_LABELS = {
+    "zh": "中文",
+    "ja": "日本語",
+    "en": "English",
+}
 
 
 TRANSLATIONS = {
     "zh": {
         "app_title": "TargetCompass Lite",
         "eyebrow": "GPT 引导的靶点发现",
-        "hero_title": "生成、审查、再执行。",
-        "hero_copy": "把研究问题转成 ResearchSpec 和候选点子，再由本地 Agent 审查、运行真实数据分析并输出可复核证据。",
+        "hero_title": "生成、审核、再执行。",
+        "hero_copy": "把研究问题转换成 ResearchSpec 和候选点子，再由本地 Agent 审核、运行真实数据分析并输出可复核证据。",
         "demo_title": "血管衰老 Demo",
         "demo_copy": "六步流程：生成、初审、查证、执行、复审、报告。",
         "api_key": "API Key",
@@ -25,7 +30,7 @@ TRANSLATIONS = {
         "replaceable_methods": "可替换方法",
         "run_status": "运行状态",
         "structured_spec": "结构化 ResearchSpec",
-        "audit_gates": "审查门控",
+        "audit_gates": "审核门控",
         "agent_trace": "Agent 轨迹",
         "idea_feasibility": "点子可行性",
         "manual_review": "人工审核",
@@ -33,7 +38,7 @@ TRANSLATIONS = {
         "method_config": "方法配置",
         "knowledge_registry": "知识库 / 数据库注册",
         "delivery_package": "交付包",
-        "dataset_match_review": "数据集匹配审查",
+        "dataset_match_review": "数据集匹配审核",
         "research_prompt": "研究请求",
         "generation_engine": "生成引擎",
         "idea_volume": "点子数量",
@@ -50,7 +55,13 @@ TRANSLATIONS = {
         "reject": "驳回",
         "remove": "移除",
         "review_note": "审核备注",
-        "switch_language": "Switch to English",
+        "switch_language": "语言",
+        "home": "首页",
+        "flow": "流程",
+        "datasets": "数据集",
+        "report": "报告",
+        "acceptance": "验收",
+        "production": "生产化",
     },
     "en": {
         "app_title": "TargetCompass Lite",
@@ -96,7 +107,65 @@ TRANSLATIONS = {
         "reject": "Reject",
         "remove": "Remove",
         "review_note": "Review note",
-        "switch_language": "切换到中文",
+        "switch_language": "Language",
+        "home": "Home",
+        "flow": "Flow",
+        "datasets": "Datasets",
+        "report": "Report",
+        "acceptance": "Acceptance",
+        "production": "Production",
+    },
+    "ja": {
+        "app_title": "TargetCompass Lite",
+        "eyebrow": "GPT 支援ターゲット探索",
+        "hero_title": "生成し、監査してから実行。",
+        "hero_copy": "研究課題を ResearchSpec と候補アイデアに変換し、ローカル Agent が監査、実データ解析、検証可能な証拠出力を行います。",
+        "demo_title": "血管老化 Demo",
+        "demo_copy": "6 ステップ：生成、初回レビュー、検証、実行、再レビュー、レポート。",
+        "api_key": "API Key",
+        "openai_api_key": "OpenAI API Key",
+        "save_key": "Key を保存",
+        "clear_key": "Key を削除",
+        "system_status": "システム状態",
+        "reset_demo": "Demo をリセット",
+        "reset_demo_button": "出力を削除して Demo を再構築",
+        "agent_request": "Agent 研究リクエスト",
+        "datasets_for_run": "今回使用するデータセット",
+        "replaceable_methods": "置き換え可能な方法",
+        "run_status": "実行状態",
+        "structured_spec": "構造化 ResearchSpec",
+        "audit_gates": "監査ゲート",
+        "agent_trace": "Agent トレース",
+        "idea_feasibility": "アイデア実行可能性",
+        "manual_review": "人手レビュー",
+        "experiment_designs": "実験設計",
+        "method_config": "方法設定",
+        "knowledge_registry": "知識 / データベース登録",
+        "delivery_package": "納品パッケージ",
+        "dataset_match_review": "データセット照合レビュー",
+        "research_prompt": "研究リクエスト",
+        "generation_engine": "生成エンジン",
+        "idea_volume": "候補数",
+        "confirm_spec": "生成された ResearchSpec を確認しました",
+        "run_agent": "GPT-guided Agent を実行",
+        "open_report": "レポートを開く",
+        "save_methods": "方法を保存",
+        "add_resource": "リソースを追加",
+        "adapt_resources": "登録済みリソースを適用",
+        "build_adapter_audit": "Adapter 監査を作成",
+        "export_package": "実行パッケージを出力",
+        "approve": "承認",
+        "review": "レビュー",
+        "reject": "差し戻し",
+        "remove": "削除",
+        "review_note": "レビュー備考",
+        "switch_language": "言語",
+        "home": "ホーム",
+        "flow": "フロー",
+        "datasets": "データセット",
+        "report": "レポート",
+        "acceptance": "受入",
+        "production": "本番化",
     },
 }
 
@@ -120,7 +189,7 @@ def set_language(project_dir: Path, language: str) -> str:
     lang = language if language in SUPPORTED_LANGUAGES else "zh"
     path = language_path(project_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"language": lang}, indent=2), encoding="utf-8")
+    path.write_text(json.dumps({"language": lang}, ensure_ascii=False, indent=2), encoding="utf-8")
     return lang
 
 

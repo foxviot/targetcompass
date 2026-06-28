@@ -11,6 +11,7 @@ from .v4 import content_hash, file_hash, v4_dir
 
 
 SNAPSHOT_SCHEMA = "v4.registry_snapshots/0.1"
+KB_BINDING_SCHEMA = "v4.kb_snapshot_binding/0.1"
 
 
 def build_registry_snapshots(project_dir: Path, rules_path: Path = DEFAULT_RULES) -> dict[str, Any]:
@@ -41,6 +42,53 @@ def build_registry_snapshots(project_dir: Path, rules_path: Path = DEFAULT_RULES
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return payload
+
+
+def bind_project_kb_snapshot(project_dir: Path, rules_path: Path = DEFAULT_RULES, force: bool = False) -> dict[str, Any]:
+    existing = load_project_kb_snapshot(project_dir)
+    if existing and not force:
+        return existing
+    registry_snapshot = build_registry_snapshots(project_dir, rules_path)
+    snapshots = registry_snapshot.get("snapshots", {})
+    seed = {
+        "project_id": project_dir.name,
+        "registry_snapshot_hash": registry_snapshot.get("snapshot_hash", ""),
+        "method_registry": snapshots.get("method_registry", {}).get("hash", ""),
+        "source_registry": snapshots.get("source_registry", {}).get("hash", ""),
+        "rubric": snapshots.get("rubric", {}).get("hash", ""),
+        "causal_review_rubric": snapshots.get("causal_review_rubric", {}).get("hash", ""),
+    }
+    payload = {
+        "schema_version": KB_BINDING_SCHEMA,
+        "project_id": project_dir.name,
+        "kb_snapshot_id": "kb_" + content_hash(seed)[:20],
+        "status": "frozen",
+        "frozen_at": datetime.now(timezone.utc).isoformat(),
+        "registry_snapshot": "v4/registry_snapshots.json",
+        "registry_snapshot_hash": registry_snapshot.get("snapshot_hash", ""),
+        "components": {
+            "method_registry": snapshots.get("method_registry", {}).get("hash", ""),
+            "source_registry": snapshots.get("source_registry", {}).get("hash", ""),
+            "scoring_rubric": snapshots.get("rubric", {}).get("hash", ""),
+            "causal_review_rubric": snapshots.get("causal_review_rubric", {}).get("hash", ""),
+        },
+        "policy": "Project runs must reference this kb_snapshot_id until an explicit forced rebind creates a new project revision.",
+    }
+    path = project_kb_snapshot_path(project_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return payload
+
+
+def project_kb_snapshot_path(project_dir: Path) -> Path:
+    return v4_dir(project_dir) / "kb_snapshot.json"
+
+
+def load_project_kb_snapshot(project_dir: Path) -> dict[str, Any]:
+    path = project_kb_snapshot_path(project_dir)
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def registry_snapshot_path(project_dir: Path) -> Path:

@@ -4,26 +4,24 @@ from pathlib import Path
 from typing import Any
 
 from .agent_roles import AGENT_ROLES
+from .agent_method_executor import record_agent_method_recovery
 from .methods.registry import load_method_config
-from .role_runner import load_role_runs
+from .role_execution_dispatcher import dispatch_agent_role_execution
+from .role_runner import load_role_runs, run_role
+from .orchestration_policies import (
+    GENERATOR_ROLES,
+    REVIEWER_ROLES,
+    ROLE_DEPENDENCIES,
+    approval_policy_for_role,
+    fallback_policy_for_role,
+    retry_policy_for_role,
+)
 from .schema_validation import validate_object
 from .v4 import content_hash, v4_dir
 
 
 ORCHESTRATION_SCHEMA = "v4.typed_orchestration_graph/0.1"
-
-ROLE_DEPENDENCIES = {
-    "disease_normalizer": [],
-    "dataset_scout": ["disease_normalizer"],
-    "planner": ["dataset_scout"],
-    "method_reviewer": ["planner"],
-    "result_reviewer": ["method_reviewer"],
-    "causal_reviewer": ["result_reviewer"],
-    "report_writer": ["result_reviewer", "causal_reviewer"],
-}
-
-REVIEWER_ROLES = {"method_reviewer", "result_reviewer", "causal_reviewer"}
-GENERATOR_ROLES = {"disease_normalizer", "dataset_scout", "planner", "report_writer"}
+ORCHESTRATION_RUN_SCHEMA = "v4.typed_orchestration_run/0.1"
 
 REVIEW_ITEM_SCHEMA = {
     "type": "object",
@@ -166,8 +164,71 @@ def build_typed_orchestration_graph(project_dir: Path) -> dict[str, Any]:
     return payload
 
 
+def run_typed_orchestration(
+    project_dir: Path,
+    role_id: str = "",
+    force: bool = False,
+    actor: str = "orchestrator",
+) -> dict[str, Any]:
+    graph_before = build_typed_orchestration_graph(project_dir)
+    selected_roles = _roles_to_run(role_id)
+    node_index = {row["role_id"]: row for row in graph_before.get("nodes", [])}
+    attempts = []
+    status = "success"
+    for current_role in selected_roles:
+        deps = ROLE_DEPENDENCIES.get(current_role, [])
+        blocked = [
+            dep
+            for dep in deps
+            if dep in selected_roles[: selected_roles.index(current_role)]
+            and not _latest_valid(project_dir, dep)
+        ]
+        blocked.extend(dep for dep in deps if dep not in selected_roles and not _latest_valid(project_dir, dep))
+        if blocked:
+            attempts.append(
+                {
+                    "role_id": current_role,
+                    "status": "blocked",
+                    "reason": f"dependency not valid: {', '.join(blocked)}",
+                    "dependencies": blocked,
+                }
+            )
+            if status == "success":
+                status = "blocked"
+            continue
+        node = node_index.get(current_role, {})
+        if not force and node.get("schema_valid"):
+            attempts.append({"role_id": current_role, "status": "skipped", "reason": "latest role run is schema valid"})
+            continue
+        attempts.append(_run_role_with_retry(project_dir, current_role, actor=actor, force=force))
+        if attempts[-1]["status"] != "success":
+            status = "failed"
+    graph_after = build_typed_orchestration_graph(project_dir)
+    payload = {
+        "schema_version": ORCHESTRATION_RUN_SCHEMA,
+        "project_id": project_dir.name,
+        "role_id": role_id,
+        "force": force,
+        "actor": actor,
+        "status": status,
+        "attempts": attempts,
+        "graph_before": graph_before.get("graph_hash", ""),
+        "graph_after": graph_after.get("graph_hash", ""),
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+    }
+    path = typed_orchestration_run_path(project_dir)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return payload
+
+
 def typed_orchestration_graph_path(project_dir: Path) -> Path:
     path = v4_dir(project_dir) / "typed_orchestration_graph.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def typed_orchestration_run_path(project_dir: Path) -> Path:
+    path = v4_dir(project_dir) / "typed_orchestration_last_run.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -190,39 +251,10 @@ def validate_role_output_packet(project_dir: Path, role_id: str, role_run: dict[
     }
 
 
-def retry_policy_for_role(role_id: str) -> dict[str, Any]:
-    return {
-        "max_attempts": 2 if role_id in REVIEWER_ROLES else 1,
-        "retry_on": ["schema_validation_failed", "transient_tool_failure"],
-        "backoff_seconds": [0, 5],
-    }
-
-
-def fallback_policy_for_role(role_id: str) -> dict[str, Any]:
-    return {
-        "fallback_allowed": True,
-        "fallback_method": {
-            "disease_normalizer": "local_disease_normalizer_v0",
-            "dataset_scout": "local_dataset_scout_v0",
-            "planner": "local_planner_v0",
-            "method_reviewer": "local_method_reviewer_v0",
-            "result_reviewer": "local_result_reviewer_v0",
-            "causal_reviewer": "local_causal_reviewer_v0",
-            "report_writer": "local_report_writer_v0",
-        }[role_id],
-        "requires_review_after_fallback": role_id in REVIEWER_ROLES,
-    }
-
-
-def approval_policy_for_role(role_id: str) -> dict[str, Any]:
-    return {
-        "can_approve_outputs": role_id in REVIEWER_ROLES,
-        "cannot_approve_roles": sorted(GENERATOR_ROLES if role_id in GENERATOR_ROLES else [role_id]),
-        "must_write_review_items": role_id in REVIEWER_ROLES,
-    }
-
-
 def _normalize_output(role_id: str, project_dir: Path, output_packet: dict[str, Any]) -> dict[str, Any]:
+    typed = output_packet.get("typed_output")
+    if isinstance(typed, dict):
+        return typed
     refs = set(output_packet.get("output_refs", []))
     summary = output_packet.get("output_summary", {})
     if role_id == "disease_normalizer":
@@ -314,3 +346,94 @@ def _read_json(path: Path, default: Any) -> Any:
 
 def _public_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in schema.items() if key != "properties"} | {"properties": schema.get("properties", {})}
+
+
+def _roles_to_run(role_id: str) -> list[str]:
+    all_roles = [role["role_id"] for role in AGENT_ROLES]
+    if not role_id:
+        return all_roles
+    if role_id not in all_roles:
+        raise ValueError(f"unknown role_id: {role_id}")
+    required = []
+    seen = set()
+
+    def visit(current: str) -> None:
+        for dep in ROLE_DEPENDENCIES.get(current, []):
+            visit(dep)
+        if current not in seen:
+            required.append(current)
+            seen.add(current)
+
+    visit(role_id)
+    return required
+
+
+def _latest_valid(project_dir: Path, role_id: str) -> bool:
+    return validate_role_output_packet(project_dir, role_id).get("valid", False)
+
+
+def _run_role_with_retry(project_dir: Path, role_id: str, actor: str, force: bool = False) -> dict[str, Any]:
+    retry_policy = retry_policy_for_role(role_id)
+    fallback = fallback_policy_for_role(role_id)
+    attempts = []
+    last_error = ""
+    for attempt_no in range(1, retry_policy["max_attempts"] + 1):
+        method_id = None if attempt_no == 1 else fallback["fallback_method"]
+        try:
+            output, record = run_role(
+                project_dir,
+                role_id,
+                _input_refs_for_role(role_id),
+                lambda role_id=role_id, method_id=method_id: _dispatch_role_output(project_dir, role_id, method_id, attempt_no, actor, force),
+                runner="agent_method_executor",
+                method_id=method_id,
+                parameters={"attempt": attempt_no, "actor": actor, "force": force},
+            )
+            validation = validate_role_output_packet(project_dir, role_id, record)
+            output_packet = _read_json(project_dir / record.get("output_packet", ""), {})
+            attempts.append(
+                {
+                    "attempt": attempt_no,
+                    "role_run_id": record["role_run_id"],
+                    "method_id": record.get("method_id", ""),
+                    "executor_backend": output_packet.get("execution_dispatch", {}).get("executor_backend", "unknown"),
+                    "model": record.get("model", ""),
+                    "artifacts": output_packet.get("execution_dispatch", {}).get("artifacts", {}),
+                    "schema_valid": validation["valid"],
+                    "schema_errors": validation["errors"],
+                }
+            )
+            if validation["valid"]:
+                return {"role_id": role_id, "status": "success", "attempts": attempts}
+            last_error = "; ".join(validation["errors"])
+            record_agent_method_recovery(
+                project_dir,
+                role_id,
+                f"schema_validation_failed: {last_error}",
+                input_refs=_input_refs_for_role(role_id),
+                parameters={"attempt": attempt_no, "actor": actor},
+                call_id=record.get("role_run_id", ""),
+            )
+        except Exception as exc:
+            attempts.append({"attempt": attempt_no, "status": "failed", "failure_reason": str(exc), "method_id": method_id or ""})
+            last_error = str(exc)
+    return {"role_id": role_id, "status": "failed", "failure_reason": last_error, "attempts": attempts}
+
+
+def _dispatch_role_output(project_dir: Path, role_id: str, method_id: str | None, attempt_no: int, actor: str, force: bool) -> dict[str, Any]:
+    dispatch = dispatch_agent_role_execution(
+        project_dir,
+        role_id,
+        _input_refs_for_role(role_id),
+        method_id=method_id,
+        parameters={"attempt": attempt_no, "actor": actor, "force": force},
+        actor=actor,
+    )
+    typed = dispatch["typed_output"]
+    if isinstance(typed, dict):
+        typed = {**typed, "_execution_dispatch": {key: value for key, value in dispatch.items() if key != "typed_output"}}
+    return typed
+
+
+def _input_refs_for_role(role_id: str) -> dict[str, Any]:
+    return {"role_id": role_id, "declared_dependencies": ROLE_DEPENDENCIES.get(role_id, [])}

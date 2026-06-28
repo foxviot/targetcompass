@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .codex_engineering import load_codex_engineering
+from .evidence_db import migrate_evidence_db
 from .trace_orchestrator import refresh_traceability
 
 
@@ -16,6 +17,20 @@ REPORT_SECTIONS = [
     "研究问题与边界",
     "方法与模块",
     "数据来源与QC",
+    "候选排序",
+    "证据链",
+    "限制与风险",
+    "实验建议",
+    "审批与审计",
+]
+
+
+REPORT_SECTIONS = [
+    "执行摘要",
+    "研究问题与边界",
+    "方法与模块",
+    "真实文献与数据库验证",
+    "数据来源与 QC",
     "候选排序",
     "证据链",
     "限制与风险",
@@ -111,6 +126,7 @@ def _dataset_records(context: dict[str, Any]) -> list[dict[str, str]]:
                 "grade": row.get("grade", ""),
                 "modality": row.get("modality", ""),
                 "metadata_quality": (row.get("metadata_quality_label", "") + " " + row.get("metadata_quality_score", "")).strip(),
+                "gene_identity": row.get("gene_identity_status", ""),
                 "recommended_use": row.get("recommended_use", ""),
                 "match_status": match.get("match_status", ""),
                 "notes": match.get("warnings", "") or row.get("reasons", ""),
@@ -127,6 +143,7 @@ def _dataset_rows(context: dict[str, Any]) -> list[list[str]]:
             row["grade"],
             row["modality"],
             row["metadata_quality"],
+            row["gene_identity"],
             row["recommended_use"],
             row["match_status"],
             row["notes"],
@@ -236,6 +253,46 @@ def _meta_analysis_rows(project_dir: Path) -> list[list[str]]:
     ]
 
 
+def _sasp_dataset_records(project_dir: Path) -> list[dict[str, str]]:
+    return _read_tsv(project_dir / "results" / "sasp_score" / "sasp_dataset_scores.tsv")
+
+
+def _sasp_gene_records(project_dir: Path) -> list[dict[str, str]]:
+    return _read_tsv(project_dir / "results" / "sasp_score" / "sasp_gene_scores.tsv")[:30]
+
+
+def _sasp_dataset_rows(project_dir: Path) -> list[list[str]]:
+    rows = _sasp_dataset_records(project_dir)
+    return [
+        [
+            row.get("dataset_id", ""),
+            row.get("matched_sasp_genes", ""),
+            row.get("up_sasp_genes", ""),
+            row.get("down_sasp_genes", ""),
+            row.get("sasp_dataset_score", ""),
+            row.get("top_sasp_gene", ""),
+            row.get("status", ""),
+            row.get("deg_artifact", ""),
+        ]
+        for row in rows
+    ] or [["", "", "", "", "", "", "NOT_RUN", "Run python tc_lite.py sasp-score --project <project>"]]
+
+
+def _sasp_gene_rows(project_dir: Path) -> list[list[str]]:
+    return [
+        [
+            row.get("dataset_id", ""),
+            row.get("gene_symbol", ""),
+            row.get("logFC", ""),
+            row.get("adj_p_value", ""),
+            row.get("direction", ""),
+            row.get("sasp_component_score", ""),
+            row.get("source_artifact", ""),
+        ]
+        for row in _sasp_gene_records(project_dir)
+    ]
+
+
 def _causal_evidence_records(project_dir: Path) -> list[dict[str, str]]:
     return _read_tsv(project_dir / "results" / "causal_evidence" / "causal_evidence_grades.tsv")[:30]
 
@@ -294,26 +351,13 @@ def _review_status(scores: list[dict[str, str]], matches: list[dict[str, str]], 
 
 
 def _evidence_by_gene(project_dir: Path, genes: list[str]) -> dict[str, list[dict[str, Any]]]:
-    con = sqlite3.connect(project_dir / "evidence.sqlite", timeout=30)
-    con.row_factory = sqlite3.Row
-    try:
-        out = {}
-        for gene in genes:
-            rows = con.execute(
-                """
-                SELECT evidence_id, evidence_type, direction, effect_size, p_value, quality_score,
-                       review_status, source_dataset, artifact_path, run_id, artifact_id,
-                       module_version, limitation
-                FROM evidence_item
-                WHERE entity_symbol = ?
-                ORDER BY evidence_type, source_dataset, artifact_path
-                """,
-                (gene,),
-            ).fetchall()
-            out[gene] = [dict(row) for row in rows]
-        return out
-    finally:
-        con.close()
+    migrate_evidence_db(project_dir)
+    from .evidence_repository import load_evidence_rows
+
+    out = {}
+    for gene in genes:
+        out[gene] = load_evidence_rows(project_dir, gene=gene, limit=1000)["rows"]
+    return out
 
 
 def _evidence_records(project_dir: Path, scores: list[dict[str, str]]) -> list[dict[str, Any]]:
@@ -337,6 +381,111 @@ def _evidence_records(project_dir: Path, scores: list[dict[str, str]]) -> list[d
     return records
 
 
+def _fmt_number(value: Any) -> str:
+    if value in (None, ""):
+        return ""
+    try:
+        return f"{float(value):.4g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _short_evidence_ref(ev: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "evidence_id": ev.get("evidence_id", ""),
+        "evidence_type": ev.get("evidence_type", ""),
+        "source_dataset": ev.get("source_dataset", "") or "",
+        "artifact_path": ev.get("artifact_path", "") or "",
+        "evidence_level": ev.get("evidence_level", "") or "",
+        "evidence_weight": ev.get("evidence_weight", ""),
+        "quality_score": ev.get("quality_score", ""),
+        "limitation": ev.get("limitation", "") or "",
+    }
+
+
+def _candidate_evidence_cards(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+    for record in records:
+        evidence = record.get("evidence", [])
+        sasp = [ev for ev in evidence if ev.get("evidence_type") == "sasp_score"]
+        cell = [ev for ev in evidence if ev.get("evidence_type") == "cell_type_expression"]
+        surface = [ev for ev in evidence if ev.get("evidence_type") in {"surface_marker_annotation", "accessibility"}]
+        sasp_sorted = sorted(sasp, key=lambda ev: float(ev.get("quality_score") or 0), reverse=True)
+        cell_sorted = sorted(cell, key=lambda ev: float(ev.get("quality_score") or 0), reverse=True)
+        surface_sorted = sorted(surface, key=lambda ev: float(ev.get("quality_score") or 0), reverse=True)
+        best_sasp = sasp_sorted[0] if sasp_sorted else {}
+        best_cell = cell_sorted[0] if cell_sorted else {}
+        best_surface = surface_sorted[0] if surface_sorted else {}
+        cell_context = "; ".join(
+            sorted(
+                {
+                    " / ".join(part for part in [str(ev.get("tissue") or "").strip(), str(ev.get("source_dataset") or "").strip()] if part)
+                    for ev in cell_sorted[:4]
+                }
+            )
+        )
+        cards.append(
+            {
+                "gene": record.get("gene", ""),
+                "score": record.get("score", ""),
+                "tier": record.get("tier", ""),
+                "route": best_surface.get("route", "") or "",
+                "sasp": {
+                    "status": "present" if sasp else "missing",
+                    "best_component_score": _fmt_number(best_sasp.get("effect_size")),
+                    "direction": best_sasp.get("direction", "") or "",
+                    "dataset": best_sasp.get("source_dataset", "") or "",
+                    "evidence_count": len(sasp),
+                    "evidence": [_short_evidence_ref(ev) for ev in sasp_sorted[:3]],
+                },
+                "cell_type": {
+                    "status": "present" if cell else "missing",
+                    "context": cell_context,
+                    "best_source": best_cell.get("source_dataset", "") or "",
+                    "evidence_count": len(cell),
+                    "evidence": [_short_evidence_ref(ev) for ev in cell_sorted[:3]],
+                },
+                "surface_or_secreted": {
+                    "status": "present" if surface else "missing",
+                    "route": best_surface.get("route", "") or record.get("route", ""),
+                    "best_source": best_surface.get("source_dataset", "") or "",
+                    "evidence_count": len(surface),
+                    "evidence": [_short_evidence_ref(ev) for ev in surface_sorted[:3]],
+                },
+            }
+        )
+    return cards
+
+
+def _candidate_evidence_card_html(cards: list[dict[str, Any]]) -> str:
+    if not cards:
+        return '<p class="note">No candidate evidence cards available. Run evidence import, scoring, and report generation.</p>'
+    blocks = []
+    for card in cards:
+        gene = card.get("gene", "")
+        sasp = card.get("sasp", {})
+        cell = card.get("cell_type", {})
+        surface = card.get("surface_or_secreted", {})
+        blocks.append(
+            '<article class="candidate-card">'
+            f'<div class="candidate-card-head"><a href="#evidence-{html.escape(gene)}">{html.escape(gene)}</a>'
+            f'<span>Score {html.escape(str(card.get("score", "")))} · Tier {html.escape(str(card.get("tier", "")))}</span></div>'
+            '<div class="signal-grid">'
+            f'<div class="signal"><strong>SASP</strong><span class="status {html.escape(str(sasp.get("status", "")))}">{html.escape(str(sasp.get("status", "")))}</span>'
+            f'<p>component {html.escape(str(sasp.get("best_component_score", "")))} · {html.escape(str(sasp.get("direction", "")))} · {html.escape(str(sasp.get("dataset", "")))}</p>'
+            f'<small>{html.escape(str(sasp.get("evidence_count", 0)))} evidence item(s)</small></div>'
+            f'<div class="signal"><strong>Cell / tissue</strong><span class="status {html.escape(str(cell.get("status", "")))}">{html.escape(str(cell.get("status", "")))}</span>'
+            f'<p>{html.escape(str(cell.get("context", "") or "No cell-type evidence linked"))}</p>'
+            f'<small>{html.escape(str(cell.get("best_source", "")))} · {html.escape(str(cell.get("evidence_count", 0)))} item(s)</small></div>'
+            f'<div class="signal"><strong>Surface / secreted</strong><span class="status {html.escape(str(surface.get("status", "")))}">{html.escape(str(surface.get("status", "")))}</span>'
+            f'<p>{html.escape(str(surface.get("route", "") or "No accessible route linked"))}</p>'
+            f'<small>{html.escape(str(surface.get("best_source", "")))} · {html.escape(str(surface.get("evidence_count", 0)))} item(s)</small></div>'
+            '</div>'
+            '</article>'
+        )
+    return "".join(blocks)
+
+
 def _evidence_sections(records: list[dict[str, Any]]) -> str:
     sections = []
     for record in records:
@@ -346,8 +495,11 @@ def _evidence_sections(records: list[dict[str, Any]]) -> str:
                 ev.get("evidence_id", ""),
                 ev.get("source_dataset", "") or "",
                 ev.get("direction", "") or "",
-                "" if ev.get("effect_size") is None else f"{ev.get('effect_size'):.4g}",
-                "" if ev.get("p_value") is None else f"{ev.get('p_value'):.4g}",
+                _fmt_number(ev.get("effect_size")),
+                _fmt_number(ev.get("p_value")),
+                ev.get("evidence_level", "") or "",
+                ev.get("evidence_weight", "") or "",
+                ev.get("evidence_basis", "") or "",
                 ev.get("artifact_path", "") or "",
                 ev.get("run_id", "") or "",
                 ev.get("artifact_id", "") or "",
@@ -359,9 +511,56 @@ def _evidence_sections(records: list[dict[str, Any]]) -> str:
         sections.append(
             f'<h3 id="evidence-{html.escape(gene)}">{html.escape(gene)} evidence chain</h3>'
             f'<p class="note">score_id: <code>{html.escape(record.get("score_id", ""))}</code> | snapshot: <code>{html.escape(record.get("evidence_snapshot_id", ""))}</code></p>'
-            + _table(["Evidence", "Evidence ID", "Dataset", "Direction", "Effect", "P/adj.P", "Artifact", "Run", "Artifact ID", "Limitation"], ev_rows)
+            + _table(["Evidence", "Evidence ID", "Dataset", "Direction", "Effect", "P/adj.P", "Level", "Weight", "Basis", "Artifact", "Run", "Artifact ID", "Limitation"], ev_rows)
         )
     return "".join(sections)
+
+
+def _cell_type_summary(project_dir: Path) -> dict[str, Any]:
+    return _read_json(project_dir / "results" / "cell_type_evidence" / "cell_type_summary.json", {"row_count": 0, "cell_type_by_gene": {}, "by_source": {}})
+
+
+def _cell_type_rows(project_dir: Path, scores: list[dict[str, str]]) -> list[list[str]]:
+    summary = _cell_type_summary(project_dir)
+    by_gene = summary.get("cell_type_by_gene", {})
+    ordered_genes = [row.get("entity_symbol", "") for row in scores[:20]]
+    rows = []
+    for gene in ordered_genes:
+        for item in by_gene.get(gene, [])[:8]:
+            rows.append(
+                [
+                    gene,
+                    item.get("cell_type", ""),
+                    item.get("tissue", ""),
+                    item.get("evidence_source", ""),
+                    item.get("confidence", ""),
+                    item.get("artifact_path", ""),
+                    item.get("context", ""),
+                    item.get("limitation", ""),
+                ]
+            )
+    if not rows:
+        rows.append(["", "No cell-type evidence built yet", "", "", "", "results/cell_type_evidence/cell_type_evidence.tsv", "Run cell-type-evidence after HPA/PanglaoDB/CellMarker/scRNA/full-text inputs are available.", ""])
+    return rows
+
+
+def _recovery_summary(project_dir: Path) -> dict[str, Any]:
+    return _read_json(project_dir / "results" / "recovery" / "recovery_manifest.json", {"item_count": 0, "open_count": 0, "items": []})
+
+
+def _recovery_rows(project_dir: Path) -> list[list[str]]:
+    manifest = _recovery_summary(project_dir)
+    return [
+        [
+            row.get("stage", ""),
+            row.get("status", ""),
+            row.get("reason", ""),
+            row.get("suggested_action", ""),
+            row.get("manual_correction", ""),
+            row.get("source_artifact", ""),
+        ]
+        for row in manifest.get("items", [])[:30]
+    ] or [["", "PASS", "No open recovery items in manifest", "", "", "results/recovery/recovery_manifest.json"]]
 
 
 def _audit_rows(context: dict[str, Any]) -> tuple[list[list[str]], list[list[str]], list[list[str]]]:
@@ -464,6 +663,7 @@ def _limitation_records(context: dict[str, Any]) -> list[dict[str, str]]:
 def _structured_report(project_dir: Path, context: dict[str, Any]) -> dict[str, Any]:
     spec = context["spec"]
     evidence = _evidence_records(project_dir, context["scores"])
+    candidate_evidence_cards = _candidate_evidence_cards(evidence)
     return {
         "project": project_dir.name,
         "report_version": "0.4",
@@ -492,10 +692,18 @@ def _structured_report(project_dir: Path, context: dict[str, Any]) -> dict[str, 
         },
         "advanced_analysis": {
             "meta_analysis": _meta_analysis_records(project_dir),
+            "sasp_score": {
+                "datasets": _sasp_dataset_records(project_dir),
+                "genes": _sasp_gene_records(project_dir),
+                "manifest": _read_json(project_dir / "results" / "sasp_score" / "run_manifest.json", {}),
+            },
             "causal_evidence": _causal_evidence_records(project_dir),
         },
         "candidate_ranking": context["scores"][:20],
+        "candidate_evidence_cards": candidate_evidence_cards,
         "evidence_chain": evidence,
+        "cell_type_evidence": _cell_type_summary(project_dir),
+        "failure_recovery": _recovery_summary(project_dir),
         "report_evidence_refs": {
             row.get("gene", ""): {
                 "score_id": row.get("score_id", ""),
@@ -549,6 +757,19 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
     th {{ background: #f6f8fa; }}
     .grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
     .card {{ border: 1px solid #d8dee4; border-radius: 8px; padding: 12px 14px; background: #fff; }}
+    .candidate-card {{ border: 1px solid #d8dee4; border-radius: 8px; padding: 14px; margin: 14px 0; background: #fbfcfd; }}
+    .candidate-card-head {{ display: flex; justify-content: space-between; gap: 14px; align-items: baseline; margin-bottom: 12px; }}
+    .candidate-card-head a {{ font-size: 18px; font-weight: 700; color: #0969da; text-decoration: none; }}
+    .candidate-card-head span {{ color: #5f6368; font-size: 13px; }}
+    .signal-grid {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }}
+    .signal {{ background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 10px; min-height: 96px; }}
+    .signal strong {{ display: block; margin-bottom: 8px; }}
+    .signal p {{ margin: 6px 0; font-size: 13px; }}
+    .signal small {{ color: #5f6368; }}
+    .status {{ display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; background: #f6f8fa; border: 1px solid #d8dee4; }}
+    .status.present {{ color: #116329; background: #dafbe1; border-color: #aceebb; }}
+    .status.missing {{ color: #8a4600; background: #fff8c5; border-color: #d4a72c; }}
+    @media (max-width: 860px) {{ .signal-grid, .grid {{ grid-template-columns: 1fr; }} .candidate-card-head {{ display: block; }} }}
     .note {{ color: #5f6368; }}
     .warning {{ background: #fff8c5; border: 1px solid #d4a72c; padding: 10px 12px; border-radius: 6px; }}
     .decision {{ font-size: 18px; font-weight: 700; padding: 12px 14px; border-radius: 6px; background: #ddf4ff; border: 1px solid #54aeef; }}
@@ -581,13 +802,17 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
   </section>
 
   <section id="data-qc"><h2>数据来源与QC</h2>
-    {_table(["Dataset", "Source class", "Grade", "Modality", "Metadata quality", "Use", "Match", "Notes"], _dataset_rows(context))}
+    {_table(["Dataset", "Source class", "Grade", "Modality", "Metadata quality", "Gene identity", "Use", "Match", "Notes"], _dataset_rows(context))}
     <h3>Bulk RNA / microarray QC</h3>
     {_table(["Dataset", "Matrix type", "Runner", "Case n", "Control n", "Genes", "Full rank", "Batch covariates", "QC"], _deg_qc_rows(project_dir))}
     <h3>Enrichment overview</h3>
     {_table(["Dataset", "Term ID", "Term", "Overlap", "Adj.P", "Genes", "Source"], _enrichment_rows(project_dir))}
     <h3>Meta-analysis overview</h3>
     {_table(["Gene", "Datasets", "Mean logFC", "Random logFC", "Direction", "Consistency", "I2", "QC", "Combined score", "Sources"], _meta_analysis_rows(project_dir))}
+    <h3>SASP score overview</h3>
+    <p class="note">SASP score is computed from real DEG outputs using a configurable SASP core gene set. It is phenotype evidence, not causal proof.</p>
+    {_table(["Dataset", "Matched SASP genes", "Up", "Down", "Dataset score", "Top SASP gene", "Status", "Artifact"], _sasp_dataset_rows(project_dir))}
+    {_table(["Dataset", "Gene", "logFC", "Adj.P", "Direction", "Component score", "Artifact"], _sasp_gene_rows(project_dir))}
     <h3>Causal evidence grading</h3>
     {_table(["Gene", "Grade", "Support", "Methods", "Evidence types", "Count", "Best P", "Review flags", "Review", "Artifacts", "Rationale"], _causal_evidence_rows(project_dir))}
   </section>
@@ -597,7 +822,22 @@ def _html_report(project_dir: Path, context: dict[str, Any], structured: dict[st
   </section>
 
   <section id="evidence-chain"><h2>证据链</h2>
+    <div id="candidate-evidence-cards">
+      <h3>候选基因证据卡</h3>
+      <p class="note">每张卡把候选基因的 SASP 评分、细胞/组织证据、表面或分泌可及性集中展示；点击基因名可跳到完整 EvidenceItem 追溯链。</p>
+      {_candidate_evidence_card_html(structured.get("candidate_evidence_cards", []))}
+    </div>
     {_evidence_sections(evidence_records)}
+  </section>
+
+  <section id="cell-type-evidence"><h2>细胞类型证据</h2>
+    <p class="note">回答“这个分子表达在哪类细胞上”。证据可来自 HPA、PanglaoDB、CellMarker、scRNA pseudobulk 或全文 LLM 抽取；每行保留来源和限制。</p>
+    {_table(["Gene", "Cell type", "Tissue", "Source", "Confidence", "Artifact", "Context", "Limitation"], _cell_type_rows(project_dir, scores))}
+  </section>
+
+  <section id="failure-recovery"><h2>失败恢复与人工补正</h2>
+    <p class="note">记录数据库、GEO、全文和长任务失败原因，并给出可重试命令或人工补正路径。</p>
+    {_table(["Stage", "Status", "Reason", "Suggested action", "Manual correction", "Artifact"], _recovery_rows(project_dir))}
   </section>
 
   <section id="limitations"><h2>限制与风险</h2>
@@ -662,12 +902,9 @@ def _build_context(project_dir: Path) -> dict[str, Any]:
     screening = _read_csv(project_dir / "eligible_datasets.csv")
     matches = _read_csv(project_dir / "dataset_match_report.csv")
     unknown_review = _read_tsv(project_dir / "results" / "annotation" / "unknown_review.tsv")
-    con = sqlite3.connect(project_dir / "evidence.sqlite", timeout=30)
-    con.row_factory = sqlite3.Row
-    try:
-        evidence_count = con.execute("SELECT COUNT(*) AS n FROM evidence_item").fetchone()["n"]
-    finally:
-        con.close()
+    from .evidence_repository import load_evidence_rows
+
+    evidence_count = len(load_evidence_rows(project_dir, limit=100000)["rows"])
     decision, checklist = _review_status(scores, matches, unknown_review)
     return {
         "scores": scores,
@@ -748,4 +985,16 @@ def build_report(project_dir: Path) -> tuple[Path, Path]:
         _write_docx(docx_path, project_dir, context, structured)
     except Exception:
         docx_path.write_text(html_text, encoding="utf-8")
+    try:
+        from .output_backend import publish_output_artifacts
+
+        publish_output_artifacts(
+            project_dir,
+            [html_path, docx_path, structured_path],
+            producer="reporting",
+            artifact_type="target_report_output",
+            task_id="reporting",
+        )
+    except Exception:
+        pass
     return html_path, docx_path

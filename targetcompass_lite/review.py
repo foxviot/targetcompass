@@ -184,6 +184,20 @@ def build_review_queue(project_dir: Path, refresh_trace: bool = False) -> dict:
                 "report_ref": _default_report_ref("codex_result", result.get("result_id", "")),
             }
         )
+    for item in _load_qc_review_items(project_dir, refresh=True):
+        if item.get("status") == "approve":
+            continue
+        queue.append(
+            {
+                "item_type": "qc_gate",
+                "item_id": item.get("item_id", ""),
+                "title": f"QC gate: {item.get('module_id', '')}",
+                "execution_status": item.get("evidence_import", ""),
+                "review_status": item.get("status", "pending"),
+                "reason": item.get("reason", ""),
+                "report_ref": item.get("report_ref", _default_report_ref("qc_gate", item.get("item_id", ""))),
+            }
+        )
     reviews = load_reviews(project_dir)
     approved = sum(1 for row in reviews if row.get("action") == "approve")
     rejected = sum(1 for row in reviews if row.get("action") == "reject")
@@ -203,7 +217,7 @@ def build_review_queue(project_dir: Path, refresh_trace: bool = False) -> dict:
 
 
 def update_approval_state(project_dir: Path, status: str | None = None, signer: str = "", reason: str = "") -> dict:
-    queue = build_review_queue(project_dir) if not review_queue_path(project_dir).exists() else json.loads(review_queue_path(project_dir).read_text(encoding="utf-8"))
+    queue = build_review_queue(project_dir) if status in {"signed_off", "rejected"} or not review_queue_path(project_dir).exists() else json.loads(review_queue_path(project_dir).read_text(encoding="utf-8"))
     reviews = load_reviews(project_dir)
     if status is None:
         status = "ready_for_signoff" if queue.get("queue_count", 0) == 0 and reviews else "review_required"
@@ -307,6 +321,8 @@ def _apply_review_to_artifacts(project_dir: Path, review: dict) -> None:
             reviewer=review["reviewer"],
         )
         return
+    if review["item_type"] == "qc_gate":
+        return
     if review["item_type"] == "causal_grade":
         rows = _load_causal_grades(project_dir)
         changed = False
@@ -399,6 +415,24 @@ def _artifact_snapshot(project_dir: Path, item_type: str, item_id: str) -> dict:
                 ]
                 return {key: result.get(key, "") for key in keys}
         return {}
+    if item_type == "qc_gate":
+        for item in _load_qc_review_items(project_dir):
+            if item.get("item_id") == item_id or item.get("task_id") == item_id or item.get("module_id") == item_id:
+                keys = [
+                    "item_id",
+                    "task_id",
+                    "module_id",
+                    "dataset_id",
+                    "status",
+                    "qc_report",
+                    "decision",
+                    "reason",
+                    "evidence_import",
+                    "evidence_summary",
+                    "report_ref",
+                ]
+                return {key: item.get(key, "") for key in keys}
+        return {}
     if item_type == "causal_grade":
         for row in _load_causal_grades(project_dir):
             if row.get("gene_symbol") == item_id:
@@ -446,6 +480,21 @@ def _load_ideas(project_dir: Path) -> list[dict]:
     if not path.exists():
         return []
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_qc_review_items(project_dir: Path, refresh: bool = False) -> list[dict]:
+    path = project_dir / "v4" / "qc_review_queue.json"
+    if refresh or not path.exists():
+        try:
+            from .qc_review import build_qc_review_queue
+
+            return build_qc_review_queue(project_dir).get("items", [])
+        except Exception:
+            return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("items", [])
+    except Exception:
+        return []
 
 
 def _causal_grades_path(project_dir: Path) -> Path:

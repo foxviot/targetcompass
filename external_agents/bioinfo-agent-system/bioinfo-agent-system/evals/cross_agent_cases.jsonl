@@ -1,0 +1,1 @@
+{"case_id":"root_cross_agent_t2d","expected_selected_datasets":["MOCK-GSE-T2D-ADIPOSE-001","MOCK-CELLXGENE-ADIPOSE-002"],"expected_blocked_contracts":["causal_mr_support","wetlab_validation","vaccine_antigen_validation"]}

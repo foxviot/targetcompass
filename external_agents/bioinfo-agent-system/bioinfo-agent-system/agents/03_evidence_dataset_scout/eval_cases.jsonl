@@ -1,0 +1,1 @@
+{"case_id":"a3_eval_t2d","input_ref":"a2_eval_t2d","assertions":{"has_primary":true,"has_fallback":true,"has_reject":true,"claim_ceiling":"co_expression"}}

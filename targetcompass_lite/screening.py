@@ -1,6 +1,7 @@
 import csv
 from pathlib import Path
 
+from .gene_identity_qc import assess_expression_gene_identity
 from .validators import load_dataset_card, validate_dataset_card
 
 
@@ -46,6 +47,10 @@ def validate_bulk_files(card: dict, project_dir: Path | None = None) -> list[str
         errors.append("metadata sample_id values must be unique")
     if expr_samples and meta_samples and set(expr_samples) != set(meta_samples):
         errors.append("expression matrix sample columns do not match metadata sample_id values")
+    if project_dir is not None and expr_samples:
+        gene_qc = assess_expression_gene_identity(project_dir, expr_path, str(card.get("dataset_id", "")))
+        if gene_qc.get("status") == "FAIL":
+            errors.append(f"expression matrix gene identity unresolved: {gene_qc.get('identity_type', '')}")
 
     groups = {row.get("group", "") for row in meta_rows}
     contrast = card.get("contrast", {})
@@ -139,9 +144,23 @@ def screen_card(path: Path, project_dir: Path | None = None) -> dict:
         "source_class": source_class(card),
         "metadata_quality_score": metadata_quality(card, project_dir)["score"] if card.get("modality") == "bulk_expression" else "",
         "metadata_quality_label": metadata_quality(card, project_dir)["label"] if card.get("modality") == "bulk_expression" else "not_applicable",
+        "gene_identity_status": _gene_identity_status(card, project_dir),
         "recommended_use": ",".join(card.get("recommended_use", [])),
         "reasons": "; ".join(reasons),
     }
+
+
+def _gene_identity_status(card: dict, project_dir: Path | None) -> str:
+    if project_dir is None or card.get("modality") != "bulk_expression":
+        return "not_applicable"
+    expr = _resolve(project_dir, card.get("file_paths", {}).get("expression_matrix", ""))
+    if not expr.exists():
+        return "missing"
+    try:
+        qc = assess_expression_gene_identity(project_dir, expr, str(card.get("dataset_id", "")))
+    except Exception as exc:
+        return f"error:{type(exc).__name__}"
+    return f"{qc.get('status')}:{qc.get('identity_type')}"
 
 
 def screen_project(project_dir: Path, selected_ids: set[str] | None = None) -> list[dict]:
@@ -157,6 +176,7 @@ def screen_project(project_dir: Path, selected_ids: set[str] | None = None) -> l
             f.write(f"## {row['dataset_id']}\n")
             f.write(f"- Grade: {row['grade']}\n")
             f.write(f"- Modality: {row['modality']}\n")
+            f.write(f"- Gene identity: {row.get('gene_identity_status', 'not_applicable')}\n")
             f.write(f"- Reason: {row['reasons']}\n\n")
     csv_path = project_dir / "eligible_datasets.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
@@ -169,6 +189,7 @@ def screen_project(project_dir: Path, selected_ids: set[str] | None = None) -> l
                 "source_class",
                 "metadata_quality_score",
                 "metadata_quality_label",
+                "gene_identity_status",
                 "recommended_use",
                 "path",
                 "reasons",

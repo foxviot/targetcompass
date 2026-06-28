@@ -16,7 +16,7 @@ class SystemResetTest(unittest.TestCase):
             rows = system_status(project)
             names = {row["name"] for row in rows}
             self.assertIn("Python", names)
-            self.assertIn("OpenAI API key", names)
+            self.assertIn("LLM API key", names)
             self.assertIn("Dataset cards", names)
 
     def test_reset_demo_outputs_preserves_configs_and_data(self):

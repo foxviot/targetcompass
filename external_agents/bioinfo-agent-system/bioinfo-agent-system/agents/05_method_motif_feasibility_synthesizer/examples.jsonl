@@ -1,0 +1,1 @@
+{"case_id":"a5_example_t2d","input_ref":"a4_example_t2d","expected_ready_contracts":["bulk_expression_qc","inflammatory_program_scoring","molecule_program_association","surface_secretome_annotation","candidate_ranking"],"expected_blocked_contracts":["causal_mr_support","wetlab_validation","vaccine_antigen_validation"]}
