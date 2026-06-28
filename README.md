@@ -4,6 +4,12 @@ TargetCompass Lite is a local-first target discovery MVP. It turns a biomedical 
 
 The default demo focuses on vascular aging and endothelial senescence.
 
+## Detailed Project Documentation
+
+- English overview: [docs/PROJECT_OVERVIEW_EN.md](docs/PROJECT_OVERVIEW_EN.md)
+- 中文完整说明: [docs/PROJECT_OVERVIEW_CN.md](docs/PROJECT_OVERVIEW_CN.md)
+- v5 release notes: [docs/GITHUB_RELEASE_NOTES_V5_CN.md](docs/GITHUB_RELEASE_NOTES_V5_CN.md)
+
 ## Quick Start
 
 Beginner one-click launch:
