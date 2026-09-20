@@ -1,4 +1,31 @@
-# TargetCompass Lite
+<div align="center">
+
+# TargetCompass
+
+### From research questions to traceable evidence.
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![Stage](https://img.shields.io/badge/stage-research_MVP-0ea5e9?style=flat-square) ![Focus](https://img.shields.io/badge/focus-bioinformatics-10b981?style=flat-square)
+
+本地科研 Agent · 数据审计 · 证据追溯 · 质量控制 · 报告导出
+
+[中文说明](docs/PROJECT_OVERVIEW_CN.md) · [English overview](docs/PROJECT_OVERVIEW_EN.md) · [Portfolio](https://github.com/foxviot)
+
+</div>
+
+## Workflow at a glance
+
+```mermaid
+flowchart LR
+ A[Research request] --> B[Dataset audit]
+ B --> C[Analysis]
+ C --> D[Evidence and scoring]
+ D --> E[Review]
+ E --> F[Report]
+```
+
+---
+
+## TargetCompass Lite overview
 
 TargetCompass Lite is a local-first target discovery MVP. It turns a biomedical research request into a traceable workflow with structured ResearchSpec generation, dataset audit, DEG analysis, enrichment, evidence import, candidate scoring, review actions, adapter audit, and delivery package export.
 
